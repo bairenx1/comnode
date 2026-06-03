@@ -1,0 +1,44 @@
+# ── Python ──
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.venv/
+venv*/
+
+# ── ComfyUI 生成物 ──
+ComfyUI/models/*
+!ComfyUI/models/.gitkeep
+ComfyUI/input/*
+!ComfyUI/input/example.png
+ComfyUI/output/*
+!ComfyUI/output/.gitkeep
+ComfyUI/temp/
+ComfyUI/user/
+ComfyUI/custom_nodes/
+
+# ── 前端 ──
+comfyui-nodestudio/node_modules/
+comfyui-nodestudio/dist/
+
+# ── IDE / 系统 ──
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── 日志 / 临时文件 ──
+*.log
+*.tmp
+test_*.py
+fix_*.py
+check_torch.py
+_comfy_packages.txt
+_req_no_comfy.txt
+.claude/
+
+# ── ComfyUI 备份 git ──
+ComfyUI/.git.backup/

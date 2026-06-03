@@ -1,0 +1,2 @@
+import{t as e}from"./src-CVSMPL6-.js";var t=e([`not-disabled:bg-component-node-widget-background`,`not-disabled:text-component-node-foreground`,`border-none`,`rounded-lg`]);export{t};
+//# sourceMappingURL=layout-DpVK5KJq.js.map

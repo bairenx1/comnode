@@ -1,0 +1,2 @@
+var e=new Set([`.gltf`,`.glb`,`.obj`,`.fbx`,`.stl`,`.spz`,`.splat`,`.ply`,`.ksplat`]),t=[...e].join(`,`),n=new Set([`.hdr`,`.exr`]),r=[...n].join(`,`);window.comfyAPI=window.comfyAPI||{},window.comfyAPI.constants=window.comfyAPI.constants||{},window.comfyAPI.constants.SUPPORTED_EXTENSIONS=e,window.comfyAPI.constants.SUPPORTED_EXTENSIONS_ACCEPT=t,window.comfyAPI.constants.SUPPORTED_HDRI_EXTENSIONS=n,window.comfyAPI.constants.SUPPORTED_HDRI_EXTENSIONS_ACCEPT=r;export{r as i,t as n,n as r,e as t};
+//# sourceMappingURL=constants-CP2DhR1Y.js.map

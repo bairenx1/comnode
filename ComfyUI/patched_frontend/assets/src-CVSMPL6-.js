@@ -1,0 +1,2 @@
+import"./rolldown-runtime-DIIn1E2Q.js";import{M as e,j as t}from"./vendor-other-D_6ZljUl.js";var n=t({extend:{classGroups:{"font-size":[`text-xxs`,`text-xxxs`]}}});function cn(...t){return n(e(t))}export{cn as t};
+//# sourceMappingURL=src-CVSMPL6-.js.map

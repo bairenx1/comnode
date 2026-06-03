@@ -1,0 +1,6 @@
+{
+  "name": "ComfyUI NodeStudio",
+  "description": "Professional, responsive frontend dashboard for ComfyUI workflows including Text-to-Image, Face Swap, and Inpainting.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

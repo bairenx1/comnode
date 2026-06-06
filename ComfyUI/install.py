@@ -290,10 +290,22 @@ def install_base_deps(venv_python: str, root_dir: str):
     return True
 
 
+def _torch_installed(venv_python: str) -> bool:
+    """检查 PyTorch 是否已安装"""
+    ret, _ = run([venv_python, "-c", "import torch; print(torch.__version__)"],
+                 desc="检查 PyTorch", check=False, silent=True)
+    return ret == 0
+
+
 def install_pytorch(venv_python: str, gpu: dict) -> bool:
     """安装适配 GPU 的 PyTorch 版本"""
     desc, cmd_list = get_pytorch_cmd(gpu)
     info(f"PyTorch 安装方案: {desc}")
+
+    # 如果已安装则跳过
+    if _torch_installed(venv_python):
+        ok("PyTorch 已安装，跳过")
+        return True
 
     # 确保 pip 最新
     run([venv_python, "-m", "pip", "install", "--upgrade", "pip"],

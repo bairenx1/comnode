@@ -15,7 +15,8 @@ ComfyUI/output/*
 !ComfyUI/output/.gitkeep
 ComfyUI/temp/
 ComfyUI/user/
-ComfyUI/custom_nodes/
+ComfyUI/custom_nodes/*
+!ComfyUI/custom_nodes/.gitkeep
 
 # ── 前端 ──
 comfyui-nodestudio/node_modules/

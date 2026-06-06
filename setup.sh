@@ -10,8 +10,8 @@ RED="\033[31m"; GREEN="\033[32m"; YELLOW="\033[33m"
 CYAN="\033[36m"; BOLD="\033[1m"; DIM="\033[2m"; RESET="\033[0m"
 CHECK="✅"; CROSS="❌"; DOT="•"; ARROW="➜"
 
-REPO_URL="https://github.com/USER/comfyui-nodestudio.git"
-REPO_ZIP="https://github.com/USER/comfyui-nodestudio/archive/refs/heads/main.zip"
+REPO_URL="https://github.com/bairenx1/comnode.git"
+REPO_ZIP="https://github.com/bairenx1/comnode/archive/refs/heads/master.zip"
 INSTALL_DIR="$HOME/comfyui-nodestudio"
 
 clear

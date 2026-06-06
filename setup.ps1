@@ -5,8 +5,8 @@
 
 $ErrorActionPreference = "Stop"
 
-$REPO_URL   = "https://github.com/USER/comfyui-nodestudio.git"
-$REPO_ZIP   = "https://github.com/USER/comfyui-nodestudio/archive/refs/heads/main.zip"
+$REPO_URL   = "https://github.com/bairenx1/comnode.git"
+$REPO_ZIP   = "https://github.com/bairenx1/comnode/archive/refs/heads/master.zip"
 $INSTALL_DIR = "$env:USERPROFILE\comfyui-nodestudio"
 
 Clear-Host

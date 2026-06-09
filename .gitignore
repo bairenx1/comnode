@@ -6,17 +6,32 @@ dist/
 .venv/
 venv*/
 
-# ── ComfyUI 生成物 ──
-ComfyUI/models/*
-!ComfyUI/models/.gitkeep
+# ── ComfyUI 运行时目录 ──
+# models — 保留目录结构和配置文件，排除模型权重
+ComfyUI/models/**/*
+!ComfyUI/models/**/.gitkeep
+!ComfyUI/models/**/put_*
+!ComfyUI/models/**/*.yaml
+!ComfyUI/models/**/*.yml
+!ComfyUI/models/**/*.json
+# input — 只保留示例图
 ComfyUI/input/*
 !ComfyUI/input/example.png
+# output — 排除生成图，保留目录
 ComfyUI/output/*
 !ComfyUI/output/.gitkeep
-ComfyUI/temp/
-ComfyUI/user/
+# temp — 排除临时文件，保留目录
+ComfyUI/temp/*
+!ComfyUI/temp/.gitkeep
+ComfyUI/temp/**/*
+# user — 排除用户数据和数据库
+ComfyUI/user/*
+!ComfyUI/user/.gitkeep
+ComfyUI/user/**/*
+# custom_nodes — 保留示例
 ComfyUI/custom_nodes/*
 !ComfyUI/custom_nodes/.gitkeep
+!ComfyUI/custom_nodes/*.py.example
 
 # ── 前端 ──
 comfyui-nodestudio/node_modules/

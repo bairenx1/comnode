@@ -86,12 +86,21 @@ class WorkflowRegistry:
 
     @staticmethod
     def _set_graph_value(graph: dict[str, Any], target: str, value: Any) -> None:
-        # target format: nodeId.inputs.key
+        # target 格式: nodeId.inputs.key  或  parentId.childId.inputs.key (子图嵌套)
         parts = target.split(".")
         if len(parts) < 3 or parts[1] != "inputs":
             raise ValueError(f"Unsupported mapping target: {target}")
         node_id = parts[0]
         key = ".".join(parts[2:])
+
         if node_id not in graph:
             raise KeyError(f"Node not found in workflow: {node_id}")
-        graph[node_id]["inputs"][key] = value
+
+        # 如果该节点包含子图，则递归查找子图中的目标节点
+        node_data = graph[node_id]
+        if '_subgraph' in node_data:
+            # target 中剩下的部分是子图中的目标: childNode.inputs.key
+            sub_target = '.'.join(parts[1:])
+            WorkflowRegistry._set_graph_value(node_data['_subgraph'], sub_target, value)
+        else:
+            node_data["inputs"][key] = value

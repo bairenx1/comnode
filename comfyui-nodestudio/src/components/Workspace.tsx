@@ -5,7 +5,8 @@ import { api, modeToWorkflowId, modeNameMap, type JobParams, type QueueResult, t
 import {
   UploadCloud, Play, Settings2, Image as ImageIcon, Cpu, Download,
   Layers, Sparkles, RefreshCw, Dna, Maximize2, Share2, CheckCircle2,
-  XCircle, Trash2, History, Plus, Minus, Library, ChevronLeft, ChevronRight, Eye, Bookmark, Star
+  XCircle, Trash2, History, Plus, Minus, Library, ChevronLeft, ChevronRight,
+  Eye, Bookmark, Star, Lock, LockOpen, Shuffle
 } from "lucide-react";
 interface Props {
   mode: AppMode;
@@ -29,6 +30,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   const [workflowList, setWorkflowList] = useState<{workflow_id: string; name: string}[]>([]);
   const [negativePrompt, setNegativePrompt] = useState("");
   const [params, setParams] = useState<Record<string, any>>({});
+  const [seedFixed, setSeedFixed] = useState(false);
   const [batchCount, setBatchCount] = useState(4);
   const [batchSettingsOpen, setBatchSettingsOpen] = useState(false);
   const batchSettingsRef = useRef<HTMLDivElement>(null);
@@ -43,6 +45,8 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   const [progressStep, setProgressStep] = useState(0);
   const [progressTotal, setProgressTotal] = useState(0);
   const [statusText, setStatusText] = useState("");
+  const [executingNode, setExecutingNode] = useState("");
+  const [nodeProgress, setNodeProgress] = useState<Record<string, {name: string; state: string; value: number; max: number}>>({});
   const [result, setResult] = useState<{ url?: string; prompt_id?: string; outputs?: Record<string, unknown> } | null>(null);
   const [batchResults, setBatchResults] = useState<{ url: string; prompt_id: string }[]>([]);
   const [selectedBatchIndex, setSelectedBatchIndex] = useState(0);
@@ -118,9 +122,34 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
               setProgress(pct);
               setProgressStep(msg.data.step);
               setProgressTotal(msg.data.max_step);
-              setStatusText("采样迭代 " + msg.data.step + "/" + msg.data.max_step);
+              const nodeLabel = executingNode ? `[${executingNode}] ` : "";
+              setStatusText(`${nodeLabel}采样迭代 ${msg.data.step}/${msg.data.max_step}`);
+            } else if (msg.type === "progress_state") {
+              // 各节点独立进度
+              const nodesData = msg.data?.nodes || {};
+              setNodeProgress((prev: any) => {
+                const next = { ...prev };
+                for (const [nid, info] of Object.entries(nodesData) as [string, any][]) {
+                  next[nid] = {
+                    name: info.display_node_name || info.display_node_id || nid,
+                    state: info.state || "running",
+                    value: info.value || 0,
+                    max: info.max || 1,
+                  };
+                }
+                return next;
+              });
             } else if (msg.type === "executing") {
-              setStatusText(msg.data.node ? "执行节点: " + msg.data.node : "完成, 等待输出...");
+              const nodeName = msg.data.node;
+              setExecutingNode(nodeName || "");
+              if (nodeName) {
+                setStatusText("执行节点: " + nodeName);
+              } else {
+                setStatusText("节点执行完毕, 等待输出...");
+              }
+            } else if (msg.type === "execution_start") {
+              setStatusText("工作流开始执行...");
+              setNodeProgress({});
             } else if (msg.type === "executed") {
               const nodeData = msg.data;
               if (nodeData?.output?.images && nodeData.output.images[0]) {
@@ -263,6 +292,8 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
     setProgressStep(0);
     setProgressTotal(0);
     setQueuedJobs([]);
+    setNodeProgress({});
+    setExecutingNode("");
     setGenerating(true);
     setStatusText("正在准备...");
     expectedJobCountRef.current = 1;
@@ -284,7 +315,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
       const jobParams: JobParams = {
         prompt: prompt || "masterpiece, best quality",
         negative_prompt: negativePrompt || undefined,
-        seed: Math.floor(Math.random() * 2**32),
+        seed: seedFixed ? (params.seed || 0) : Math.floor(Math.random() * 2**32),
         ...params,
       };
       if (assetHash) {
@@ -354,17 +385,21 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   const handleBatchGenerate = async () => {
     setError(null); setResult(null); setBatchResults([]); setSelectedBatchIndex(0);
     setProgress(0); setQueuedJobs([]);
+    setNodeProgress({});
+    setExecutingNode("");
     setGenerating(true);
     setStatusText("正在提交批量任务...");
     expectedJobCountRef.current = batchCount;
     receivedJobCountRef.current = 0;
     try {
       const workflowId = customBindings[mode] || modeToWorkflowId[mode] || "txt2img";
+      const baseSeed = params.seed || Math.floor(Math.random() * 2**32);
       const jobs = Array.from({ length: batchCount }, (_, i) => ({
         params: {
           prompt: prompt || "masterpiece, best quality",
           negative_prompt: negativePrompt || undefined,
-          seed: (params.seed || 0) + i,
+          seed: seedFixed ? (baseSeed + i) : Math.floor(Math.random() * 2**32),
+          ...params,
         } as JobParams,
       }));
       const batchResult = await api.queueBatch(workflowId, jobs, clientId);
@@ -699,25 +734,37 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                         </select>
                       </div>
                     ) : field.type === 'number' || field.type === 'int' || field.type === 'float' ? (
-                      field.name === 'seed' ? (
-                        /* 种子 — 输入框 + 随机按钮 */
+                      field.name === 'seed' || field.name === 'noise_seed' ? (
+                        /* 种子 — 输入框 + 固定/随机按钮 + 随机化按钮 */
                         <div>
                           <label className="block text-[11px] font-mono text-text-secondary mb-1.5 tracking-wide">{label}</label>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => setSeedFixed(!seedFixed)}
+                              className={"p-2 rounded-lg border transition-all " + (seedFixed ? "bg-accent/10 border-accent/40 text-accent" : "bg-bg-input border-border-main text-text-secondary hover:border-accent/30")}
+                              title={seedFixed ? "种子已锁定，点击切换为随机" : "种子随机，点击切换为锁定"}
+                            >
+                              {seedFixed ? <Lock className="w-3.5 h-3.5" /> : <LockOpen className="w-3.5 h-3.5" />}
+                            </button>
                             <input
                               type="text"
                               value={val ?? field.default ?? ''}
                               onChange={(e) => { const n = Number(e.target.value); if (!isNaN(n)) setVal(n); }}
-                              className="flex-1 bg-bg-input border border-border-main focus:border-accent/50 rounded-lg p-2.5 text-sm text-text-primary outline-none font-mono tracking-wider transition-colors"
+                              className={"flex-1 bg-bg-input border focus:border-accent/50 rounded-lg p-2.5 text-sm outline-none font-mono tracking-wider transition-colors " + (seedFixed ? "border-accent/40 text-accent" : "border-border-main text-text-primary")}
+                              disabled={generating}
                             />
                             <button
                               onClick={() => setVal(Math.floor(Math.random() * 2 ** 32))}
-                              className="p-2.5 bg-bg-input hover:bg-accent/10 border border-border-main hover:border-accent/40 rounded-lg transition-colors group"
-                              title="随机种子"
+                              className="p-2 bg-bg-input hover:bg-accent/10 border border-border-main hover:border-accent/40 rounded-lg transition-all group"
+                              title="随机生成种子"
+                              disabled={generating}
                             >
-                              <RefreshCw className="w-4 h-4 text-text-secondary group-hover:text-accent transition-colors" />
+                              <Shuffle className="w-4 h-4 text-text-secondary group-hover:text-accent transition-colors" />
                             </button>
                           </div>
+                          {seedFixed && (
+                            <p className="text-[10px] font-mono text-accent/60 mt-1 tracking-wide">种子已锁定, 批量生成将在此种子基础上递增</p>
+                          )}
                         </div>
                       ) : field.name === 'width' ? (
                         /* 尺寸 — width+height 并排 */
@@ -1097,7 +1144,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
             </div>
           </div>
         )}
-        <div className="h-44 border-t border-border-main/80 bg-bg-base flex flex-col shrink-0 relative z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+        <div className="border-t border-border-main/80 bg-bg-base flex flex-col shrink-0 relative z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]" style={{ minHeight: "11rem" }}>
           <div className="py-2.5 px-6 border-b border-border-main/50 flex justify-between items-center bg-bg-panel/80">
             <span className="text-[10px] font-mono text-text-secondary uppercase tracking-widest flex items-center gap-2 font-semibold">
               <Dna className="w-3.5 h-3.5 text-text-secondary" />
@@ -1107,6 +1154,22 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
               {generating ? progressStep + "/" + (progressTotal || params.steps || 30) + " 步" : "就绪"}
             </span>
           </div>
+          {/* 节点进度列表 */}
+          {generating && Object.keys(nodeProgress).length > 0 && (
+            <div className="px-6 py-2 border-b border-border-main/30 bg-bg-panel/30 max-h-24 overflow-y-auto custom-scrollbar">
+              <div className="flex flex-wrap gap-2">
+                {(Object.entries(nodeProgress) as [string, {name: string; state: string; value: number; max: number}][]).map(([nid, info]) => (
+                  <div key={nid} className="flex items-center gap-1.5 text-[10px] font-mono bg-bg-input/60 border border-border-main/40 rounded px-2 py-1">
+                    <span className={info.state === "completed" ? "text-green-400" : "text-accent"}>
+                      {info.state === "completed" ? <CheckCircle2 className="w-3 h-3" /> : <RefreshCw className="w-3 h-3 animate-spin" />}
+                    </span>
+                    <span className="text-text-secondary max-w-[120px] truncate">{info.name}</span>
+                    <span className="text-text-primary tabular-nums">{info.value}/{info.max}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="p-4 lg:px-8 flex-1 flex flex-col justify-center">
             <div className="max-w-4xl w-full mx-auto space-y-3.5 relative">
               <div className="flex justify-between items-end">

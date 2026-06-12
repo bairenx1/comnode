@@ -60,7 +60,7 @@ echo ============================================
 echo  启动 ComfyUI 后端 (端口 %COMFY_PORT%)...
 echo ============================================
 echo.
-start "ComfyUI-Backend" cmd /k "cd /d "%ROOT_DIR%" && "%VENV_PYTHON%" main.py --listen %COMFY_LISTEN% --port %COMFY_PORT% --disable-auto-launch --enable-assets --enable-cors-header --front-end-root "%ROOT_DIR%custom_webui\frontend""
+start "ComfyUI-Backend" cmd /k "cd /d "%ROOT_DIR%" && "%VENV_PYTHON%" main.py --listen %COMFY_LISTEN% --port %COMFY_PORT% --disable-auto-launch --enable-assets --enable-cors-header --enable-manager --front-end-root "%ROOT_DIR%custom_webui\frontend""
 
 timeout /t 3 /nobreak >nul
 

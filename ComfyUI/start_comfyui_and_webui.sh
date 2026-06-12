@@ -66,6 +66,7 @@ echo
     --disable-auto-launch \
     --enable-assets \
     --enable-cors-header \
+    --enable-manager \
     --front-end-root "$ROOT_DIR/custom_webui/frontend" &
 COMFY_PID=$!
 

@@ -1,0 +1,19 @@
+{
+  "workflow_id": "image_edit__qwen_2511_",
+  "name": "Image Edit (Qwen 2511)",
+  "category": "converted",
+  "workflow_file": "image_edit__qwen_2511_.json",
+  "mapping_file": "image_edit__qwen_2511_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "vae_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "vae_name": "17.inputs.vae_name"
+  }
+}

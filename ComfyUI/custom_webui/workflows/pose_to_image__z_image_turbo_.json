@@ -1,0 +1,12 @@
+{
+  "13": {
+    "class_type": "d8492a46-9e6c-4917-b5ea-4273aabf5f51",
+    "inputs": {
+      "text": "",
+      "unet_name": "",
+      "clip_name": "z_image_turbo_bf16.safetensors",
+      "vae_name": "qwen_3_4b.safetensors",
+      "name": "ae.safetensors"
+    }
+  }
+}

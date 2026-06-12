@@ -1,0 +1,11 @@
+{
+  "workflow_id": "glow",
+  "name": "Glow",
+  "category": "converted",
+  "workflow_file": "glow.json",
+  "mapping_file": "glow.mapping.json",
+  "ui_schema": {
+    "fields": []
+  },
+  "field_mapping": {}
+}

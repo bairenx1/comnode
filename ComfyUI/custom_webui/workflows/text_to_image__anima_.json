@@ -1,0 +1,16 @@
+{
+  "60": {
+    "class_type": "a3c0dab6-b250-4585-a0f9-8fb8b074fb2f",
+    "inputs": {
+      "text": "",
+      "width": 0,
+      "height": 0,
+      "steps": 0,
+      "cfg": 0.0,
+      "seed": 0,
+      "unet_name": "",
+      "clip_name": "",
+      "vae_name": ""
+    }
+  }
+}

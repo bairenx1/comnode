@@ -1,0 +1,11 @@
+{
+  "workflow_id": "sharpen",
+  "name": "Sharpen",
+  "category": "converted",
+  "workflow_file": "sharpen.json",
+  "mapping_file": "sharpen.mapping.json",
+  "ui_schema": {
+    "fields": []
+  },
+  "field_mapping": {}
+}

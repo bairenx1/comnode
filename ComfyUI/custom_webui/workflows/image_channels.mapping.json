@@ -1,0 +1,11 @@
+{
+  "workflow_id": "image_channels",
+  "name": "Image Channels",
+  "category": "converted",
+  "workflow_file": "image_channels.json",
+  "mapping_file": "image_channels.mapping.json",
+  "ui_schema": {
+    "fields": []
+  },
+  "field_mapping": {}
+}

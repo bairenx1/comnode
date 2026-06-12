@@ -1,0 +1,55 @@
+{
+  "workflow_id": "image_edit__longcat_image_edit_",
+  "name": "Image Edit (LongCat Image Edit)",
+  "category": "converted",
+  "workflow_file": "image_edit__longcat_image_edit_.json",
+  "mapping_file": "image_edit__longcat_image_edit_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "steps",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "cfg",
+        "type": "number",
+        "default": 0.0
+      },
+      {
+        "name": "seed",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "unet_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "clip_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "vae_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "prompt": "176.inputs.prompt",
+    "steps": "176.inputs.steps",
+    "cfg": "176.inputs.cfg",
+    "seed": "176.inputs.seed",
+    "unet_name": "176.inputs.unet_name",
+    "clip_name": "176.inputs.clip_name",
+    "vae_name": "176.inputs.vae_name"
+  }
+}

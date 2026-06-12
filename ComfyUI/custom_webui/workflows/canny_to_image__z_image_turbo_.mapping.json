@@ -1,0 +1,25 @@
+{
+  "workflow_id": "canny_to_image__z_image_turbo_",
+  "name": "Canny to Image (Z-Image-Turbo)",
+  "category": "converted",
+  "workflow_file": "canny_to_image__z_image_turbo_.json",
+  "mapping_file": "canny_to_image__z_image_turbo_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "high_threshold",
+        "type": "number",
+        "default": 0.0
+      },
+      {
+        "name": "unet_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "high_threshold": "18.inputs.high_threshold",
+    "unet_name": "18.inputs.unet_name"
+  }
+}

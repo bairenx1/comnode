@@ -1,0 +1,22 @@
+{
+  "167": {
+    "class_type": "c3157b75-484a-459e-b8de-57823bef5130",
+    "inputs": {
+      "positive_prompt": "",
+      "negative_prompt": "",
+      "sam3_text_prompt": "",
+      "start_frame_index": 0,
+      "duration_seconds": 0,
+      "latent_width": 0,
+      "latent_height": 0,
+      "skip_pass_2": false,
+      "noise_seed": 0,
+      "sam3_checkpoint": "",
+      "void_unet_pass1": "",
+      "void_unet_pass2": "",
+      "optical_flow_model": "",
+      "clip_name": "",
+      "vae_name": ""
+    }
+  }
+}

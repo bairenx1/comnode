@@ -1,0 +1,16 @@
+{
+  "76": {
+    "class_type": "e5cfe5ba-2ae0-4bc4-869f-ab2228cb44d3",
+    "inputs": {
+      "text": "",
+      "width": 0,
+      "height": 0,
+      "seed": 0,
+      "unet_name": "",
+      "clip_name": "",
+      "vae_name": "",
+      "lora_name": "",
+      "value": false
+    }
+  }
+}

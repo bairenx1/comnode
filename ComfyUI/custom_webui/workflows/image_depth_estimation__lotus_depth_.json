@@ -1,0 +1,10 @@
+{
+  "76": {
+    "class_type": "96338968-1242-4f02-b6a1-d496af4bcffe",
+    "inputs": {
+      "sigma": 0.0,
+      "unet_name": "",
+      "vae_name": ""
+    }
+  }
+}

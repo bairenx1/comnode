@@ -1,0 +1,17 @@
+{
+  "116": {
+    "class_type": "296b573f-1e7d-43df-a2df-925fe5e17063",
+    "inputs": {
+      "text": 640,
+      "width": 640,
+      "height": 81,
+      "length": 0,
+      "unet_name": "",
+      "lora_name": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+      "unet_name_1": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
+      "lora_name_1": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+      "clip_name": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
+      "vae_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors"
+    }
+  }
+}

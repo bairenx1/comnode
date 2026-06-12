@@ -1,0 +1,25 @@
+{
+  "workflow_id": "image_inpainting__qwen_image_",
+  "name": "Image Inpainting (Qwen-image)",
+  "category": "converted",
+  "workflow_file": "image_inpainting__qwen_image_.json",
+  "mapping_file": "image_inpainting__qwen_image_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "vae_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "control_net_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "vae_name": "256.inputs.vae_name",
+    "control_net_name": "256.inputs.control_net_name"
+  }
+}

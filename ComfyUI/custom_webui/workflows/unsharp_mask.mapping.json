@@ -1,0 +1,11 @@
+{
+  "workflow_id": "unsharp_mask",
+  "name": "Unsharp Mask",
+  "category": "converted",
+  "workflow_file": "unsharp_mask.json",
+  "mapping_file": "unsharp_mask.mapping.json",
+  "ui_schema": {
+    "fields": []
+  },
+  "field_mapping": {}
+}

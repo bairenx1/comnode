@@ -1,0 +1,25 @@
+{
+  "workflow_id": "image_to_video__wan_2_2_",
+  "name": "Image to Video (Wan 2.2)",
+  "category": "converted",
+  "workflow_file": "image_to_video__wan_2_2_.json",
+  "mapping_file": "image_to_video__wan_2_2_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "frame_count",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "unet_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "frame_count": "116.inputs.length",
+    "unet_name": "116.inputs.unet_name"
+  }
+}

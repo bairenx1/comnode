@@ -1,0 +1,19 @@
+{
+  "workflow_id": "image_to_model__hunyuan3d_2_1_",
+  "name": "Image to Model (Hunyuan3d 2.1)",
+  "category": "converted",
+  "workflow_file": "image_to_model__hunyuan3d_2_1_.json",
+  "mapping_file": "image_to_model__hunyuan3d_2_1_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "ckpt_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "ckpt_name": "19.inputs.ckpt_name"
+  }
+}

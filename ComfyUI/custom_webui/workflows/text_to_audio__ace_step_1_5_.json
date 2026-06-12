@@ -1,0 +1,19 @@
+{
+  "21": {
+    "class_type": "510f6b52-34ee-40dd-b532-475497dee41b",
+    "inputs": {
+      "tags": "",
+      "lyrics": "",
+      "timesignature": "en",
+      "language": "4",
+      "keyscale": "E minor",
+      "generate_audio_codes": true,
+      "cfg_scale": 2,
+      "value": 0.0,
+      "unet_name": "",
+      "clip_name1": "acestep_v1.5_turbo.safetensors",
+      "clip_name2": "qwen_0.6b_ace15.safetensors",
+      "vae_name": "qwen_4b_ace15.safetensors"
+    }
+  }
+}

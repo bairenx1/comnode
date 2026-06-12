@@ -1,0 +1,11 @@
+{
+  "workflow_id": "color_balance",
+  "name": "Color Balance",
+  "category": "converted",
+  "workflow_file": "color_balance.json",
+  "mapping_file": "color_balance.mapping.json",
+  "ui_schema": {
+    "fields": []
+  },
+  "field_mapping": {}
+}

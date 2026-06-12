@@ -1,0 +1,11 @@
+{
+  "49": {
+    "class_type": "ca1fac5f-abe5-4729-b7fe-2299f6630a65",
+    "inputs": {
+      "inference_resolution": 0,
+      "inference_batch_size": 0,
+      "moge_model": "",
+      "switch": false
+    }
+  }
+}

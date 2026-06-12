@@ -1,0 +1,25 @@
+{
+  "workflow_id": "text_to_audio__ace_step_1_5_",
+  "name": "Text to Audio (ACE-Step 1.5)",
+  "category": "converted",
+  "workflow_file": "text_to_audio__ace_step_1_5_.json",
+  "mapping_file": "text_to_audio__ace_step_1_5_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "value",
+        "type": "number",
+        "default": 0.0
+      },
+      {
+        "name": "unet_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "value": "21.inputs.value",
+    "unet_name": "21.inputs.unet_name"
+  }
+}

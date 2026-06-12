@@ -1,0 +1,49 @@
+{
+  "workflow_id": "image_inpainting__flux_1_fill_dev_",
+  "name": "Image Inpainting (Flux.1 Fill Dev)",
+  "category": "converted",
+  "workflow_file": "image_inpainting__flux_1_fill_dev_.json",
+  "mapping_file": "image_inpainting__flux_1_fill_dev_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "text",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "seed",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "unet_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "clip_name1",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "clip_name2",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "vae_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "text": "232.inputs.text",
+    "seed": "232.inputs.seed",
+    "unet_name": "232.inputs.unet_name",
+    "clip_name1": "232.inputs.clip_name1",
+    "clip_name2": "232.inputs.clip_name2",
+    "vae_name": "232.inputs.vae_name"
+  }
+}

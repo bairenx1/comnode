@@ -1,0 +1,11 @@
+{
+  "workflow_id": "film_grain",
+  "name": "Film Grain",
+  "category": "converted",
+  "workflow_file": "film_grain.json",
+  "mapping_file": "film_grain.mapping.json",
+  "ui_schema": {
+    "fields": []
+  },
+  "field_mapping": {}
+}

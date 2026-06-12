@@ -1,0 +1,11 @@
+{
+  "workflow_id": "chromatic_aberration",
+  "name": "Chromatic Aberration",
+  "category": "converted",
+  "workflow_file": "chromatic_aberration.json",
+  "mapping_file": "chromatic_aberration.mapping.json",
+  "ui_schema": {
+    "fields": []
+  },
+  "field_mapping": {}
+}

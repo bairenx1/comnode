@@ -1,0 +1,49 @@
+{
+  "workflow_id": "image_edit__qwen_2509_",
+  "name": "Image Edit (Qwen 2509)",
+  "category": "converted",
+  "workflow_file": "image_edit__qwen_2509_.json",
+  "mapping_file": "image_edit__qwen_2509_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "seed",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "value",
+        "type": "string",
+        "default": false
+      },
+      {
+        "name": "unet_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "clip_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "vae_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "prompt": "433.inputs.prompt",
+    "seed": "433.inputs.seed",
+    "value": "433.inputs.value",
+    "unet_name": "433.inputs.unet_name",
+    "clip_name": "433.inputs.clip_name",
+    "vae_name": "433.inputs.vae_name"
+  }
+}

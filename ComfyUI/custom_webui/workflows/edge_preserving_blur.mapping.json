@@ -1,0 +1,11 @@
+{
+  "workflow_id": "edge_preserving_blur",
+  "name": "Edge-Preserving Blur",
+  "category": "converted",
+  "workflow_file": "edge_preserving_blur.json",
+  "mapping_file": "edge_preserving_blur.mapping.json",
+  "ui_schema": {
+    "fields": []
+  },
+  "field_mapping": {}
+}

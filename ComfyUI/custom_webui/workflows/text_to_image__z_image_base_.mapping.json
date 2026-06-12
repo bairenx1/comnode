@@ -1,0 +1,67 @@
+{
+  "workflow_id": "text_to_image__z_image_base_",
+  "name": "Text to Image (Z-Image-Base)",
+  "category": "converted",
+  "workflow_file": "text_to_image__z_image_base_.json",
+  "mapping_file": "text_to_image__z_image_base_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "text",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "width",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "height",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "steps",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "cfg",
+        "type": "number",
+        "default": 0.0
+      },
+      {
+        "name": "seed",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "unet_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "clip_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "vae_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "text": "126.inputs.text",
+    "width": "126.inputs.width",
+    "height": "126.inputs.height",
+    "steps": "126.inputs.steps",
+    "cfg": "126.inputs.cfg",
+    "seed": "126.inputs.seed",
+    "unet_name": "126.inputs.unet_name",
+    "clip_name": "126.inputs.clip_name",
+    "vae_name": "126.inputs.vae_name"
+  }
+}

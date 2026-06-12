@@ -1,0 +1,11 @@
+{
+  "workflow_id": "brightness_and_contrast",
+  "name": "Brightness and Contrast",
+  "category": "converted",
+  "workflow_file": "brightness_and_contrast.json",
+  "mapping_file": "brightness_and_contrast.mapping.json",
+  "ui_schema": {
+    "fields": []
+  },
+  "field_mapping": {}
+}

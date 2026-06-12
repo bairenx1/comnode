@@ -1,0 +1,61 @@
+{
+  "workflow_id": "first_last_frame_to_video",
+  "name": "First-Last-Frame to Video",
+  "category": "converted",
+  "workflow_file": "first_last_frame_to_video.json",
+  "mapping_file": "first_last_frame_to_video.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "text",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "value",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "value_1",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "value_2",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "value_3",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "noise_seed",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "ckpt_name_1",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "text_encoder",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "text": "227.inputs.text",
+    "value": "227.inputs.value",
+    "value_1": "227.inputs.value_1",
+    "value_2": "227.inputs.value_2",
+    "value_3": "227.inputs.value_3",
+    "noise_seed": "227.inputs.noise_seed",
+    "ckpt_name_1": "227.inputs.ckpt_name_1",
+    "text_encoder": "227.inputs.text_encoder"
+  }
+}

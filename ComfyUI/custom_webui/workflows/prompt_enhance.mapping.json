@@ -1,0 +1,11 @@
+{
+  "workflow_id": "prompt_enhance",
+  "name": "Prompt Enhance",
+  "category": "converted",
+  "workflow_file": "prompt_enhance.json",
+  "mapping_file": "prompt_enhance.mapping.json",
+  "ui_schema": {
+    "fields": []
+  },
+  "field_mapping": {}
+}

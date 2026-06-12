@@ -1,0 +1,11 @@
+{
+  "workflow_id": "image_blur",
+  "name": "Image Blur",
+  "category": "converted",
+  "workflow_file": "image_blur.json",
+  "mapping_file": "image_blur.mapping.json",
+  "ui_schema": {
+    "fields": []
+  },
+  "field_mapping": {}
+}

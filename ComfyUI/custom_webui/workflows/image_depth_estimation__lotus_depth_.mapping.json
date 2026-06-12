@@ -1,0 +1,31 @@
+{
+  "workflow_id": "image_depth_estimation__lotus_depth_",
+  "name": "Image Depth Estimation (Lotus Depth)",
+  "category": "converted",
+  "workflow_file": "image_depth_estimation__lotus_depth_.json",
+  "mapping_file": "image_depth_estimation__lotus_depth_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "sigma",
+        "type": "number",
+        "default": 0.0
+      },
+      {
+        "name": "unet_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "vae_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "sigma": "76.inputs.sigma",
+    "unet_name": "76.inputs.unet_name",
+    "vae_name": "76.inputs.vae_name"
+  }
+}

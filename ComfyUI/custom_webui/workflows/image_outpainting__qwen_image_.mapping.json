@@ -1,0 +1,25 @@
+{
+  "workflow_id": "image_outpainting__qwen_image_",
+  "name": "Image Outpainting (Qwen-Image)",
+  "category": "converted",
+  "workflow_file": "image_outpainting__qwen_image_.json",
+  "mapping_file": "image_outpainting__qwen_image_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "unet_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "clip_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "unet_name": "224.inputs.unet_name",
+    "clip_name": "224.inputs.clip_name"
+  }
+}

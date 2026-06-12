@@ -1,0 +1,14 @@
+{
+  "13": {
+    "class_type": "d8492a46-9e6c-4917-b5ea-4273aabf5f51",
+    "inputs": {
+      "text": "z_image_turbo_bf16.safetensors",
+      "unet_name": "qwen_3_4b.safetensors",
+      "clip_name": "ae.safetensors",
+      "vae_name": "Z-Image-Turbo-Fun-Controlnet-Union.safetensors",
+      "name": "lotus-depth-d-v1-1.safetensors",
+      "unet_name_1": "vae-ft-mse-840000-ema-pruned.safetensors",
+      "vae_name_1": ""
+    }
+  }
+}

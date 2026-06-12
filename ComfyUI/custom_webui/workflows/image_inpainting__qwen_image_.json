@@ -1,0 +1,11 @@
+{
+  "256": {
+    "class_type": "c93d5779-7bfe-4511-98e2-6a665ed0dff2",
+    "inputs": {
+      "text": "qwen_image_vae.safetensors",
+      "clip_name": "Qwen-Image-InstantX-ControlNet-Inpainting.safetensors",
+      "vae_name": "",
+      "control_net_name": ""
+    }
+  }
+}

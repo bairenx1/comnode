@@ -1,0 +1,11 @@
+{
+  "17": {
+    "class_type": "9fa6af8b-8c99-4446-8681-bccf8ba4ea54",
+    "inputs": {
+      "prompt": "qwen_image_edit_2511_bf16.safetensors",
+      "unet_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "clip_name": "qwen_image_vae.safetensors",
+      "vae_name": ""
+    }
+  }
+}

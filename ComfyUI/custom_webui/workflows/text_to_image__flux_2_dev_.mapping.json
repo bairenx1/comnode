@@ -1,0 +1,67 @@
+{
+  "workflow_id": "text_to_image__flux_2_dev_",
+  "name": "Text to Image (Flux.2 Dev)",
+  "category": "converted",
+  "workflow_file": "text_to_image__flux_2_dev_.json",
+  "mapping_file": "text_to_image__flux_2_dev_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "text",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "width",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "height",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "unet_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "clip_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "vae_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "lora_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "value",
+        "type": "string",
+        "default": false
+      },
+      {
+        "name": "noise_seed",
+        "type": "number",
+        "default": 0
+      }
+    ]
+  },
+  "field_mapping": {
+    "text": "123.inputs.text",
+    "width": "123.inputs.width",
+    "height": "123.inputs.height",
+    "unet_name": "123.inputs.unet_name",
+    "clip_name": "123.inputs.clip_name",
+    "vae_name": "123.inputs.vae_name",
+    "lora_name": "123.inputs.lora_name",
+    "value": "123.inputs.value",
+    "noise_seed": "123.inputs.noise_seed"
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "workflow_id": "video_to_pose_map__sdpose_multi_person_",
+  "name": "Video to Pose Map (SDPose Multi-Person)",
+  "category": "converted",
+  "workflow_file": "video_to_pose_map__sdpose_multi_person_.json",
+  "mapping_file": "video_to_pose_map__sdpose_multi_person_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "resize_type.longer_size",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "scale_method",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "draw_body",
+        "type": "string",
+        "default": false
+      },
+      {
+        "name": "draw_hands",
+        "type": "string",
+        "default": false
+      },
+      {
+        "name": "draw_face",
+        "type": "string",
+        "default": false
+      },
+      {
+        "name": "draw_feet",
+        "type": "string",
+        "default": false
+      },
+      {
+        "name": "stick_width",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "face_point_size",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "score_threshold",
+        "type": "number",
+        "default": 0.0
+      },
+      {
+        "name": "threshold",
+        "type": "number",
+        "default": 0.0
+      },
+      {
+        "name": "class_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "max_detections",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "ckpt_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "unet_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "resize_type.longer_size": "675.inputs.resize_type.longer_size",
+    "scale_method": "675.inputs.scale_method",
+    "draw_body": "675.inputs.draw_body",
+    "draw_hands": "675.inputs.draw_hands",
+    "draw_face": "675.inputs.draw_face",
+    "draw_feet": "675.inputs.draw_feet",
+    "stick_width": "675.inputs.stick_width",
+    "face_point_size": "675.inputs.face_point_size",
+    "score_threshold": "675.inputs.score_threshold",
+    "threshold": "675.inputs.threshold",
+    "class_name": "675.inputs.class_name",
+    "max_detections": "675.inputs.max_detections",
+    "ckpt_name": "675.inputs.ckpt_name",
+    "unet_name": "675.inputs.unet_name"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "workflow_id": "image_edit__flux_2_dev_",
+  "name": "Image Edit (Flux.2 Dev)",
+  "category": "converted",
+  "workflow_file": "image_edit__flux_2_dev_.json",
+  "mapping_file": "image_edit__flux_2_dev_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "text",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "unet_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "clip_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "vae_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "value",
+        "type": "string",
+        "default": false
+      },
+      {
+        "name": "lora_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "text": "139.inputs.text",
+    "unet_name": "139.inputs.unet_name",
+    "clip_name": "139.inputs.clip_name",
+    "vae_name": "139.inputs.vae_name",
+    "value": "139.inputs.value",
+    "lora_name": "139.inputs.lora_name"
+  }
+}

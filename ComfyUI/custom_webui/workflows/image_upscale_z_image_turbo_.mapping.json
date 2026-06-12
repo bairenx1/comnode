@@ -1,0 +1,25 @@
+{
+  "workflow_id": "image_upscale_z_image_turbo_",
+  "name": "Image Upscale(Z-image-Turbo)",
+  "category": "converted",
+  "workflow_file": "image_upscale_z_image_turbo_.json",
+  "mapping_file": "image_upscale_z_image_turbo_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "unet_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "clip_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "unet_name": "87.inputs.unet_name",
+    "clip_name": "87.inputs.clip_name"
+  }
+}

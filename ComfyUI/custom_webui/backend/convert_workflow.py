@@ -3,6 +3,7 @@ from pathlib import Path
 
 WORKFLOWS_DIR = Path(__file__).resolve().parent.parent / "workflows"
 USER_WORKFLOWS_DIR = Path(__file__).resolve().parent.parent.parent / "user" / "default" / "workflows"
+BLUEPRINTS_DIR = Path(__file__).resolve().parent.parent.parent / "blueprints"
 
 SKIP_TYPES = {'MarkdownNote', 'Note', 'PrimitiveNode', 'Reroute'}
 
@@ -419,19 +420,42 @@ def convert_native_to_api(native_data):
         if ntype in SKIP_TYPES:
             continue
 
-        # 跳过 UUID 类型的 Group Node 包装器（其内部子节点已在图中独立存在）
-        if UUID_TYPE_RE.match(ntype):
-            continue
-
         widgets_values = node.get('widgets_values', [])
         node_inputs = node.get('inputs', [])
         inputs = {}
 
         # ---------- 处理子图 / 嵌套工作流 ----------
         subgraph_data = node.get('subgraph') or node.get('workflow') or node.get('data')
+
+        # UUID 类型的 Group Node：如果有嵌入子图 → 展开子节点后跳过包装器
+        # 如果是子图引用（无嵌入子节点）→ 保留它，ComfyUI 运行时解析
+        if UUID_TYPE_RE.match(ntype):
+            if subgraph_data and isinstance(subgraph_data, dict) and subgraph_data.get('nodes'):
+                # 有嵌入子图：展开内部节点，跳过 UUID 包装器
+                sub_api, sub_mapping, sub_fields = convert_native_to_api(
+                    {'nodes': subgraph_data['nodes'], 'links': subgraph_data.get('links', [])}
+                )
+                for fname, target in sub_mapping.items():
+                    full_target = f'{nid}.{target}'
+                    sub_fname = f'{nid}_{fname}'
+                    field_mapping[sub_fname] = full_target
+                    if sub_fname not in seen_ui_field_names:
+                        seen_ui_field_names.add(sub_fname)
+                        for sf in sub_fields:
+                            if sf['name'] == fname:
+                                sub_entry = dict(sf)
+                                sub_entry['name'] = sub_fname
+                                ui_fields.append(sub_entry)
+                                break
+                node_api[nid] = {'class_type': ntype, 'inputs': inputs if inputs else {}, '_subgraph': sub_api}
+                continue
+            else:
+                # 子图引用（无嵌入子节点）：保留，ComfyUI subgraph_manager 会解析
+                pass
+
         if subgraph_data and isinstance(subgraph_data, dict):
             sub_nodes = subgraph_data.get('nodes')
-            if sub_nodes:
+            if sub_nodes and not UUID_TYPE_RE.match(ntype):
                 sub_api, sub_mapping, sub_fields = convert_native_to_api(
                     {'nodes': sub_nodes, 'links': subgraph_data.get('links', [])}
                 )
@@ -601,6 +625,7 @@ def convert_native_to_api(native_data):
             continue
 
         # ---------- 通用/未知节点类型：提取所有 widget 参数 ----------
+        is_uuid_ref = bool(UUID_TYPE_RE.match(ntype))  # UUID 子图引用节点
         widget_idx = 0
         for inp in node_inputs:
             inp_name = inp['name']
@@ -615,6 +640,45 @@ def convert_native_to_api(native_data):
                 val = _get_input_value(inp, widgets_values, widget_idx)
                 if val is not None:
                     inputs[inp_name] = val
+                elif is_uuid_ref:
+                    # UUID 子图引用节点：widget 值取自 subgraph 定义，这里保留空默认值
+                    inp_type = (inp.get('type') or 'STRING').upper()
+                    if inp_type.startswith('INT'):
+                        default_val = inp.get('default', 0)
+                        if default_val is not None:
+                            inputs[inp_name] = int(default_val)
+                        else:
+                            inputs[inp_name] = 0
+                    elif inp_type.startswith('FLOAT'):
+                        default_val = inp.get('default', 0.0)
+                        if default_val is not None:
+                            inputs[inp_name] = float(default_val)
+                        else:
+                            inputs[inp_name] = 0.0
+                    elif inp_type == 'BOOLEAN':
+                        inputs[inp_name] = bool(inp.get('default', False))
+                    elif inp_type == 'COMBO':
+                        inputs[inp_name] = str(inp.get('default', ''))
+                    else:
+                        inputs[inp_name] = str(inp.get('default', ''))
+                    # 为 UUID 引用节点生成 UI 字段
+                    safe_name = FIELD_ALIASES.get(inp_name, inp_name)
+                    if safe_name not in seen_ui_field_names:
+                        seen_ui_field_names.add(safe_name)
+                        field_type = 'number' if inp_type in ('INT', 'FLOAT') else 'string'
+                        if inp_type == 'COMBO' and isinstance(inp.get('options'), list):
+                            field_type = 'combo'
+                        entry = {'name': safe_name, 'type': field_type, 'default': inputs[inp_name]}
+                        if inp.get('min') is not None:
+                            entry['min'] = inp['min']
+                        if inp.get('max') is not None:
+                            entry['max'] = inp['max']
+                        if inp.get('step') is not None:
+                            entry['step'] = inp['step']
+                        if field_type == 'combo':
+                            entry['options'] = inp['options']
+                        field_mapping[safe_name] = f'{nid}.inputs.{inp_name}'
+                        ui_fields.append(entry)
                 widget_idx += 1
                 continue
 
@@ -657,15 +721,18 @@ def convert_native_to_api(native_data):
                     from_node, from_slot, _, _ = link_map[link]
                     inputs[inp_name] = [from_node, from_slot]
 
-        if inputs:
+        # UUID 子图引用节点必须保留（ComfyUI 运行时解析），即使 inputs 为空
+        if inputs or is_uuid_ref:
             node_api[nid] = {'class_type': ntype, 'inputs': inputs}
 
     return node_api, field_mapping, ui_fields
 
 
-def auto_convert_all():
-    converted = 0
-    for fpath in sorted(USER_WORKFLOWS_DIR.glob('*.json')):
+def _convert_workflow_files(source_dir: Path, converted: int) -> int:
+    """扫描目录中的 JSON 工作流文件并转换"""
+    if not source_dir.exists():
+        return converted
+    for fpath in sorted(source_dir.glob('*.json')):
         try:
             native = json.loads(fpath.read_text(encoding='utf-8'))
             if 'nodes' not in native:
@@ -695,6 +762,12 @@ def auto_convert_all():
             converted += 1
         except Exception as e:
             print(f'ERR {fpath.name}: {e}')
+    return converted
+
+
+def auto_convert_all():
+    converted = _convert_workflow_files(USER_WORKFLOWS_DIR, 0)
+    converted = _convert_workflow_files(BLUEPRINTS_DIR, converted)
     print(f'Converted {converted} workflows')
     return converted
 

@@ -1,0 +1,19 @@
+{
+  "workflow_id": "depth_to_image__z_image_turbo_",
+  "name": "Depth to Image (Z-Image-Turbo)",
+  "category": "converted",
+  "workflow_file": "depth_to_image__z_image_turbo_.json",
+  "mapping_file": "depth_to_image__z_image_turbo_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "vae_name_1",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "vae_name_1": "13.inputs.vae_name_1"
+  }
+}

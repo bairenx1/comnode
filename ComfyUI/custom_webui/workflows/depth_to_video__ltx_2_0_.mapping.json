@@ -1,0 +1,25 @@
+{
+  "workflow_id": "depth_to_video__ltx_2_0_",
+  "name": "Depth to Video (ltx 2.0)",
+  "category": "converted",
+  "workflow_file": "depth_to_video__ltx_2_0_.json",
+  "mapping_file": "depth_to_video__ltx_2_0_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "resize_type.height",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "frame_count",
+        "type": "number",
+        "default": 0
+      }
+    ]
+  },
+  "field_mapping": {
+    "resize_type.height": "143.inputs.resize_type.height",
+    "frame_count": "143.inputs.length"
+  }
+}

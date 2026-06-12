@@ -1,0 +1,37 @@
+{
+  "workflow_id": "image_depth_estimation__moge_",
+  "name": "Image Depth Estimation (MoGe)",
+  "category": "converted",
+  "workflow_file": "image_depth_estimation__moge_.json",
+  "mapping_file": "image_depth_estimation__moge_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "inference_resolution",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "inference_batch_size",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "moge_model",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "switch",
+        "type": "string",
+        "default": false
+      }
+    ]
+  },
+  "field_mapping": {
+    "inference_resolution": "49.inputs.inference_resolution",
+    "inference_batch_size": "49.inputs.inference_batch_size",
+    "moge_model": "49.inputs.moge_model",
+    "switch": "49.inputs.switch"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "workflow_id": "text_to_image__netayume_lumina_",
+  "name": "Text to Image (NetaYume Lumina)",
+  "category": "converted",
+  "workflow_file": "text_to_image__netayume_lumina_.json",
+  "mapping_file": "text_to_image__netayume_lumina_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "value",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "width",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "height",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "seed",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "ckpt_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "value": "219.inputs.value",
+    "width": "219.inputs.width",
+    "height": "219.inputs.height",
+    "seed": "219.inputs.seed",
+    "ckpt_name": "219.inputs.ckpt_name"
+  }
+}

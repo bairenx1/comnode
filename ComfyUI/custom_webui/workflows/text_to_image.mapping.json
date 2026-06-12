@@ -1,0 +1,55 @@
+{
+  "workflow_id": "text_to_image",
+  "name": "Text to Image",
+  "category": "converted",
+  "workflow_file": "text_to_image.json",
+  "mapping_file": "text_to_image.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "text",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "width",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "height",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "unet_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "clip_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "vae_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "steps",
+        "type": "number",
+        "default": 0
+      }
+    ]
+  },
+  "field_mapping": {
+    "text": "71.inputs.text",
+    "width": "71.inputs.width",
+    "height": "71.inputs.height",
+    "unet_name": "71.inputs.unet_name",
+    "clip_name": "71.inputs.clip_name",
+    "vae_name": "71.inputs.vae_name",
+    "steps": "71.inputs.steps"
+  }
+}

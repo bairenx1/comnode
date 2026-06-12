@@ -1,0 +1,55 @@
+{
+  "workflow_id": "image_edit__firered_image_edit_1_1_",
+  "name": "Image Edit (FireRed Image Edit 1.1)",
+  "category": "converted",
+  "workflow_file": "image_edit__firered_image_edit_1_1_.json",
+  "mapping_file": "image_edit__firered_image_edit_1_1_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "value",
+        "type": "string",
+        "default": false
+      },
+      {
+        "name": "seed",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "unet_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "clip_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "vae_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "lora_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "prompt": "213.inputs.prompt",
+    "value": "213.inputs.value",
+    "seed": "213.inputs.seed",
+    "unet_name": "213.inputs.unet_name",
+    "clip_name": "213.inputs.clip_name",
+    "vae_name": "213.inputs.vae_name",
+    "lora_name": "213.inputs.lora_name"
+  }
+}

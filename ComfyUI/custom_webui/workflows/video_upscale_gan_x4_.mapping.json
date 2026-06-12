@@ -1,0 +1,19 @@
+{
+  "workflow_id": "video_upscale_gan_x4_",
+  "name": "Video Upscale(GAN x4)",
+  "category": "converted",
+  "workflow_file": "video_upscale_gan_x4_.json",
+  "mapping_file": "video_upscale_gan_x4_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "model_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "model_name": "13.inputs.model_name"
+  }
+}

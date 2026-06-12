@@ -1,0 +1,18 @@
+{
+  "167": {
+    "class_type": "ca14b151-8f5e-4386-aab7-d2ec84eaf43c",
+    "inputs": {
+      "switch": false,
+      "start_time": 0.0,
+      "duration": 0.0,
+      "detector_variant_1": "",
+      "num_faces_1": 0,
+      "regions.face_oval": false,
+      "regions.lips": false,
+      "regions.left_eye": false,
+      "regions.right_eye_1": false,
+      "regions.irises_1": false,
+      "model_name": ""
+    }
+  }
+}

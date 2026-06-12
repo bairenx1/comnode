@@ -1,0 +1,19 @@
+{
+  "workflow_id": "remove_background__birefnet_",
+  "name": "Remove Background (BiRefNet)",
+  "category": "converted",
+  "workflow_file": "remove_background__birefnet_.json",
+  "mapping_file": "remove_background__birefnet_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "bg_removal_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "bg_removal_name": "19.inputs.bg_removal_name"
+  }
+}

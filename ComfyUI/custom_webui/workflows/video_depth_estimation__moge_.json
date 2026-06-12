@@ -1,0 +1,11 @@
+{
+  "72": {
+    "class_type": "7ff83f68-6848-47a8-aa43-9036ca6c46e8",
+    "inputs": {
+      "inference_resolution": 0,
+      "inference_batch_size": 0,
+      "moge_model": "",
+      "switch": false
+    }
+  }
+}

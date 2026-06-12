@@ -1,0 +1,14 @@
+{
+  "18": {
+    "class_type": "c84f7959-3738-422b-ba6e-5808b5e90101",
+    "inputs": {
+      "text": 0.3,
+      "low_threshold": 0.4,
+      "high_threshold": 0.0,
+      "unet_name": "",
+      "clip_name": "z_image_turbo_bf16.safetensors",
+      "vae_name": "qwen_3_4b.safetensors",
+      "name": "ae.safetensors"
+    }
+  }
+}

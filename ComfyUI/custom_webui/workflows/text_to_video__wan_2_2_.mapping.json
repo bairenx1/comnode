@@ -1,0 +1,11 @@
+{
+  "workflow_id": "text_to_video__wan_2_2_",
+  "name": "Text to Video (Wan 2.2)",
+  "category": "converted",
+  "workflow_file": "text_to_video__wan_2_2_.json",
+  "mapping_file": "text_to_video__wan_2_2_.mapping.json",
+  "ui_schema": {
+    "fields": []
+  },
+  "field_mapping": {}
+}

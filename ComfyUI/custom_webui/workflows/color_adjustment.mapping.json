@@ -1,0 +1,11 @@
+{
+  "workflow_id": "color_adjustment",
+  "name": "Color Adjustment",
+  "category": "converted",
+  "workflow_file": "color_adjustment.json",
+  "mapping_file": "color_adjustment.mapping.json",
+  "ui_schema": {
+    "fields": []
+  },
+  "field_mapping": {}
+}

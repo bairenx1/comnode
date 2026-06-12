@@ -1,0 +1,103 @@
+{
+  "workflow_id": "video_inpaint__void_",
+  "name": "Video Inpaint (VOID)",
+  "category": "converted",
+  "workflow_file": "video_inpaint__void_.json",
+  "mapping_file": "video_inpaint__void_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "positive_prompt",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "negative_prompt",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "sam3_text_prompt",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "start_frame_index",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "duration_seconds",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "latent_width",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "latent_height",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "skip_pass_2",
+        "type": "string",
+        "default": false
+      },
+      {
+        "name": "noise_seed",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "sam3_checkpoint",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "void_unet_pass1",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "void_unet_pass2",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "optical_flow_model",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "clip_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "vae_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "positive_prompt": "167.inputs.positive_prompt",
+    "negative_prompt": "167.inputs.negative_prompt",
+    "sam3_text_prompt": "167.inputs.sam3_text_prompt",
+    "start_frame_index": "167.inputs.start_frame_index",
+    "duration_seconds": "167.inputs.duration_seconds",
+    "latent_width": "167.inputs.latent_width",
+    "latent_height": "167.inputs.latent_height",
+    "skip_pass_2": "167.inputs.skip_pass_2",
+    "noise_seed": "167.inputs.noise_seed",
+    "sam3_checkpoint": "167.inputs.sam3_checkpoint",
+    "void_unet_pass1": "167.inputs.void_unet_pass1",
+    "void_unet_pass2": "167.inputs.void_unet_pass2",
+    "optical_flow_model": "167.inputs.optical_flow_model",
+    "clip_name": "167.inputs.clip_name",
+    "vae_name": "167.inputs.vae_name"
+  }
+}

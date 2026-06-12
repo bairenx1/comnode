@@ -1,0 +1,61 @@
+{
+  "workflow_id": "pose_to_video__ltx_2_0_",
+  "name": "Pose to Video (LTX 2.0)",
+  "category": "converted",
+  "workflow_file": "pose_to_video__ltx_2_0_.json",
+  "mapping_file": "pose_to_video__ltx_2_0_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "text",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "strength_1",
+        "type": "number",
+        "default": 0.0
+      },
+      {
+        "name": "noise_seed",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "ckpt_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "lora_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "text_encoder",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "lora_name_1",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "model_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "text": "143.inputs.text",
+    "strength_1": "143.inputs.strength_1",
+    "noise_seed": "143.inputs.noise_seed",
+    "ckpt_name": "143.inputs.ckpt_name",
+    "lora_name": "143.inputs.lora_name",
+    "text_encoder": "143.inputs.text_encoder",
+    "lora_name_1": "143.inputs.lora_name_1",
+    "model_name": "143.inputs.model_name"
+  }
+}

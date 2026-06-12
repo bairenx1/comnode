@@ -1,0 +1,25 @@
+{
+  "workflow_id": "pose_to_image__z_image_turbo_",
+  "name": "Pose to Image (Z-Image-Turbo)",
+  "category": "converted",
+  "workflow_file": "pose_to_image__z_image_turbo_.json",
+  "mapping_file": "pose_to_image__z_image_turbo_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "text",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "unet_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "text": "13.inputs.text",
+    "unet_name": "13.inputs.unet_name"
+  }
+}

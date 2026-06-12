@@ -1,0 +1,61 @@
+{
+  "workflow_id": "first_last_frame_to_video__ltx_2_3_",
+  "name": "First-Last-Frame to Video (LTX-2.3)",
+  "category": "converted",
+  "workflow_file": "first_last_frame_to_video__ltx_2_3_.json",
+  "mapping_file": "first_last_frame_to_video__ltx_2_3_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "text",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "value",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "value_1",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "value_2",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "value_3",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "noise_seed",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "ckpt_name_1",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "text_encoder",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "text": "228.inputs.text",
+    "value": "228.inputs.value",
+    "value_1": "228.inputs.value_1",
+    "value_2": "228.inputs.value_2",
+    "value_3": "228.inputs.value_3",
+    "noise_seed": "228.inputs.noise_seed",
+    "ckpt_name_1": "228.inputs.ckpt_name_1",
+    "text_encoder": "228.inputs.text_encoder"
+  }
+}

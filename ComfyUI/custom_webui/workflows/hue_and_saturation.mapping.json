@@ -1,0 +1,11 @@
+{
+  "workflow_id": "hue_and_saturation",
+  "name": "Hue and Saturation",
+  "category": "converted",
+  "workflow_file": "hue_and_saturation.json",
+  "mapping_file": "hue_and_saturation.mapping.json",
+  "ui_schema": {
+    "fields": []
+  },
+  "field_mapping": {}
+}

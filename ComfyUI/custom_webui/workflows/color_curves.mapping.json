@@ -1,0 +1,11 @@
+{
+  "workflow_id": "color_curves",
+  "name": "Color Curves",
+  "category": "converted",
+  "workflow_file": "color_curves.json",
+  "mapping_file": "color_curves.mapping.json",
+  "ui_schema": {
+    "fields": []
+  },
+  "field_mapping": {}
+}

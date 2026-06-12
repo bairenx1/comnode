@@ -1,0 +1,55 @@
+{
+  "workflow_id": "image_segmentation__sam3_",
+  "name": "Image Segmentation (SAM3)",
+  "category": "converted",
+  "workflow_file": "image_segmentation__sam3_.json",
+  "mapping_file": "image_segmentation__sam3_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "text",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "positive_coords",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "negative_coords",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "threshold",
+        "type": "number",
+        "default": 0.0
+      },
+      {
+        "name": "refine_iterations",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "individual_masks",
+        "type": "string",
+        "default": false
+      },
+      {
+        "name": "ckpt_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "text": "99.inputs.text",
+    "positive_coords": "99.inputs.positive_coords",
+    "negative_coords": "99.inputs.negative_coords",
+    "threshold": "99.inputs.threshold",
+    "refine_iterations": "99.inputs.refine_iterations",
+    "individual_masks": "99.inputs.individual_masks",
+    "ckpt_name": "99.inputs.ckpt_name"
+  }
+}

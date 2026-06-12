@@ -1,0 +1,91 @@
+{
+  "workflow_id": "video_inpainting__wan2_1_vace_",
+  "name": "Video Inpainting (Wan2.1 VACE)",
+  "category": "converted",
+  "workflow_file": "video_inpainting__wan2_1_vace_.json",
+  "mapping_file": "video_inpainting__wan2_1_vace_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "text",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "value",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "value_1",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "frame_count",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "seed",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "unet_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "clip_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "vae_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "value_2",
+        "type": "string",
+        "default": false
+      },
+      {
+        "name": "lora_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "text_1",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "expand",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "ckpt_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "text": "306.inputs.text",
+    "value": "306.inputs.value",
+    "value_1": "306.inputs.value_1",
+    "frame_count": "306.inputs.length",
+    "seed": "306.inputs.seed",
+    "unet_name": "306.inputs.unet_name",
+    "clip_name": "306.inputs.clip_name",
+    "vae_name": "306.inputs.vae_name",
+    "value_2": "306.inputs.value_2",
+    "lora_name": "306.inputs.lora_name",
+    "text_1": "306.inputs.text_1",
+    "expand": "306.inputs.expand",
+    "ckpt_name": "306.inputs.ckpt_name"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "workflow_id": "video_captioning__gemini_",
+  "name": "Video Captioning (Gemini)",
+  "category": "converted",
+  "workflow_file": "video_captioning__gemini_.json",
+  "mapping_file": "video_captioning__gemini_.mapping.json",
+  "ui_schema": {
+    "fields": []
+  },
+  "field_mapping": {}
+}

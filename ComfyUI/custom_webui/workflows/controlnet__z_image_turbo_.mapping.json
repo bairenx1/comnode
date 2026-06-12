@@ -1,0 +1,49 @@
+{
+  "workflow_id": "controlnet__z_image_turbo_",
+  "name": "ControlNet (Z-Image-Turbo)",
+  "category": "converted",
+  "workflow_file": "controlnet__z_image_turbo_.json",
+  "mapping_file": "controlnet__z_image_turbo_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "text",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "seed",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "unet_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "clip_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "vae_name",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "text": "85.inputs.text",
+    "seed": "85.inputs.seed",
+    "unet_name": "85.inputs.unet_name",
+    "clip_name": "85.inputs.clip_name",
+    "vae_name": "85.inputs.vae_name",
+    "name": "85.inputs.name"
+  }
+}

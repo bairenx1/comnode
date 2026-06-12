@@ -1,0 +1,20 @@
+{
+  "143": {
+    "class_type": "68857357-cbc2-4c3a-a786-c3a58d43f9b1",
+    "inputs": {
+      "text": "",
+      "strength": false,
+      "bypass": 1,
+      "resize_type.width": 121,
+      "resize_type.height": 0,
+      "length": 0,
+      "ckpt_name": "ltx-2-19b-dev-fp8.safetensors",
+      "lora_name": "ltx-2-19b-ic-lora-depth-control.safetensors",
+      "text_encoder": "gemma_3_12B_it_fp4_mixed.safetensors",
+      "lora_name_1": "ltx-2-19b-distilled-lora-384.safetensors",
+      "model_name": "ltx-2-spatial-upscaler-x2-1.0.safetensors",
+      "unet_name": "lotus-depth-d-v1-1.safetensors",
+      "vae_name": "vae-ft-mse-840000-ema-pruned.safetensors"
+    }
+  }
+}

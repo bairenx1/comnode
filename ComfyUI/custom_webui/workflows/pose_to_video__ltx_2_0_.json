@@ -1,0 +1,15 @@
+{
+  "143": {
+    "class_type": "68857357-cbc2-4c3a-a786-c3a58d43f9b1",
+    "inputs": {
+      "text": "",
+      "strength_1": 0.0,
+      "noise_seed": 0,
+      "ckpt_name": "",
+      "lora_name": "",
+      "text_encoder": "",
+      "lora_name_1": "",
+      "model_name": ""
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "workflow_id": "image_edit__flux_2_klein_4b_",
+  "name": "Image Edit (Flux.2 Klein 4B)",
+  "category": "converted",
+  "workflow_file": "image_edit__flux_2_klein_4b_.json",
+  "mapping_file": "image_edit__flux_2_klein_4b_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "unet_name",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "unet_name": "75.inputs.unet_name"
+  }
+}

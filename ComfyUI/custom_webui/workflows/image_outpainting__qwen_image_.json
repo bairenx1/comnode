@@ -1,0 +1,17 @@
+{
+  "224": {
+    "class_type": "fbf07656-8ff8-4299-a3fc-7378e0f4a004",
+    "inputs": {
+      "left": 0,
+      "top": 0,
+      "right": 0,
+      "bottom": 0,
+      "feathering": 0,
+      "unet_name": "",
+      "clip_name": "",
+      "vae_name": "qwen_image_fp8_e4m3fn.safetensors",
+      "control_net_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "lora_name": "qwen_image_vae.safetensors"
+    }
+  }
+}

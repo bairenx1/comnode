@@ -1,0 +1,19 @@
+{
+  "workflow_id": "image_captioning__gemini_",
+  "name": "Image Captioning (gemini)",
+  "category": "converted",
+  "workflow_file": "image_captioning__gemini_.json",
+  "mapping_file": "image_captioning__gemini_.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "model",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "field_mapping": {
+    "model": "231.inputs.model"
+  }
+}

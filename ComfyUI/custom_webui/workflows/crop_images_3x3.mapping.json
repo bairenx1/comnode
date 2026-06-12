@@ -1,0 +1,11 @@
+{
+  "workflow_id": "crop_images_3x3",
+  "name": "Crop Images 3x3",
+  "category": "converted",
+  "workflow_file": "crop_images_3x3.json",
+  "mapping_file": "crop_images_3x3.mapping.json",
+  "ui_schema": {
+    "fields": []
+  },
+  "field_mapping": {}
+}

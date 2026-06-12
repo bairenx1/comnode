@@ -1,0 +1,14 @@
+{
+  "71": {
+    "class_type": "2d5985c9-deef-41ae-9c34-6353d3d7d1ef",
+    "inputs": {
+      "text": "",
+      "width": 0,
+      "height": 0,
+      "unet_name": "",
+      "clip_name": "",
+      "vae_name": "",
+      "steps": 0
+    }
+  }
+}

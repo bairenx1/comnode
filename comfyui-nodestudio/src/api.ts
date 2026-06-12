@@ -22,7 +22,7 @@ export interface WorkflowInfo {
   workflow_id: string;
   name: string;
   category: string;
-  ui_schema: { fields: { name: string; type: string; description?: string }[] };
+  ui_schema: { fields: { name: string; type: string; description?: string; role?: string; label?: string }[] };
   workflow_file: string;
   mapping_file: string;
 }

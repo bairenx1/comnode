@@ -319,6 +319,33 @@ def _trace_clip_polarity(nodes, reverse_map):
     return clip_polarity
 
 
+def _infer_loadimage_role(node_id, link_map, nodes):
+    """追踪 LoadImage 节点的下游连接，判断其角色（主输入图/参考图）
+
+    返回 (field_name, label)：主输入图用 'image_asset_hash'，参考图用 'target_asset_hash'
+    """
+    # 收集该 LoadImage 的所有输出连接
+    downstream_nodes = []
+    for (from_node, from_slot, to_node, to_slot) in link_map.values():
+        if from_node == node_id:
+            downstream_nodes.append((to_node, to_slot))
+
+    # 查找下游节点类型
+    for to_node, to_slot in downstream_nodes:
+        for n in nodes:
+            if str(n['id']) == to_node:
+                ntype = n.get('type', '')
+                # 连接 VAEEncode → 进入采样流程 → 主输入图
+                if 'VAEEncode' in ntype:
+                    return 'image_asset_hash', '输入图片'
+
+    # 非 VAEEncode 连接 → 参考图
+    if downstream_nodes:
+        return 'target_asset_hash', '参考图片'
+
+    return 'image_asset_hash', '输入图片'
+
+
 def _is_widget_input(inp):
     """判断一个 input 是否是控件类型（可编辑参数）"""
     if inp.get('widget'):
@@ -371,6 +398,19 @@ def convert_native_to_api(native_data):
     ui_fields = []
     seen_ui_field_names = set()
     clip_fallback_count = 0
+
+    # ---- 预扫描：为多个 LoadImage 节点分配唯一字段名 ----
+    loadimage_field_map = {}  # node_id -> (field_name, label)
+    loadimage_nodes = [(str(n['id']), n) for n in nodes if n.get('type') == 'LoadImage']
+    seen_roles: dict[str, int] = {}
+    for nid, _ in loadimage_nodes:
+        field_name, label = _infer_loadimage_role(nid, link_map, nodes)
+        if field_name in seen_roles:
+            seen_roles[field_name] += 1
+            field_name = f'{field_name}_{seen_roles[field_name]}'
+        else:
+            seen_roles[field_name] = 1
+        loadimage_field_map[nid] = (field_name, label)
 
     for node in nodes:
         nid = str(node['id'])
@@ -511,14 +551,25 @@ def convert_native_to_api(native_data):
 
                     if val is not None:
                         inputs[inp_name] = val
-                        field_mapping[cfg['field']] = f'{nid}.inputs.{inp_name}'
-                        if cfg['field'] not in seen_ui_field_names:
-                            seen_ui_field_names.add(cfg['field'])
+                        # LoadImage 节点使用预扫描分配的唯一字段名
+                        if ntype == 'LoadImage' and nid in loadimage_field_map:
+                            field_name, label = loadimage_field_map[nid]
+                        else:
+                            field_name = cfg['field']
+                            label = cfg.get('label', '')
+                        field_mapping[field_name] = f'{nid}.inputs.{inp_name}'
+                        if field_name not in seen_ui_field_names:
+                            seen_ui_field_names.add(field_name)
                             entry = {
-                                'name': cfg['field'],
+                                'name': field_name,
                                 'type': cfg['type'],
                                 'default': val,
                             }
+                            if label:
+                                entry['label'] = label
+                            # 图片上传类型标记 role，供前端识别
+                            if ntype == 'LoadImage':
+                                entry['role'] = 'image_upload'
                             for k in ('min', 'max', 'step', 'options', 'tooltip'):
                                 if k in cfg:
                                     entry[k] = cfg[k]

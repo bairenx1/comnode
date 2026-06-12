@@ -81,8 +81,10 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   const activeWorkflowId = customBindings[mode] || modeToWorkflowId[mode] || null;
   const dynamicFields = activeWorkflowId && workflowSchemas[activeWorkflowId] ? workflowSchemas[activeWorkflowId].ui_schema.fields : null;
   const isGenMode = !["assets", "prompts", "settings"].includes(mode);
-  const showImageUpload = ["i2i", "i2v", "inpaint", "face", "clothes"].includes(mode);
-  const showDualUpload = mode === "face" || mode === "clothes";
+  // 基于工作流 schema 动态检测图片上传字段
+  const imageFields = (dynamicFields || []).filter(f => f.role === 'image_upload' || f.name.endsWith('_asset_hash'));
+  const showImageUpload = imageFields.length > 0;
+  const showDualUpload = imageFields.length >= 2;
   useEffect(() => {
     api.workflows().then(r => { setWorkflowList(r.workflows.map(w => ({workflow_id: w.workflow_id, name: w.name}))); const sm: Record<string, any> = {}; r.workflows.forEach(w => { sm[w.workflow_id] = {ui_schema: w.ui_schema}; }); setWorkflowSchemas(sm); }).catch(() => {});
   }, []);
@@ -392,6 +394,18 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
     expectedJobCountRef.current = batchCount;
     receivedJobCountRef.current = 0;
     try {
+      let assetHash = imageAssetHash;
+      if (baseImage && !assetHash) {
+        setStatusText("正在上传基础素材...");
+        const hash = await uploadAndGetHash(baseImage);
+        if (hash) { setImageAssetHash(hash); assetHash = hash; }
+      }
+      let tgtHash = targetAssetHash;
+      if (targetImage && !tgtHash) {
+        setStatusText("正在上传目标素材...");
+        const hash = await uploadAndGetHash(targetImage);
+        if (hash) { setTargetAssetHash(hash); tgtHash = hash; }
+      }
       const workflowId = customBindings[mode] || modeToWorkflowId[mode] || "txt2img";
       const baseSeed = params.seed || Math.floor(Math.random() * 2**32);
       const jobs = Array.from({ length: batchCount }, (_, i) => ({
@@ -400,6 +414,8 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
           negative_prompt: negativePrompt || undefined,
           seed: seedFixed ? (baseSeed + i) : Math.floor(Math.random() * 2**32),
           ...params,
+          ...(assetHash ? { image_asset_hash: assetHash } : {}),
+          ...(tgtHash ? { target_asset_hash: tgtHash } : {}),
         } as JobParams,
       }));
       const batchResult = await api.queueBatch(workflowId, jobs, clientId);
@@ -661,8 +677,9 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                 pose_strength: 62, pose_start: 63, pose_end: 64,
                 vace_strength: 65, track_temperature: 66, track_topk: 67,
               };
+              const uploadFieldNames = new Set(imageFields.map(f => f.name));
               const sorted = [...dynamicFields]
-                .filter(f => f.name !== 'image_asset_hash')
+                .filter(f => !uploadFieldNames.has(f.name))
                 .sort((a, b) => (order[a.name] ?? 60) - (order[b.name] ?? 60));
 
               // 中文标签映射
@@ -945,7 +962,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                     </div>
                   ) : (<>
                     <UploadCloud className="w-8 h-8 mb-2 group-hover:scale-110 transition-transform group-hover:text-accent" />
-                    <span className="text-[13px] font-medium leading-tight">上传基础媒体</span>
+                    <span className="text-[13px] font-medium leading-tight">{imageFields[0]?.label || '上传基础媒体'}</span>
                     <span className="text-[10px] mt-1 font-mono tracking-widest uppercase">PNG / JPG</span>
                   </>)}
                   <input ref={baseInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleBaseUpload(f); }} />
@@ -967,7 +984,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                       </div>
                     ) : (<>
                       <UploadCloud className="w-8 h-8 mb-2 group-hover:scale-110 transition-transform group-hover:text-accent" />
-                      <span className="text-[13px] font-medium leading-tight">上传目标素材</span>
+                      <span className="text-[13px] font-medium leading-tight">{imageFields[1]?.label || '上传目标素材'}</span>
                       <span className="text-[10px] mt-1 font-mono tracking-widest uppercase">PNG / JPG</span>
                     </>)}
                     <input ref={targetInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleTargetUpload(f); }} />

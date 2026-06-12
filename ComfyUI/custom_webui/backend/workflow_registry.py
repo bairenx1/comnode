@@ -2,10 +2,17 @@
 
 import copy
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from .convert_workflow import auto_convert_all
+
+# UUID class_type 表示 ComfyUI Group Node，必须过滤掉
+_UUID_TYPE_RE = re.compile(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    re.IGNORECASE,
+)
 
 
 @dataclass
@@ -74,6 +81,13 @@ class WorkflowRegistry:
         definition = self.get(workflow_id)
         graph = json.loads(definition.workflow_file.read_text(encoding="utf-8"))
         graph = copy.deepcopy(graph)
+
+        # 安全过滤：移除 UUID 类型的 Group Node 包装器（convert 阶段理论上已过滤，此处做兜底）
+        uuids_to_remove = [nid for nid, nd in graph.items()
+                           if isinstance(nd, dict) and _UUID_TYPE_RE.match(nd.get('class_type', ''))]
+        for nid in uuids_to_remove:
+            del graph[nid]
+
         merged_params = dict(params)
         if asset_hashes:
             merged_params.update(asset_hashes)

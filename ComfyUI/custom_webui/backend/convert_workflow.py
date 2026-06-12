@@ -6,6 +6,12 @@ USER_WORKFLOWS_DIR = Path(__file__).resolve().parent.parent.parent / "user" / "d
 
 SKIP_TYPES = {'MarkdownNote', 'Note', 'PrimitiveNode', 'Reroute'}
 
+# UUID 格式的 class_type 表示 ComfyUI Group Node（包装器节点），其内部子节点已在图中独立存在
+UUID_TYPE_RE = re.compile(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    re.IGNORECASE,
+)
+
 # 纯连接器节点：不需要暴露用户参数，但需要保留在图里
 CONNECTOR_TYPES = {
     'VAEEncode', 'VAEDecode', 'SaveImage', 'PreviewImage', 'SaveImageWebsocket',
@@ -371,6 +377,10 @@ def convert_native_to_api(native_data):
         ntype = node.get('type', '')
 
         if ntype in SKIP_TYPES:
+            continue
+
+        # 跳过 UUID 类型的 Group Node 包装器（其内部子节点已在图中独立存在）
+        if UUID_TYPE_RE.match(ntype):
             continue
 
         widgets_values = node.get('widgets_values', [])

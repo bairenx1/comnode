@@ -103,5 +103,19 @@ class ComfyClient:
     async def _post_json(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         session = await self._ensure_session()
         async with session.post(f"{self.base_url}{path}", json=payload) as resp:
-            resp.raise_for_status()
+            if resp.status >= 400:
+                try:
+                    body = await resp.json()
+                    err_msg = body.get("error", {})
+                    if isinstance(err_msg, dict):
+                        err_msg = err_msg.get("message", str(body))
+                except Exception:
+                    err_msg = await resp.text()
+                raise aiohttp.ClientResponseError(
+                    resp.request_info,
+                    resp.history,
+                    status=resp.status,
+                    message=f"{err_msg}",
+                    headers=resp.headers,
+                )
             return await resp.json()

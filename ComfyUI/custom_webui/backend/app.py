@@ -24,13 +24,17 @@ def create_app() -> web.Application:
     app["comfy"] = comfy
 
     def comfy_down_response(err: Exception) -> web.Response:
+        msg = str(err)
+        status = 503
+        # 如果是 ComfyUI 返回的 4xx/5xx，透传真正错误
+        if isinstance(err, aiohttp.ClientResponseError):
+            status = 502
+            hint = f"ComfyUI 返回错误 ({err.status}): {msg}"
+        else:
+            hint = f"无法连接 ComfyUI 后端: {msg}\n请确认 ComfyUI 已启动（默认 http://127.0.0.1:8188）"
         return web.json_response(
-            {
-                "error": "comfyui_unavailable",
-                "message": str(err),
-                "hint": "请先启动 ComfyUI 后端（默认 http://127.0.0.1:8188）。",
-            },
-            status=503,
+            {"error": "comfyui_error", "message": hint},
+            status=status,
         )
 
     @routes.get("/api/health")
@@ -53,7 +57,13 @@ def create_app() -> web.Application:
             for job in jobs:
                 params = job.get("params", {})
                 assets = job.get("asset_hashes", {})
-                prompt_graph = registry.build_prompt_graph(workflow_id, params, assets)
+                try:
+                    prompt_graph = registry.build_prompt_graph(workflow_id, params, assets)
+                except KeyError as e:
+                    return web.json_response(
+                        {"error": "unknown_workflow", "message": f"工作流 '{workflow_id}' 不存在: {e}"},
+                        status=400,
+                    )
                 result = await comfy.submit_prompt(
                     prompt_graph,
                     client_id=client_id,
@@ -70,6 +80,11 @@ def create_app() -> web.Application:
             return web.json_response({"client_id": client_id, "queued": queued})
         except aiohttp.ClientError as e:
             return comfy_down_response(e)
+        except Exception as e:
+            return web.json_response(
+                {"error": "internal_error", "message": str(e)},
+                status=500,
+            )
 
     @routes.get("/api/jobs/{prompt_id}")
     async def get_job(request: web.Request) -> web.Response:

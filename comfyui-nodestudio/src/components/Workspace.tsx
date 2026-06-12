@@ -653,7 +653,13 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                 upscale_method: 35, upscale_factor: 36,
                 ckpt_name: 40, checkpoint: 40, model_name: 40,
                 vae_name: 42, clip_name: 43,
-                frame_count: 50, num_frames: 50,
+                // 视频参数
+                frame_count: 50, num_frames: 50, fps: 51, frame_rate: 51,
+                motion_bucket_id: 52, augmentation_level: 53, min_cfg: 54,
+                motion_frame_count: 55, continue_motion_max_frames: 56,
+                audio_scale: 60,
+                pose_strength: 62, pose_start: 63, pose_end: 64,
+                vace_strength: 65, track_temperature: 66, track_topk: 67,
               };
               const sorted = [...dynamicFields]
                 .filter(f => f.name !== 'image_asset_hash')
@@ -672,7 +678,18 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                 batch_size: '批次数量', upscale_method: '放大算法', upscale_factor: '放大倍数',
                 ckpt_name: '底模', checkpoint: '底模', model_name: '底模',
                 vae_name: 'VAE', clip_name: 'CLIP 模型',
-                frame_count: '帧数', num_frames: '帧数',
+                frame_count: '视频帧数', num_frames: '视频帧数',
+                // 视频专用参数
+                fps: '帧率 (FPS)', frame_rate: '帧率 (FPS)',
+                motion_bucket_id: '运动幅度',
+                augmentation_level: '增强级别',
+                min_cfg: '最小CFG',
+                vace_strength: '控制强度',
+                track_temperature: '轨迹温度', track_topk: '轨迹点数量',
+                pose_strength: '姿态强度', pose_start: '姿态起始', pose_end: '姿态结束',
+                motion_frame_count: '运动帧数',
+                continue_motion_max_frames: '运动延续帧数',
+                audio_scale: '音频强度',
               };
 
               // 字段分类
@@ -681,6 +698,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
               const controlSet = new Set(['control_net_name', 'cn_strength', 'control_strength', 'start_percent', 'end_percent']);
               const dimsSet = new Set(['width', 'height', 'batch_size', 'image_width', 'image_height', 'upscale_method', 'upscale_factor']);
               const modelSet = new Set(['ckpt_name', 'checkpoint', 'model_name', 'vae_name', 'clip_name']);
+              const videoSet = new Set(['frame_count', 'num_frames', 'fps', 'frame_rate', 'motion_bucket_id', 'augmentation_level', 'min_cfg', 'motion_frame_count', 'continue_motion_max_frames', 'audio_scale', 'pose_strength', 'pose_start', 'pose_end', 'vace_strength', 'track_temperature', 'track_topk']);
               const catOf = (name: string) => {
                 if (name === 'prompt' || name === 'positive_prompt' || name === 'text' || name === 'negative_prompt' || name === 'negative_text') return 'prompt';
                 if (loraSet.has(name)) return 'lora';
@@ -688,6 +706,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                 if (controlSet.has(name)) return 'control';
                 if (dimsSet.has(name)) return 'dimensions';
                 if (modelSet.has(name)) return 'model';
+                if (videoSet.has(name)) return 'video';
                 return 'other';
               };
 
@@ -714,7 +733,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                         {cat === 'model' && <Layers className="w-3 h-3 text-accent/50" />}
                         {cat === 'other' && <Settings2 className="w-3 h-3 text-accent/50" />}
                         <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-accent/60 font-semibold">
-                          {cat === 'lora' ? 'LoRA 增效' : cat === 'sampling' ? '采样参数' : cat === 'control' ? '条件控制' : cat === 'dimensions' ? '尺寸设置' : cat === 'model' ? '模型' : '其他参数'}
+                          {cat === 'lora' ? 'LoRA 增效' : cat === 'sampling' ? '采样参数' : cat === 'control' ? '条件控制' : cat === 'dimensions' ? '尺寸设置' : cat === 'model' ? '模型' : cat === 'video' ? '视频参数' : '其他参数'}
                         </span>
                       </div>
                     )}

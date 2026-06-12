@@ -13,6 +13,25 @@ CONNECTOR_TYPES = {
     'ImageUpscaleWithModel', 'SetLatentNoiseMask', 'LatentUpscale', 'LatentUpscaleBy',
     'ImageBatch', 'LatentBatch', 'LatentComposite', 'LatentCompositeMasked',
     'CropLatent', 'RepeatLatentBatch', 'ImpactLatentBatchBlend',
+    # 视频专用连接器节点
+    'TrimVideoLatent', 'VHS_VideoCombine', 'VHS_LoadVideo', 'VHS_LoadVideoPath',
+    'SaveAnimatedWEBP', 'SaveAnimatedPNG', 'VideoCombine',
+    'EmptyHunyuanLatentVideo', 'EmptySD3LatentVideo',
+}
+
+# 字段名别名映射 — 统一不同节点类型的同义参数
+FIELD_ALIASES = {
+    'video_frames': 'frame_count',
+    'num_frames': 'frame_count',
+    'length': 'frame_count',
+    'frame_length': 'frame_count',
+    'total_frames': 'frame_count',
+    'motion_bucket_id': 'motion_bucket_id',
+    'fps': 'fps',
+    'frame_rate': 'fps',
+    'augmentation_level': 'augmentation_level',
+    'image_width': 'width',
+    'image_height': 'height',
 }
 
 KSAMPLER_WIDGET_MAP = {
@@ -103,6 +122,121 @@ SPECIAL_NODE_CONFIGS = {
         5: ('scheduler', str, {'type': 'combo', 'default': 'normal'}),
         6: ('start_at_step', int, {'type': 'number', 'default': 0, 'min': 0, 'max': 10000}),
         7: ('end_at_step', int, {'type': 'number', 'default': 10000, 'min': 0, 'max': 10000}),
+    },
+    # ===================== 视频节点类型 =====================
+    'SVD_img2vid_Conditioning': {
+        'width': {'type': 'number', 'label': '宽度', 'field': 'width', 'default': 1024, 'min': 16, 'max': 16384, 'step': 8},
+        'height': {'type': 'number', 'label': '高度', 'field': 'height', 'default': 576, 'min': 16, 'max': 16384, 'step': 8},
+        'video_frames': {'type': 'number', 'label': '视频帧数', 'field': 'frame_count', 'default': 14, 'min': 1, 'max': 4096},
+        'motion_bucket_id': {'type': 'number', 'label': '运动幅度', 'field': 'motion_bucket_id', 'default': 127, 'min': 1, 'max': 1023},
+        'fps': {'type': 'number', 'label': '帧率', 'field': 'fps', 'default': 6, 'min': 1, 'max': 1024},
+        'augmentation_level': {'type': 'number', 'label': '增强级别', 'field': 'augmentation_level', 'default': 0.0, 'min': 0, 'max': 10, 'step': 0.01},
+    },
+    'VideoLinearCFGGuidance': {
+        'min_cfg': {'type': 'number', 'label': '最小CFG', 'field': 'min_cfg', 'default': 1.0, 'min': 0, 'max': 100, 'step': 0.5},
+    },
+    'VideoTriangleCFGGuidance': {
+        'min_cfg': {'type': 'number', 'label': '最小CFG', 'field': 'min_cfg', 'default': 1.0, 'min': 0, 'max': 100, 'step': 0.5},
+    },
+    # WAN 系列视频节点 — width/height/length/batch_size
+    'WanImageToVideo': {
+        'width': {'type': 'number', 'label': '宽度', 'field': 'width', 'default': 832, 'min': 16, 'max': 16384, 'step': 16},
+        'height': {'type': 'number', 'label': '高度', 'field': 'height', 'default': 480, 'min': 16, 'max': 16384, 'step': 16},
+        'length': {'type': 'number', 'label': '视频长度', 'field': 'frame_count', 'default': 81, 'min': 1, 'max': 16384, 'step': 4},
+        'batch_size': {'type': 'number', 'label': '批次数量', 'field': 'batch_size', 'default': 1, 'min': 1, 'max': 4096},
+    },
+    'WanFunControlToVideo': {
+        'width': {'type': 'number', 'label': '宽度', 'field': 'width', 'default': 832, 'min': 16, 'max': 16384, 'step': 16},
+        'height': {'type': 'number', 'label': '高度', 'field': 'height', 'default': 480, 'min': 16, 'max': 16384, 'step': 16},
+        'length': {'type': 'number', 'label': '视频长度', 'field': 'frame_count', 'default': 81, 'min': 1, 'max': 16384, 'step': 4},
+        'batch_size': {'type': 'number', 'label': '批次数量', 'field': 'batch_size', 'default': 1, 'min': 1, 'max': 4096},
+    },
+    'WanFirstLastFrameToVideo': {
+        'width': {'type': 'number', 'label': '宽度', 'field': 'width', 'default': 832, 'min': 16, 'max': 16384, 'step': 16},
+        'height': {'type': 'number', 'label': '高度', 'field': 'height', 'default': 480, 'min': 16, 'max': 16384, 'step': 16},
+        'length': {'type': 'number', 'label': '视频长度', 'field': 'frame_count', 'default': 81, 'min': 1, 'max': 16384, 'step': 4},
+        'batch_size': {'type': 'number', 'label': '批次数量', 'field': 'batch_size', 'default': 1, 'min': 1, 'max': 4096},
+    },
+    'WanVaceToVideo': {
+        'width': {'type': 'number', 'label': '宽度', 'field': 'width', 'default': 832, 'min': 16, 'max': 16384, 'step': 16},
+        'height': {'type': 'number', 'label': '高度', 'field': 'height', 'default': 480, 'min': 16, 'max': 16384, 'step': 16},
+        'length': {'type': 'number', 'label': '视频长度', 'field': 'frame_count', 'default': 81, 'min': 1, 'max': 16384, 'step': 4},
+        'batch_size': {'type': 'number', 'label': '批次数量', 'field': 'batch_size', 'default': 1, 'min': 1, 'max': 4096},
+        'strength': {'type': 'number', 'label': '控制强度', 'field': 'vace_strength', 'default': 1.0, 'min': 0, 'max': 1000, 'step': 0.01},
+    },
+    'WanCameraImageToVideo': {
+        'width': {'type': 'number', 'label': '宽度', 'field': 'width', 'default': 832, 'min': 16, 'max': 16384, 'step': 16},
+        'height': {'type': 'number', 'label': '高度', 'field': 'height', 'default': 480, 'min': 16, 'max': 16384, 'step': 16},
+        'length': {'type': 'number', 'label': '视频长度', 'field': 'frame_count', 'default': 81, 'min': 1, 'max': 16384, 'step': 4},
+        'batch_size': {'type': 'number', 'label': '批次数量', 'field': 'batch_size', 'default': 1, 'min': 1, 'max': 4096},
+    },
+    'WanTrackToVideo': {
+        'width': {'type': 'number', 'label': '宽度', 'field': 'width', 'default': 832, 'min': 16, 'max': 16384, 'step': 16},
+        'height': {'type': 'number', 'label': '高度', 'field': 'height', 'default': 480, 'min': 16, 'max': 16384, 'step': 16},
+        'length': {'type': 'number', 'label': '视频长度', 'field': 'frame_count', 'default': 81, 'min': 1, 'max': 16384, 'step': 4},
+        'batch_size': {'type': 'number', 'label': '批次数量', 'field': 'batch_size', 'default': 1, 'min': 1, 'max': 4096},
+        'temperature': {'type': 'number', 'label': '轨迹温度', 'field': 'track_temperature', 'default': 220.0, 'min': 1, 'max': 1000, 'step': 0.1},
+        'topk': {'type': 'number', 'label': 'TopK', 'field': 'track_topk', 'default': 2, 'min': 1, 'max': 10},
+    },
+    'WanSoundImageToVideo': {
+        'width': {'type': 'number', 'label': '宽度', 'field': 'width', 'default': 832, 'min': 16, 'max': 16384, 'step': 16},
+        'height': {'type': 'number', 'label': '高度', 'field': 'height', 'default': 480, 'min': 16, 'max': 16384, 'step': 16},
+        'length': {'type': 'number', 'label': '视频长度', 'field': 'frame_count', 'default': 77, 'min': 1, 'max': 16384, 'step': 4},
+        'batch_size': {'type': 'number', 'label': '批次数量', 'field': 'batch_size', 'default': 1, 'min': 1, 'max': 4096},
+    },
+    'WanHuMoImageToVideo': {
+        'width': {'type': 'number', 'label': '宽度', 'field': 'width', 'default': 832, 'min': 16, 'max': 16384, 'step': 16},
+        'height': {'type': 'number', 'label': '高度', 'field': 'height', 'default': 480, 'min': 16, 'max': 16384, 'step': 16},
+        'length': {'type': 'number', 'label': '视频长度', 'field': 'frame_count', 'default': 97, 'min': 1, 'max': 16384, 'step': 4},
+        'batch_size': {'type': 'number', 'label': '批次数量', 'field': 'batch_size', 'default': 1, 'min': 1, 'max': 4096},
+    },
+    'WanAnimateToVideo': {
+        'width': {'type': 'number', 'label': '宽度', 'field': 'width', 'default': 832, 'min': 16, 'max': 16384, 'step': 16},
+        'height': {'type': 'number', 'label': '高度', 'field': 'height', 'default': 480, 'min': 16, 'max': 16384, 'step': 16},
+        'length': {'type': 'number', 'label': '视频长度', 'field': 'frame_count', 'default': 77, 'min': 1, 'max': 16384, 'step': 4},
+        'batch_size': {'type': 'number', 'label': '批次数量', 'field': 'batch_size', 'default': 1, 'min': 1, 'max': 4096},
+        'continue_motion_max_frames': {'type': 'number', 'label': '运动延续帧数', 'field': 'continue_motion_max_frames', 'default': 5, 'min': 1, 'max': 16384, 'step': 4},
+    },
+    'Wan22FunControlToVideo': {
+        'width': {'type': 'number', 'label': '宽度', 'field': 'width', 'default': 832, 'min': 16, 'max': 16384, 'step': 16},
+        'height': {'type': 'number', 'label': '高度', 'field': 'height', 'default': 480, 'min': 16, 'max': 16384, 'step': 16},
+        'length': {'type': 'number', 'label': '视频长度', 'field': 'frame_count', 'default': 81, 'min': 1, 'max': 16384, 'step': 4},
+        'batch_size': {'type': 'number', 'label': '批次数量', 'field': 'batch_size', 'default': 1, 'min': 1, 'max': 4096},
+    },
+    'WanFunInpaintToVideo': {
+        'width': {'type': 'number', 'label': '宽度', 'field': 'width', 'default': 832, 'min': 16, 'max': 16384, 'step': 16},
+        'height': {'type': 'number', 'label': '高度', 'field': 'height', 'default': 480, 'min': 16, 'max': 16384, 'step': 16},
+        'length': {'type': 'number', 'label': '视频长度', 'field': 'frame_count', 'default': 81, 'min': 1, 'max': 16384, 'step': 4},
+        'batch_size': {'type': 'number', 'label': '批次数量', 'field': 'batch_size', 'default': 1, 'min': 1, 'max': 4096},
+    },
+    'WanSCAILToVideo': {
+        'width': {'type': 'number', 'label': '宽度', 'field': 'width', 'default': 512, 'min': 32, 'max': 16384, 'step': 32},
+        'height': {'type': 'number', 'label': '高度', 'field': 'height', 'default': 896, 'min': 32, 'max': 16384, 'step': 32},
+        'length': {'type': 'number', 'label': '视频长度', 'field': 'frame_count', 'default': 81, 'min': 1, 'max': 16384, 'step': 4},
+        'batch_size': {'type': 'number', 'label': '批次数量', 'field': 'batch_size', 'default': 1, 'min': 1, 'max': 4096},
+        'pose_strength': {'type': 'number', 'label': '姿态强度', 'field': 'pose_strength', 'default': 1.0, 'min': 0, 'max': 10, 'step': 0.01},
+        'pose_start': {'type': 'number', 'label': '姿态起始步', 'field': 'pose_start', 'default': 0.0, 'min': 0, 'max': 1, 'step': 0.01},
+        'pose_end': {'type': 'number', 'label': '姿态结束步', 'field': 'pose_end', 'default': 1.0, 'min': 0, 'max': 1, 'step': 0.01},
+    },
+    'Wan22ImageToVideoLatent': {
+        'width': {'type': 'number', 'label': '宽度', 'field': 'width', 'default': 1280, 'min': 32, 'max': 16384, 'step': 32},
+        'height': {'type': 'number', 'label': '高度', 'field': 'height', 'default': 704, 'min': 32, 'max': 16384, 'step': 32},
+        'length': {'type': 'number', 'label': '视频长度', 'field': 'frame_count', 'default': 49, 'min': 1, 'max': 16384, 'step': 4},
+        'batch_size': {'type': 'number', 'label': '批次数量', 'field': 'batch_size', 'default': 1, 'min': 1, 'max': 4096},
+    },
+    'WanInfiniteTalkToVideo': {
+        'width': {'type': 'number', 'label': '宽度', 'field': 'width', 'default': 832, 'min': 16, 'max': 16384, 'step': 16},
+        'height': {'type': 'number', 'label': '高度', 'field': 'height', 'default': 480, 'min': 16, 'max': 16384, 'step': 16},
+        'length': {'type': 'number', 'label': '视频长度', 'field': 'frame_count', 'default': 81, 'min': 1, 'max': 16384, 'step': 4},
+        'motion_frame_count': {'type': 'number', 'label': '运动帧数', 'field': 'motion_frame_count', 'default': 9, 'min': 1, 'max': 33, 'step': 1},
+        'audio_scale': {'type': 'number', 'label': '音频强度', 'field': 'audio_scale', 'default': 1.0, 'min': -10.0, 'max': 10.0, 'step': 0.01},
+    },
+    # WanPhantomSubjectToVideo 特殊输出（负向分两种），参数同 WanImageToVideo
+    'WanPhantomSubjectToVideo': {
+        'width': {'type': 'number', 'label': '宽度', 'field': 'width', 'default': 832, 'min': 16, 'max': 16384, 'step': 16},
+        'height': {'type': 'number', 'label': '高度', 'field': 'height', 'default': 480, 'min': 16, 'max': 16384, 'step': 16},
+        'length': {'type': 'number', 'label': '视频长度', 'field': 'frame_count', 'default': 81, 'min': 1, 'max': 16384, 'step': 4},
+        'batch_size': {'type': 'number', 'label': '批次数量', 'field': 'batch_size', 'default': 1, 'min': 1, 'max': 4096},
     },
 }
 
@@ -385,7 +519,7 @@ def convert_native_to_api(native_data):
                         val = _get_input_value(inp, widgets_values, widget_idx)
                         if val is not None:
                             inputs[inp_name] = val
-                            safe_name = inp_name
+                            safe_name = FIELD_ALIASES.get(inp_name, inp_name)
                             if safe_name not in seen_ui_field_names:
                                 seen_ui_field_names.add(safe_name)
                                 inp_type = inp.get('type', 'STRING')
@@ -434,11 +568,12 @@ def convert_native_to_api(native_data):
                     val = default
                 if val is not None:
                     inputs[inp_name] = val
-                    if inp_name not in seen_ui_field_names:
-                        seen_ui_field_names.add(inp_name)
+                    safe_name = FIELD_ALIASES.get(inp_name, inp_name)
+                    if safe_name not in seen_ui_field_names:
+                        seen_ui_field_names.add(safe_name)
                         inp_type = inp.get('type', 'STRING').upper()
                         field_type = 'number' if inp_type in ('INT', 'FLOAT') else 'string'
-                        entry = {'name': inp_name, 'type': field_type, 'default': val}
+                        entry = {'name': safe_name, 'type': field_type, 'default': val}
                         if inp.get('min') is not None:
                             entry['min'] = inp['min']
                         if inp.get('max') is not None:
@@ -448,7 +583,7 @@ def convert_native_to_api(native_data):
                         if inp_type == 'COMBO' and isinstance(inp.get('options'), list):
                             entry['type'] = 'combo'
                             entry['options'] = inp['options']
-                        field_mapping[inp_name] = f'{nid}.inputs.{inp_name}'
+                        field_mapping[safe_name] = f'{nid}.inputs.{inp_name}'
                         ui_fields.append(entry)
             widget_idx += 1
 

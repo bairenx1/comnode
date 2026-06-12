@@ -60,8 +60,12 @@ export interface JobParams {
   seed?: number;
   denoise?: number;
   frame_count?: number;
+  fps?: number;
+  motion_bucket_id?: number;
+  augmentation_level?: number;
   image_asset_hash?: string;
   target_asset_hash?: string;
+  video_asset_hash?: string;
   [key: string]: unknown;
 }
 

@@ -286,11 +286,23 @@ SPECIAL_NODE_CONFIGS = {
 
 
 def _build_link_maps(nodes, links):
-    """解析链接关系，构建正向和反向映射"""
+    """解析链接关系，构建正向和反向映射（兼容 list 和 dict 两种链接格式）"""
     link_map = {}         # link_id -> (from_node, from_slot, to_node, to_slot)
     reverse_map = {}      # (to_node_id, input_name) -> [(from_node_id, from_slot)]
 
+    # 标准化链接格式：dict -> list
+    normalized_links = []
     for link in links:
+        if isinstance(link, dict):
+            normalized_links.append([
+                link['id'], link['origin_id'], link['origin_slot'],
+                link['target_id'], link['target_slot'],
+                link.get('type', '*'),
+            ])
+        else:
+            normalized_links.append(link)
+
+    for link in normalized_links:
         link_id = link[0]
         from_node = str(link[1])
         from_slot = link[2]
@@ -299,7 +311,7 @@ def _build_link_maps(nodes, links):
         link_map[link_id] = (from_node, from_slot, to_node, to_slot)
 
     # 构建反向映射：找到每个目标节点输入端对应的源节点
-    for link in links:
+    for link in normalized_links:
         link_id, from_node, from_slot, to_node, to_slot, *_ = link
         to_node_s = str(to_node)
         from_node_s = str(from_node)
@@ -436,9 +448,47 @@ def _convert_single_value(val, inp_type):
         return val
 
 
+def _classify_prompt(inp_name: str, label: str = '') -> str:
+    """判断输入是否为提示词类型，返回 'prompt' / 'negative_prompt' / ''"""
+    name_lower = inp_name.lower()
+    label_lower = (label or '').lower()
+    pos = {'prompt', 'positive_prompt', 'positive prompt', 'text'}
+    neg = {'negative_prompt', 'negative_text', 'negative text'}
+    if name_lower in pos or label_lower in pos:
+        return 'prompt'
+    if name_lower in neg or label_lower in neg:
+        return 'negative_prompt'
+    return ''
+
+
+def _is_seed_name(inp_name: str, label: str = '') -> bool:
+    """判断输入是否为种子类型"""
+    name_lower = inp_name.lower()
+    label_lower = (label or '').lower()
+    return name_lower in ('noise_seed', 'seed') or 'seed' in label_lower
+
+
 def convert_native_to_api(native_data):
     nodes = native_data.get('nodes', [])
     links = native_data.get('links', [])
+
+    # ---- 预处理：将 definitions.subgraphs 中的子图数据注入到对应 UUID 节点 ----
+    # ComfyUI 原生格式将子图定义在顶层 definitions，而非节点内部
+    subgraph_defs: dict[str, dict] = {}
+    if 'definitions' in native_data:
+        for sg in native_data['definitions'].get('subgraphs', []):
+            sg_id = sg.get('id', '')
+            if sg_id:
+                subgraph_defs[sg_id] = {
+                    'nodes': sg.get('nodes', []),
+                    'links': sg.get('links', []),
+                }
+
+    for node in nodes:
+        ntype = node.get('type', '')
+        if UUID_TYPE_RE.match(ntype) and ntype in subgraph_defs:
+            if not node.get('subgraph'):
+                node['subgraph'] = subgraph_defs[ntype]
 
     link_map, reverse_map = _build_link_maps(nodes, links)
     clip_polarity = _trace_clip_polarity(nodes, reverse_map)
@@ -487,9 +537,142 @@ def convert_native_to_api(native_data):
                 sub_api, sub_mapping, sub_fields = convert_native_to_api(
                     {'nodes': subgraph_data['nodes'], 'links': subgraph_data.get('links', [])}
                 )
+                node_api[nid] = {'class_type': ntype, 'inputs': inputs if inputs else {}, '_subgraph': sub_api}
+
+                # ---- 先从 UUID 包装器输入提取 UI 字段（优先级高于子图内部字段） ----
+                sg_nodes = {str(sn['id']): sn for sn in subgraph_data['nodes']}
+                proxy_list = node.get('properties', {}).get('proxyWidgets', [])
+                proxy_idx = 0  # 按位置匹配未链接的 widget 输入
+
+                def _get_proxy_value():
+                    """从当前 proxyWidget 对应的内部节点提取默认值"""
+                    nonlocal proxy_idx
+                    if proxy_idx < len(proxy_list) and len(proxy_list[proxy_idx]) >= 2:
+                        pw = proxy_list[proxy_idx]
+                        proxy_idx += 1
+                        pn = sg_nodes.get(str(pw[0]))
+                        if pn:
+                            wv = pn.get('widgets_values', [])
+                            if isinstance(wv, list) and wv:
+                                return wv[0]
+                            elif isinstance(wv, dict):
+                                return wv.get(str(pw[1]))
+                    else:
+                        proxy_idx += 1
+                    return None
+
+                for inp in node_inputs:
+                    inp_name = inp['name']
+                    inp_type = _get_input_type(inp)
+                    label = (inp.get('label') or '').strip()
+                    link = inp.get('link')
+
+                    if link is not None:
+                        # 已链接的输入：不占 proxyWidget 位
+                        if inp_type in ('IMAGE', 'MASK'):
+                            # 如果是链接到 LoadImage，跳过（LoadImage 自己已生成图片字段）
+                            src_type = ''
+                            if link in link_map:
+                                src_nid = link_map[link][0]
+                                src_node = nodes_by_id.get(src_nid)
+                                src_type = src_node.get('type', '') if src_node else ''
+                            if src_type == 'LoadImage':
+                                continue
+                            img_count = sum(1 for f in ui_fields if f.get('role') == 'image_upload')
+                            if img_count == 0:
+                                safe_name = 'image_asset_hash'
+                            elif img_count == 1:
+                                safe_name = 'target_asset_hash'
+                            else:
+                                safe_name = f'target_asset_hash_{img_count}'
+                            if safe_name not in seen_ui_field_names:
+                                seen_ui_field_names.add(safe_name)
+                                field_mapping[safe_name] = f'{nid}.inputs.{inp_name}'
+                                ui_fields.append({
+                                    'name': safe_name, 'type': 'string',
+                                    'label': label or inp_name,
+                                    'role': 'image_upload', 'default': '',
+                                })
+                        elif inp_type == 'STRING':
+                            prompt_type = _classify_prompt(inp_name)
+                            if not prompt_type:
+                                continue
+                            # 链接型提示词：从源节点提取默认文本
+                            default_val = ''
+                            if link in link_map:
+                                src_nid, src_slot = link_map[link][:2]
+                                src_node = nodes_by_id.get(src_nid)
+                                if src_node:
+                                    wv = src_node.get('widgets_values', [])
+                                    if isinstance(wv, list) and src_slot < len(wv):
+                                        default_val = str(wv[src_slot]) if wv[src_slot] else ''
+                            field_name = prompt_type
+                            if field_name not in seen_ui_field_names:
+                                seen_ui_field_names.add(field_name)
+                                field_mapping[field_name] = f'{nid}.inputs.{inp_name}'
+                                ui_fields.append({
+                                    'name': field_name, 'type': 'string',
+                                    'default': default_val,
+                                })
+                        continue
+
+                    # 未链接的 widget 输入：获取对应 proxyWidget 和内部节点值
+                    proxy_val = _get_proxy_value()
+
+                    # 图片类型（未链接的 IMAGE/MASK widget）
+                    if inp_type in ('IMAGE', 'MASK'):
+                        img_count = sum(1 for f in ui_fields if f.get('role') == 'image_upload')
+                        if img_count == 0:
+                            safe_name = 'image_asset_hash'
+                        elif img_count == 1:
+                            safe_name = 'target_asset_hash'
+                        else:
+                            safe_name = f'target_asset_hash_{img_count}'
+                        default_val = str(proxy_val) if proxy_val is not None and not isinstance(proxy_val, (bool,)) else ''
+                        if safe_name not in seen_ui_field_names:
+                            seen_ui_field_names.add(safe_name)
+                            field_mapping[safe_name] = f'{nid}.inputs.{inp_name}'
+                            ui_fields.append({
+                                'name': safe_name, 'type': 'string',
+                                'label': label or inp_name,
+                                'role': 'image_upload', 'default': default_val,
+                            })
+
+                    # 字符串 + 提示词标签/名称 → 提示词字段
+                    elif inp_type == 'STRING':
+                        prompt_type = _classify_prompt(inp_name, label)
+                        if not prompt_type:
+                            continue
+                        field_name = prompt_type
+                        default_val = str(proxy_val) if isinstance(proxy_val, str) else ''
+                        if field_name not in seen_ui_field_names:
+                            seen_ui_field_names.add(field_name)
+                            field_mapping[field_name] = f'{nid}.inputs.{inp_name}'
+                            ui_fields.append({
+                                'name': field_name, 'type': 'string',
+                                'default': default_val,
+                            })
+
+                    # seed / noise_seed
+                    elif inp_type == 'INT' and _is_seed_name(inp_name, label):
+                        field_name = 'seed'
+                        default_val = int(proxy_val) if isinstance(proxy_val, (int, float)) else 0
+                        if field_name not in seen_ui_field_names:
+                            seen_ui_field_names.add(field_name)
+                            field_mapping[field_name] = f'{nid}.inputs.{inp_name}'
+                            ui_fields.append({
+                                'name': field_name, 'type': 'number',
+                                'default': default_val,
+                                'min': 0,
+                                'max': 0xffffffffffffffff,
+                            })
+
+                # ---- 再合并子图内部字段（冲突时自动加前缀） ----
                 for fname, target in sub_mapping.items():
                     full_target = f'{nid}.{target}'
-                    sub_fname = f'{nid}_{fname}'
+                    sub_fname = fname
+                    if sub_fname in seen_ui_field_names:
+                        sub_fname = f'{nid}_{fname}'
                     field_mapping[sub_fname] = full_target
                     if sub_fname not in seen_ui_field_names:
                         seen_ui_field_names.add(sub_fname)
@@ -499,7 +682,7 @@ def convert_native_to_api(native_data):
                                 sub_entry['name'] = sub_fname
                                 ui_fields.append(sub_entry)
                                 break
-                node_api[nid] = {'class_type': ntype, 'inputs': inputs if inputs else {}, '_subgraph': sub_api}
+
                 continue
             else:
                 # 子图引用（无嵌入子节点）：保留，ComfyUI subgraph_manager 会解析
@@ -513,7 +696,9 @@ def convert_native_to_api(native_data):
                 )
                 for fname, target in sub_mapping.items():
                     full_target = f'{nid}.{target}'
-                    sub_fname = f'{nid}_{fname}'
+                    sub_fname = fname
+                    if sub_fname in seen_ui_field_names:
+                        sub_fname = f'{nid}_{fname}'
                     field_mapping[sub_fname] = full_target
                     if sub_fname not in seen_ui_field_names:
                         seen_ui_field_names.add(sub_fname)

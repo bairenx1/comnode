@@ -25,8 +25,24 @@ HIDDEN_FIELD_NAMES = {
     'vae_name',
     'clip_name', 'clip_name1', 'clip_name2',
     'unet_name', 'model_name',
-    'lora_name', 'control_net_name',
+    'lora_name', 'lora_name_1', 'lora_name_2', 'lora_name_3',
+    'control_net_name',
+    # LoadImage/LoadVideo 内部模式切换参数
+    'upload',
+    # 各种节点的内部/通用参数
+    'text_encoder',
+    'value', 'value_1', 'value_2', 'value_3', 'value_4', 'value_5',
+    'value_6', 'value_7', 'value_8', 'value_9', 'value_10',
 }
+
+def _is_hidden_field_name(name: str) -> bool:
+    """检查字段名是否应隐藏（包括通用 value/value_N 模式）"""
+    if name in HIDDEN_FIELD_NAMES:
+        return True
+    # 匹配 value_数字 模式（如 value_1, value_99 等）
+    if re.match(r'^value_\d+$', name):
+        return True
+    return False
 
 # UUID 格式的 class_type 表示 ComfyUI Group Node（包装器节点），其内部子节点已在图中独立存在
 UUID_TYPE_RE = re.compile(
@@ -618,7 +634,7 @@ def convert_native_to_api(native_data):
                             field_name = cfg['field']
                             label = cfg.get('label', '')
                         # 模型/LoRA/VAE 加载器：参数用于图执行但不暴露给前端
-                        if ntype not in HIDDEN_UI_TYPES and field_name not in HIDDEN_FIELD_NAMES:
+                        if ntype not in HIDDEN_UI_TYPES and not _is_hidden_field_name(field_name):
                             field_mapping[field_name] = f'{nid}.inputs.{inp_name}'
                             if field_name not in seen_ui_field_names:
                                 seen_ui_field_names.add(field_name)
@@ -643,7 +659,7 @@ def convert_native_to_api(native_data):
                         if val is not None:
                             inputs[inp_name] = val
                             safe_name = FIELD_ALIASES.get(inp_name, inp_name)
-                            if ntype not in HIDDEN_UI_TYPES and safe_name not in HIDDEN_FIELD_NAMES:
+                            if ntype not in HIDDEN_UI_TYPES and not _is_hidden_field_name(safe_name):
                                 if safe_name not in seen_ui_field_names:
                                     seen_ui_field_names.add(safe_name)
                                     inp_type = _get_input_type(inp)
@@ -686,7 +702,7 @@ def convert_native_to_api(native_data):
                         else:
                             prim_val = ''
                         safe_name = FIELD_ALIASES.get(inp_name, inp_name)
-                        if safe_name not in seen_ui_field_names and safe_name not in HIDDEN_FIELD_NAMES:
+                        if safe_name not in seen_ui_field_names and not _is_hidden_field_name(safe_name):
                             seen_ui_field_names.add(safe_name)
                             inp_t = _get_input_type(inp)
                             entry = {
@@ -753,7 +769,7 @@ def convert_native_to_api(native_data):
                         inputs[inp_name] = str(inp.get('default', ''))
                     # 为 UUID 引用节点生成 UI 字段（跳过模型相关字段）
                     safe_name = FIELD_ALIASES.get(inp_name, inp_name)
-                    if safe_name not in seen_ui_field_names and safe_name not in HIDDEN_FIELD_NAMES:
+                    if safe_name not in seen_ui_field_names and not _is_hidden_field_name(safe_name):
                         seen_ui_field_names.add(safe_name)
                         field_type = 'number' if inp_type in ('INT', 'FLOAT') else 'string'
                         if inp_type == 'COMBO' and isinstance(inp.get('options'), list):
@@ -784,7 +800,7 @@ def convert_native_to_api(native_data):
                 if val is not None:
                     inputs[inp_name] = val
                     safe_name = FIELD_ALIASES.get(inp_name, inp_name)
-                    if safe_name not in seen_ui_field_names and safe_name not in HIDDEN_FIELD_NAMES:
+                    if safe_name not in seen_ui_field_names and not _is_hidden_field_name(safe_name):
                         seen_ui_field_names.add(safe_name)
                         inp_type = _get_input_type(inp)
                         field_type = 'number' if inp_type in ('INT', 'FLOAT') else 'string'

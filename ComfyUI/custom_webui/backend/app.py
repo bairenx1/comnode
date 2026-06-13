@@ -152,17 +152,44 @@ def create_app() -> web.Application:
             return comfy_down_response(e)
 
     @routes.get("/api/assets/{asset_id}/content")
-    async def download_asset(request: web.Request) -> web.Response:
+    async def download_asset(request: web.Request) -> web.StreamResponse:
         try:
             asset_id = request.match_info["asset_id"]
-            content, content_type, filename = await comfy.get_asset_content(asset_id)
-            from urllib.parse import quote
-            disposition = f'attachment; filename="{quote(filename)}"'
-            return web.Response(
-                body=content,
-                content_type=content_type,
-                headers={"Content-Disposition": disposition},
-            )
+            session = await comfy._ensure_session()
+            target_url = f"{SETTINGS.comfy_base_url}/api/assets/{asset_id}/content"
+            headers: dict[str, str] = {}
+            range_header = request.headers.get("Range")
+            if range_header:
+                headers["Range"] = range_header
+            async with session.get(target_url, headers=headers) as upstream:
+                upstream.raise_for_status()
+                upstream_ctype = upstream.content_type or "application/octet-stream"
+                upstream_clen = upstream.headers.get("Content-Length")
+                disposition = upstream.headers.get("Content-Disposition", "")
+                if not disposition:
+                    from urllib.parse import quote
+                    filename = upstream.headers.get("X-Filename", asset_id)
+                    disposition = f'attachment; filename="{quote(filename)}"'
+                resp_headers: dict[str, str] = {"Content-Disposition": disposition}
+                if range_header and upstream.status == 206:
+                    crange = upstream.headers.get("Content-Range")
+                    if crange:
+                        resp_headers["Content-Range"] = crange
+                    resp = web.StreamResponse(status=206, reason="Partial Content", headers=resp_headers)
+                    resp.content_type = upstream_ctype
+                    if upstream_clen:
+                        resp.content_length = int(upstream_clen)
+                else:
+                    resp = web.StreamResponse(headers=resp_headers)
+                    resp.content_type = upstream_ctype
+                    if upstream_clen:
+                        resp.content_length = int(upstream_clen)
+                await resp.prepare(request)
+                chunk_size = 64 * 1024
+                async for chunk in upstream.content.iter_chunked(chunk_size):
+                    await resp.write(chunk)
+                await resp.write_eof()
+                return resp
         except aiohttp.ClientError as e:
             return comfy_down_response(e)
 
@@ -208,31 +235,59 @@ def create_app() -> web.Application:
 
         return ws_server
 
+    async def _proxy_view(request: web.Request, upstream_path: str) -> web.StreamResponse:
+        """流式代理 ComfyUI 的文件查看端点，支持 Range 请求（视频播放必需）"""
+        query = request.rel_url.query_string
+        target_url = f"{SETTINGS.comfy_base_url}{upstream_path}?{query}"
+        headers: dict[str, str] = {}
+        range_header = request.headers.get("Range")
+        if range_header:
+            headers["Range"] = range_header
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(target_url, headers=headers) as upstream:
+                    upstream.raise_for_status()
+                    upstream_ctype = upstream.content_type or "application/octet-stream"
+                    upstream_clen = upstream.headers.get("Content-Length")
+                    upstream_crange = upstream.headers.get("Content-Range")
+                    upstream_accept = upstream.headers.get("Accept-Ranges")
+
+                    if upstream.status == 206:
+                        # 部分内容响应（Range 请求）
+                        resp = web.StreamResponse(status=206, reason="Partial Content")
+                        resp.content_type = upstream_ctype
+                        if upstream_crange:
+                            resp.headers["Content-Range"] = upstream_crange
+                        if upstream_clen:
+                            resp.content_length = int(upstream_clen)
+                    else:
+                        resp = web.StreamResponse(status=200)
+                        resp.content_type = upstream_ctype
+                        if upstream_clen:
+                            resp.content_length = int(upstream_clen)
+                        if upstream_accept:
+                            resp.headers["Accept-Ranges"] = upstream_accept
+                        # 告诉上游我们接受分块传输
+                        resp.enable_chunked_encoding()
+
+                    await resp.prepare(request)
+
+                    chunk_size = 64 * 1024
+                    async for chunk in upstream.content.iter_chunked(chunk_size):
+                        await resp.write(chunk)
+
+                    await resp.write_eof()
+                    return resp
+        except aiohttp.ClientError as e:
+            return web.Response(status=502, text=f"ComfyUI proxy error: {e}")
+
     @routes.get("/view")
     async def view_proxy(request: web.Request) -> web.StreamResponse:
-        try:
-            query = request.rel_url.query_string
-            target_url = f"{SETTINGS.comfy_base_url}/view?{query}"
-            async with aiohttp.ClientSession() as session:
-                async with session.get(target_url) as resp:
-                    resp.raise_for_status()
-                    body = await resp.read()
-                    return web.Response(body=body, content_type=resp.content_type)
-        except aiohttp.ClientError as e:
-            return web.Response(status=502, text=f"Proxy error: {e}")
+        return await _proxy_view(request, "/view")
 
     @routes.get("/api/view")
     async def api_view_proxy(request: web.Request) -> web.StreamResponse:
-        try:
-            query = request.rel_url.query_string
-            target_url = f"{SETTINGS.comfy_base_url}/api/view?{query}"
-            async with aiohttp.ClientSession() as session:
-                async with session.get(target_url) as resp:
-                    resp.raise_for_status()
-                    body = await resp.read()
-                    return web.Response(body=body, content_type=resp.content_type)
-        except aiohttp.ClientError as e:
-            return web.Response(status=502, text=f"Proxy error: {e}")
+        return await _proxy_view(request, "/api/view")
 
     @routes.get("/api/ws-info")
     async def ws_info(_: web.Request) -> web.Response:

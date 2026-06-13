@@ -2,7 +2,12 @@ import sys, json, re
 from pathlib import Path
 
 WORKFLOWS_DIR = Path(__file__).resolve().parent.parent / "workflows"
-USER_WORKFLOWS_DIR = Path(__file__).resolve().parent.parent.parent / "user" / "default" / "workflow"
+# ComfyUI 标准保存路径
+_USER_DEFAULT_DIR = Path(__file__).resolve().parent.parent.parent / "user" / "default"
+USER_WORKFLOW_DIRS = [
+    _USER_DEFAULT_DIR / "workflows",  # 复数：ComfyUI 标准路径
+    _USER_DEFAULT_DIR / "workflow",   # 单数：兼容旧路径
+]
 
 SKIP_TYPES = {'MarkdownNote', 'Note', 'PrimitiveNode', 'Reroute'}
 
@@ -1114,7 +1119,9 @@ def _convert_workflow_files(source_dir: Path, converted: int) -> int:
 
 
 def auto_convert_all():
-    converted = _convert_workflow_files(USER_WORKFLOWS_DIR, 0)
+    converted = 0
+    for src_dir in USER_WORKFLOW_DIRS:
+        converted = _convert_workflow_files(src_dir, converted)
     print(f'Converted {converted} workflows')
     return converted
 

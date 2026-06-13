@@ -691,15 +691,10 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                 pose_strength: 62, pose_start: 63, pose_end: 64,
                 vace_strength: 65, track_temperature: 66, track_topk: 67,
               };
-              // 前端只展示核心可操作字段：提示词 + 种子 + 图片上传
-              const CORE_VISIBLE_FIELDS = new Set([
-                'prompt', 'positive_prompt', 'text',
-                'negative_prompt', 'negative_text',
-                'seed', 'noise_seed',
-              ]);
+              // 所有字段由后端 schema 驱动，隐藏字段已在转换时过滤
               const uploadFieldNames = new Set(imageFields.map(f => f.name));
               const sorted = [...dynamicFields]
-                .filter(f => !uploadFieldNames.has(f.name) && CORE_VISIBLE_FIELDS.has(f.name))
+                .filter(f => !uploadFieldNames.has(f.name))
                 .sort((a, b) => (order[a.name] ?? 60) - (order[b.name] ?? 60));
 
               // 中文标签映射

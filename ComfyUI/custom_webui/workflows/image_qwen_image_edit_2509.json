@@ -1,0 +1,623 @@
+{
+  "60": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "433",
+        0
+      ]
+    }
+  },
+  "342": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "466",
+        0
+      ]
+    }
+  },
+  "466": {
+    "class_type": "c7f5c302-e46e-4a0f-91bd-0aec474e7659",
+    "inputs": {},
+    "_subgraph": {
+      "445": {
+        "class_type": "CFGNorm",
+        "inputs": {
+          "model": [
+            "450",
+            0
+          ],
+          "strength": false
+        }
+      },
+      "446": {
+        "class_type": "VAELoader",
+        "inputs": {
+          "vae_name": [
+            "-10",
+            8
+          ]
+        }
+      },
+      "447": {
+        "class_type": "CLIPLoader",
+        "inputs": {
+          "clip_name": [
+            "-10",
+            7
+          ],
+          "type": "qwen_image",
+          "device": "default"
+        }
+      },
+      "448": {
+        "class_type": "UNETLoader",
+        "inputs": {
+          "unet_name": [
+            "-10",
+            6
+          ],
+          "weight_dtype": "default"
+        }
+      },
+      "449": {
+        "class_type": "TextEncodeQwenImageEditPlus",
+        "inputs": {
+          "clip": [
+            "447",
+            0
+          ],
+          "vae": [
+            "446",
+            0
+          ],
+          "image1": [
+            "455",
+            0
+          ],
+          "image2": [
+            "-10",
+            1
+          ],
+          "image3": [
+            "-10",
+            2
+          ]
+        }
+      },
+      "450": {
+        "class_type": "ModelSamplingAuraFlow",
+        "inputs": {
+          "model": [
+            "461",
+            0
+          ]
+        }
+      },
+      "451": {
+        "class_type": "TextEncodeQwenImageEditPlus",
+        "inputs": {
+          "clip": [
+            "447",
+            0
+          ],
+          "vae": [
+            "446",
+            0
+          ],
+          "image1": [
+            "455",
+            0
+          ],
+          "image2": [
+            "-10",
+            1
+          ],
+          "image3": [
+            "-10",
+            2
+          ],
+          "prompt": [
+            "-10",
+            3
+          ]
+        }
+      },
+      "452": {
+        "class_type": "VAEEncode",
+        "inputs": {
+          "pixels": [
+            "455",
+            0
+          ],
+          "vae": [
+            "446",
+            0
+          ]
+        }
+      },
+      "453": {
+        "class_type": "VAEDecode",
+        "inputs": {
+          "samples": [
+            "456",
+            0
+          ],
+          "vae": [
+            "446",
+            0
+          ]
+        }
+      },
+      "454": {
+        "class_type": "LoraLoaderModelOnly",
+        "inputs": {
+          "model": [
+            "448",
+            0
+          ],
+          "lora_name": 1,
+          "strength_model": 1.0
+        }
+      },
+      "455": {
+        "class_type": "FluxKontextImageScale",
+        "inputs": {
+          "image": [
+            "-10",
+            0
+          ]
+        }
+      },
+      "456": {
+        "class_type": "KSampler",
+        "inputs": {
+          "seed": [
+            "-10",
+            4
+          ],
+          "steps": [
+            "462",
+            0
+          ],
+          "cfg": [
+            "463",
+            0
+          ],
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1.0,
+          "model": [
+            "445",
+            0
+          ],
+          "positive": [
+            "467",
+            0
+          ],
+          "negative": [
+            "468",
+            0
+          ],
+          "latent_image": [
+            "452",
+            0
+          ]
+        }
+      },
+      "457": {
+        "class_type": "PrimitiveInt",
+        "inputs": {
+          "value": 4
+        }
+      },
+      "458": {
+        "class_type": "PrimitiveFloat",
+        "inputs": {
+          "value": 1
+        }
+      },
+      "459": {
+        "class_type": "PrimitiveInt",
+        "inputs": {
+          "value": 20
+        }
+      },
+      "460": {
+        "class_type": "PrimitiveFloat",
+        "inputs": {
+          "value": 4
+        }
+      },
+      "461": {
+        "class_type": "ComfySwitchNode",
+        "inputs": {
+          "on_false": [
+            "448",
+            0
+          ],
+          "on_true": [
+            "454",
+            0
+          ],
+          "switch": [
+            "464",
+            0
+          ]
+        }
+      },
+      "462": {
+        "class_type": "ComfySwitchNode",
+        "inputs": {
+          "on_false": [
+            "459",
+            0
+          ],
+          "on_true": [
+            "457",
+            0
+          ],
+          "switch": [
+            "464",
+            0
+          ]
+        }
+      },
+      "463": {
+        "class_type": "ComfySwitchNode",
+        "inputs": {
+          "on_false": [
+            "460",
+            0
+          ],
+          "on_true": [
+            "458",
+            0
+          ],
+          "switch": [
+            "464",
+            0
+          ]
+        }
+      },
+      "464": {
+        "class_type": "PrimitiveBoolean",
+        "inputs": {
+          "value": [
+            "-10",
+            5
+          ]
+        }
+      },
+      "467": {
+        "class_type": "ReferenceLatent",
+        "inputs": {
+          "conditioning": [
+            "451",
+            0
+          ],
+          "latent": [
+            "452",
+            0
+          ]
+        }
+      },
+      "468": {
+        "class_type": "ReferenceLatent",
+        "inputs": {
+          "conditioning": [
+            "449",
+            0
+          ],
+          "latent": [
+            "452",
+            0
+          ]
+        }
+      }
+    }
+  },
+  "78": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "O1CN01yoeq2A1GnzcHSAWUp_!!2217456700668.jpeg",
+      "upload": "image"
+    }
+  },
+  "435": {
+    "class_type": "PrimitiveStringMultiline",
+    "inputs": {
+      "value": "change clothes to red"
+    }
+  },
+  "469": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "20260520-020926.jpg",
+      "upload": "image"
+    }
+  },
+  "433": {
+    "class_type": "eba40a3a-f6c5-48ac-b58e-55525d06b373",
+    "inputs": {},
+    "_subgraph": {
+      "75": {
+        "class_type": "CFGNorm",
+        "inputs": {
+          "model": [
+            "66",
+            0
+          ],
+          "strength": false
+        }
+      },
+      "39": {
+        "class_type": "VAELoader",
+        "inputs": {
+          "vae_name": [
+            "-10",
+            8
+          ]
+        }
+      },
+      "38": {
+        "class_type": "CLIPLoader",
+        "inputs": {
+          "clip_name": [
+            "-10",
+            7
+          ],
+          "type": "qwen_image",
+          "device": "default"
+        }
+      },
+      "37": {
+        "class_type": "UNETLoader",
+        "inputs": {
+          "unet_name": [
+            "-10",
+            6
+          ],
+          "weight_dtype": "default"
+        }
+      },
+      "110": {
+        "class_type": "TextEncodeQwenImageEditPlus",
+        "inputs": {
+          "clip": [
+            "38",
+            0
+          ],
+          "vae": [
+            "39",
+            0
+          ],
+          "image1": [
+            "117",
+            0
+          ],
+          "image2": [
+            "-10",
+            1
+          ],
+          "image3": [
+            "-10",
+            2
+          ]
+        }
+      },
+      "66": {
+        "class_type": "ModelSamplingAuraFlow",
+        "inputs": {
+          "model": [
+            "440",
+            0
+          ]
+        }
+      },
+      "111": {
+        "class_type": "TextEncodeQwenImageEditPlus",
+        "inputs": {
+          "clip": [
+            "38",
+            0
+          ],
+          "vae": [
+            "39",
+            0
+          ],
+          "image1": [
+            "117",
+            0
+          ],
+          "image2": [
+            "-10",
+            1
+          ],
+          "image3": [
+            "-10",
+            2
+          ],
+          "prompt": [
+            "-10",
+            3
+          ]
+        }
+      },
+      "88": {
+        "class_type": "VAEEncode",
+        "inputs": {
+          "pixels": [
+            "117",
+            0
+          ],
+          "vae": [
+            "39",
+            0
+          ]
+        }
+      },
+      "8": {
+        "class_type": "VAEDecode",
+        "inputs": {
+          "samples": [
+            "3",
+            0
+          ],
+          "vae": [
+            "39",
+            0
+          ]
+        }
+      },
+      "89": {
+        "class_type": "LoraLoaderModelOnly",
+        "inputs": {
+          "model": [
+            "37",
+            0
+          ],
+          "lora_name": 1,
+          "strength_model": 1.0
+        }
+      },
+      "117": {
+        "class_type": "FluxKontextImageScale",
+        "inputs": {
+          "image": [
+            "-10",
+            0
+          ]
+        }
+      },
+      "3": {
+        "class_type": "KSampler",
+        "inputs": {
+          "seed": [
+            "-10",
+            4
+          ],
+          "steps": [
+            "441",
+            0
+          ],
+          "cfg": [
+            "442",
+            0
+          ],
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1.0,
+          "model": [
+            "75",
+            0
+          ],
+          "positive": [
+            "111",
+            0
+          ],
+          "negative": [
+            "110",
+            0
+          ],
+          "latent_image": [
+            "88",
+            0
+          ]
+        }
+      },
+      "436": {
+        "class_type": "PrimitiveInt",
+        "inputs": {
+          "value": 4
+        }
+      },
+      "437": {
+        "class_type": "PrimitiveFloat",
+        "inputs": {
+          "value": 1
+        }
+      },
+      "438": {
+        "class_type": "PrimitiveInt",
+        "inputs": {
+          "value": 20
+        }
+      },
+      "439": {
+        "class_type": "PrimitiveFloat",
+        "inputs": {
+          "value": 4
+        }
+      },
+      "440": {
+        "class_type": "ComfySwitchNode",
+        "inputs": {
+          "on_false": [
+            "37",
+            0
+          ],
+          "on_true": [
+            "89",
+            0
+          ],
+          "switch": [
+            "443",
+            0
+          ]
+        }
+      },
+      "441": {
+        "class_type": "ComfySwitchNode",
+        "inputs": {
+          "on_false": [
+            "438",
+            0
+          ],
+          "on_true": [
+            "436",
+            0
+          ],
+          "switch": [
+            "443",
+            0
+          ]
+        }
+      },
+      "442": {
+        "class_type": "ComfySwitchNode",
+        "inputs": {
+          "on_false": [
+            "439",
+            0
+          ],
+          "on_true": [
+            "437",
+            0
+          ],
+          "switch": [
+            "443",
+            0
+          ]
+        }
+      },
+      "443": {
+        "class_type": "PrimitiveBoolean",
+        "inputs": {
+          "value": [
+            "-10",
+            5
+          ]
+        }
+      }
+    }
+  },
+  "470": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "20260520-020926.jpg",
+      "upload": "image"
+    }
+  }
+}

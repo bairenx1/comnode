@@ -29,6 +29,7 @@ venv*/
 /tests-ui/data/object_info.json
 /user/*
 /custom_webui/workflows/*.json
+!/custom_webui/workflows/*.mapping.json
 !/user/.gitkeep
 *.log
 web_custom_versions/

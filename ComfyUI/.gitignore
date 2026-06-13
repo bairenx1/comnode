@@ -28,6 +28,7 @@ venv*/
 !/web/extensions/core/
 /tests-ui/data/object_info.json
 /user/*
+/custom_webui/workflows/*.json
 !/user/.gitkeep
 *.log
 web_custom_versions/

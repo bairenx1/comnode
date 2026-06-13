@@ -6,6 +6,9 @@ USER_WORKFLOWS_DIR = Path(__file__).resolve().parent.parent.parent / "user" / "d
 
 SKIP_TYPES = {'MarkdownNote', 'Note', 'PrimitiveNode', 'Reroute'}
 
+# 持有可编辑文本值的 Primitive 节点类型（其值通过 UUID Group Node 的 link 暴露）
+PRIMITIVE_VALUE_TYPES = {'PrimitiveStringMultiline'}
+
 # 不暴露 UI 参数的节点类型（模型加载器等，用户不需要在工作流中切换）
 HIDDEN_UI_TYPES = {
     'CheckpointLoaderSimple', 'CheckpointLoader',
@@ -424,6 +427,9 @@ def convert_native_to_api(native_data):
     link_map, reverse_map = _build_link_maps(nodes, links)
     clip_polarity = _trace_clip_polarity(nodes, reverse_map)
 
+    # 构建节点 ID 查找表（用于 UUID ref 追踪 PrimitiveNode 值）
+    nodes_by_id: dict[str, dict] = {str(n['id']): n for n in nodes}
+
     node_api = {}
     field_mapping = {}
     ui_fields = []
@@ -666,6 +672,31 @@ def convert_native_to_api(native_data):
             if link is not None and link in link_map:
                 from_node, from_slot, _, _ = link_map[link]
                 inputs[inp_name] = [from_node, from_slot]
+
+                # UUID ref: 追踪链接到 PrimitiveNode 提取文本/数字值作为 UI 字段
+                if is_uuid_ref:
+                    src_node = nodes_by_id.get(str(from_node))
+                    src_type = src_node.get('type', '') if src_node else ''
+                    if src_type in PRIMITIVE_VALUE_TYPES:
+                        wv = src_node.get('widgets_values', [])
+                        if isinstance(wv, list) and from_slot < len(wv):
+                            prim_val = wv[from_slot]
+                        elif isinstance(wv, dict):
+                            prim_val = list(wv.values())[from_slot] if from_slot < len(wv) else ''
+                        else:
+                            prim_val = ''
+                        safe_name = FIELD_ALIASES.get(inp_name, inp_name)
+                        if safe_name not in seen_ui_field_names and safe_name not in HIDDEN_FIELD_NAMES:
+                            seen_ui_field_names.add(safe_name)
+                            inp_t = _get_input_type(inp)
+                            entry = {
+                                'name': safe_name,
+                                'type': 'string' if inp_t == 'STRING' else 'number',
+                                'default': prim_val,
+                            }
+                            field_mapping[safe_name] = f'{from_node}.inputs.value'
+                            ui_fields.append(entry)
+
                 widget_idx += 1
                 continue
 

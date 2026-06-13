@@ -34,12 +34,8 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   const [batchCount, setBatchCount] = useState(4);
   const [batchSettingsOpen, setBatchSettingsOpen] = useState(false);
   const batchSettingsRef = useRef<HTMLDivElement>(null);
-  const [baseImage, setBaseImage] = useState<File | null>(null);
-  const [basePreview, setBasePreview] = useState<string | null>(null);
-  const [targetImage, setTargetImage] = useState<File | null>(null);
-  const [targetPreview, setTargetPreview] = useState<string | null>(null);
-  const [imageAssetHash, setImageAssetHash] = useState<string | null>(null);
-  const [targetAssetHash, setTargetAssetHash] = useState<string | null>(null);
+  // 动态图片上传状态（按字段名索引，支持任意数量上传区）
+  const [imageUploads, setImageUploads] = useState<Record<string, {file: File | null; preview: string | null; hash: string | null}>>({});
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressStep, setProgressStep] = useState(0);
@@ -58,8 +54,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   const [wsConnected, setWsConnected] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  const baseInputRef = useRef<HTMLInputElement>(null);
-  const targetInputRef = useRef<HTMLInputElement>(null);
+  const uploadInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [historyOpen, setHistoryOpen] = useState(false);
   const [generationHistory, setGenerationHistory] = useState<{url: string; prompt: string; mode: string; time: string}[]>(() => {
     try { return JSON.parse(localStorage.getItem("ws_history") || "[]"); } catch { return []; }
@@ -84,7 +79,6 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   // 基于工作流 schema 动态检测图片上传字段
   const imageFields = (dynamicFields || []).filter(f => f.role === 'image_upload' || f.name.endsWith('_asset_hash'));
   const showImageUpload = imageFields.length > 0;
-  const showDualUpload = imageFields.length >= 2;
   useEffect(() => {
     api.workflows().then(r => { setWorkflowList(r.workflows.map(w => ({workflow_id: w.workflow_id, name: w.name}))); const sm: Record<string, any> = {}; r.workflows.forEach(w => { sm[w.workflow_id] = {ui_schema: w.ui_schema}; }); setWorkflowSchemas(sm); }).catch(() => {});
   }, []);
@@ -219,10 +213,10 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   }, [clientId]);
   useEffect(() => {
     return () => {
-      if (basePreview) URL.revokeObjectURL(basePreview);
-      if (targetPreview) URL.revokeObjectURL(targetPreview);
+      // 清理所有图片预览 URL
+      Object.values(imageUploads).forEach((u: {preview: string | null}) => { if (u.preview) URL.revokeObjectURL(u.preview); });
     };
-  }, [basePreview, targetPreview]);
+  }, [imageUploads]);
   useEffect(() => { localStorage.setItem("ws_saved_prompts", JSON.stringify(savedPrompts)); }, [savedPrompts]);
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -244,19 +238,17 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
       .catch(() => {})
       .finally(() => setAssetsLoading(false));
   }, [mode, assetsPage]);
-  // 从其他工作流发送图片过来时，自动设为上传图片
+  // 从其他工作流发送图片过来时，自动设为第一个图片上传区
   useEffect(() => {
-    if (!pendingImageUrl || !showImageUpload) return;
+    if (!pendingImageUrl || !showImageUpload || imageFields.length === 0) return;
+    const firstField = imageFields[0].name;
     const abort = new AbortController();
     fetch(pendingImageUrl, { signal: abort.signal })
       .then(resp => resp.blob())
       .then(blob => {
         const filename = "sendto_" + Date.now() + ".png";
         const file = new File([blob], filename, { type: blob.type || "image/png" });
-        setBaseImage(file);
-        if (basePreview) URL.revokeObjectURL(basePreview);
-        setBasePreview(URL.createObjectURL(file));
-        setImageAssetHash(null);
+        handleImageUpload(firstField, file);
         onClearPendingImage();
       })
       .catch((err: any) => {
@@ -265,16 +257,20 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
       });
     return () => abort.abort();
   }, [pendingImageUrl, mode]);
-  const handleBaseUpload = useCallback((file: File) => {
-    setBaseImage(file);
-    if (basePreview) URL.revokeObjectURL(basePreview);
-    setBasePreview(URL.createObjectURL(file));
-  }, [basePreview]);
-  const handleTargetUpload = useCallback((file: File) => {
-    setTargetImage(file);
-    if (targetPreview) URL.revokeObjectURL(targetPreview);
-    setTargetPreview(URL.createObjectURL(file));
-  }, [targetPreview]);
+  // 动态图片上传处理
+  const handleImageUpload = (fieldName: string, file: File) => {
+    const prev = imageUploads[fieldName];
+    if (prev?.preview) URL.revokeObjectURL(prev.preview);
+    setImageUploads(p => ({ ...p, [fieldName]: { file, preview: URL.createObjectURL(file), hash: null } }));
+  };
+  const handleImageRemove = (fieldName: string) => {
+    const prev = imageUploads[fieldName];
+    if (prev?.preview) URL.revokeObjectURL(prev.preview);
+    setImageUploads(p => {
+      const { [fieldName]: _, ...rest } = p;
+      return rest;
+    });
+  };
   const randomizeSeed = () => setParams((p: any) => ({...p, seed: Math.floor(Math.random() * 2**32)}));
   const uploadAndGetHash = async (file: File): Promise<string | null> => {
     try {
@@ -301,17 +297,20 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
     expectedJobCountRef.current = 1;
     receivedJobCountRef.current = 0;
     try {
-      let assetHash = imageAssetHash;
-      if (baseImage && !assetHash) {
-        setStatusText("正在上传基础素材...");
-        const hash = await uploadAndGetHash(baseImage);
-        if (hash) { setImageAssetHash(hash); assetHash = hash; }
-      }
-      let tgtHash = targetAssetHash;
-      if (targetImage && !tgtHash) {
-        setStatusText("正在上传目标素材...");
-        const hash = await uploadAndGetHash(targetImage);
-        if (hash) { setTargetAssetHash(hash); tgtHash = hash; }
+      // 上传所有图片并注入 hash
+      const imageHashes: Record<string, string> = {};
+      for (const fieldName of Object.keys(imageUploads)) {
+        const entry = imageUploads[fieldName];
+        if (entry.file && !entry.hash) {
+          setStatusText("正在上传素材...");
+          const hash = await uploadAndGetHash(entry.file);
+          if (hash) {
+            setImageUploads(p => ({ ...p, [fieldName]: { ...p[fieldName], hash } }));
+            imageHashes[fieldName] = hash;
+          }
+        } else if (entry.hash) {
+          imageHashes[fieldName] = entry.hash;
+        }
       }
       const workflowId = customBindings[mode] || modeToWorkflowId[mode] || "txt2img";
       const jobParams: JobParams = {
@@ -319,12 +318,9 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
         negative_prompt: negativePrompt || undefined,
         seed: seedFixed ? (params.seed || 0) : Math.floor(Math.random() * 2**32),
         ...params,
+        ...imageHashes,
       };
-      if (assetHash) {
-        jobParams.image_asset_hash = assetHash;
-        if (mode === "i2v") jobParams.frame_count = 16;
-      }
-      if (tgtHash) jobParams.target_asset_hash = tgtHash;
+      if (imageFields.length > 0 && mode === "i2v") jobParams.frame_count = 16;
       setStatusText("提交任务...");
       const batchResult = await api.queueBatch(workflowId, [{ params: jobParams }], clientId);
       setQueuedJobs(batchResult.queued);
@@ -394,17 +390,20 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
     expectedJobCountRef.current = batchCount;
     receivedJobCountRef.current = 0;
     try {
-      let assetHash = imageAssetHash;
-      if (baseImage && !assetHash) {
-        setStatusText("正在上传基础素材...");
-        const hash = await uploadAndGetHash(baseImage);
-        if (hash) { setImageAssetHash(hash); assetHash = hash; }
-      }
-      let tgtHash = targetAssetHash;
-      if (targetImage && !tgtHash) {
-        setStatusText("正在上传目标素材...");
-        const hash = await uploadAndGetHash(targetImage);
-        if (hash) { setTargetAssetHash(hash); tgtHash = hash; }
+      // 上传所有图片并收集 hash
+      const imageHashes: Record<string, string> = {};
+      for (const fieldName of Object.keys(imageUploads)) {
+        const entry = imageUploads[fieldName];
+        if (entry.file && !entry.hash) {
+          setStatusText("正在上传素材...");
+          const hash = await uploadAndGetHash(entry.file);
+          if (hash) {
+            setImageUploads(p => ({ ...p, [fieldName]: { ...p[fieldName], hash } }));
+            imageHashes[fieldName] = hash;
+          }
+        } else if (entry.hash) {
+          imageHashes[fieldName] = entry.hash;
+        }
       }
       const workflowId = customBindings[mode] || modeToWorkflowId[mode] || "txt2img";
       const baseSeed = params.seed || Math.floor(Math.random() * 2**32);
@@ -414,8 +413,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
           negative_prompt: negativePrompt || undefined,
           seed: seedFixed ? (baseSeed + i) : Math.floor(Math.random() * 2**32),
           ...params,
-          ...(assetHash ? { image_asset_hash: assetHash } : {}),
-          ...(tgtHash ? { target_asset_hash: tgtHash } : {}),
+          ...imageHashes,
         } as JobParams,
       }));
       const batchResult = await api.queueBatch(workflowId, jobs, clientId);
@@ -945,51 +943,41 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
           {showImageUpload && (
             <div className="space-y-4">
               <label className="block text-[11px] font-mono uppercase text-text-secondary mb-2 font-semibold">媒体源节点</label>
-              <div className="flex gap-3">
-                <div className="flex-1 border-2 border-dashed border-border-main hover:border-accent/50 rounded-lg bg-bg-input/50 p-6 flex flex-col items-center text-center justify-center text-text-secondary hover:text-text-primary transition-colors cursor-pointer group will-change-transform"
-                  onClick={() => baseInputRef.current?.click()}
-                  onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f?.type.startsWith("image/")) handleBaseUpload(f); }}
-                  onDragOver={(e) => e.preventDefault()}
-                >
-                  {basePreview ? (
-                    <div className="relative w-full">
-                      <img src={basePreview} alt="" className="w-full h-24 object-cover rounded-md mb-2" />
-                      <button className="absolute top-1 right-1 p-1 bg-black/60 rounded text-white hover:text-danger transition-colors"
-                        onClick={(e) => { e.stopPropagation(); setBaseImage(null); if (basePreview) URL.revokeObjectURL(basePreview); setBasePreview(null); setImageAssetHash(null); }}>
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                      <span className="text-[10px] font-mono tracking-widest uppercase opacity-70">PNG / JPG</span>
+              <div className={`grid gap-3 ${imageFields.length <= 2 ? 'grid-cols-2' : imageFields.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                {imageFields.map((field, idx) => {
+                  const upload = imageUploads[field.name];
+                  const preview = upload?.preview;
+                  const uploadSlotLabel = field.label || (idx === 0 ? '上传基础媒体' : idx === 1 ? '上传目标素材' : `上传图片 ${idx + 1}`);
+                  return (
+                    <div key={field.name}
+                      className="flex-1 border-2 border-dashed border-border-main hover:border-accent/50 rounded-lg bg-bg-input/50 p-4 flex flex-col items-center text-center justify-center text-text-secondary hover:text-text-primary transition-colors cursor-pointer group will-change-transform"
+                      onClick={() => uploadInputRefs.current[field.name]?.click()}
+                      onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f?.type.startsWith("image/") || f?.type.startsWith("video/")) handleImageUpload(field.name, f); }}
+                      onDragOver={(e) => e.preventDefault()}
+                    >
+                      {preview ? (
+                        <div className="relative w-full">
+                          <img src={preview} alt="" className="w-full h-24 object-cover rounded-md mb-2" />
+                          <button className="absolute top-1 right-1 p-1 bg-black/60 rounded text-white hover:text-danger transition-colors"
+                            onClick={(e) => { e.stopPropagation(); handleImageRemove(field.name); }}>
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                          <span className="text-[10px] font-mono tracking-widest uppercase opacity-70">PNG / JPG</span>
+                        </div>
+                      ) : (<>
+                        <UploadCloud className="w-8 h-8 mb-2 group-hover:scale-110 transition-transform group-hover:text-accent" />
+                        <span className="text-[12px] font-medium leading-tight">{uploadSlotLabel}</span>
+                        <span className="text-[10px] mt-1 font-mono tracking-widest uppercase">PNG / JPG</span>
+                      </>)}
+                      <input
+                        ref={el => { uploadInputRefs.current[field.name] = el; }}
+                        type="file" accept="image/*,video/*"
+                        className="hidden"
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(field.name, f); }}
+                      />
                     </div>
-                  ) : (<>
-                    <UploadCloud className="w-8 h-8 mb-2 group-hover:scale-110 transition-transform group-hover:text-accent" />
-                    <span className="text-[13px] font-medium leading-tight">{imageFields[0]?.label || '上传基础媒体'}</span>
-                    <span className="text-[10px] mt-1 font-mono tracking-widest uppercase">PNG / JPG</span>
-                  </>)}
-                  <input ref={baseInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleBaseUpload(f); }} />
-                </div>
-                {showDualUpload && (
-                  <div className="flex-1 border-2 border-dashed border-border-main hover:border-accent/50 rounded-lg bg-bg-input/50 p-6 flex flex-col items-center text-center justify-center text-text-secondary hover:text-text-primary transition-colors cursor-pointer group"
-                    onClick={() => targetInputRef.current?.click()}
-                    onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f?.type.startsWith("image/")) handleTargetUpload(f); }}
-                    onDragOver={(e) => e.preventDefault()}
-                  >
-                    {targetPreview ? (
-                      <div className="relative w-full">
-                        <img src={targetPreview} alt="" className="w-full h-24 object-cover rounded-md mb-2" />
-                        <button className="absolute top-1 right-1 p-1 bg-black/60 rounded text-white hover:text-danger transition-colors"
-                          onClick={(e) => { e.stopPropagation(); setTargetImage(null); if (targetPreview) URL.revokeObjectURL(targetPreview); setTargetPreview(null); setTargetAssetHash(null); }}>
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                        <span className="text-[10px] font-mono tracking-widest uppercase opacity-70">PNG / JPG</span>
-                      </div>
-                    ) : (<>
-                      <UploadCloud className="w-8 h-8 mb-2 group-hover:scale-110 transition-transform group-hover:text-accent" />
-                      <span className="text-[13px] font-medium leading-tight">{imageFields[1]?.label || '上传目标素材'}</span>
-                      <span className="text-[10px] mt-1 font-mono tracking-widest uppercase">PNG / JPG</span>
-                    </>)}
-                    <input ref={targetInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleTargetUpload(f); }} />
-                  </div>
-                )}
+                  );
+                })}
               </div>
             </div>
           )}

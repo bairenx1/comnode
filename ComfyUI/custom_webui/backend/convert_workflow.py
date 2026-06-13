@@ -400,14 +400,48 @@ def _infer_loadimage_role(node_id, link_map, nodes):
         if from_node == node_id:
             downstream_nodes.append((to_node, to_slot))
 
+    nodes_by_id = {str(n['id']): n for n in nodes}
+
     # 查找下游节点类型
     for to_node, to_slot in downstream_nodes:
-        for n in nodes:
-            if str(n['id']) == to_node:
-                ntype = n.get('type', '')
-                # 连接 VAEEncode → 进入采样流程 → 主输入图
-                if 'VAEEncode' in ntype:
-                    return 'image_asset_hash', '输入图片'
+        n = nodes_by_id.get(to_node)
+        if n is None:
+            continue
+        ntype = n.get('type', '')
+
+        # 连接 VAEEncode → 进入采样流程 → 主输入图
+        if 'VAEEncode' in ntype:
+            return 'image_asset_hash', '输入图片'
+
+        # UUID Group Node：穿透查看内部连接
+        if UUID_TYPE_RE.match(ntype):
+            sub_data = n.get('subgraph') or n.get('workflow') or n.get('data')
+            if sub_data and isinstance(sub_data, dict) and sub_data.get('nodes'):
+                sub_nodes = sub_data['nodes']
+                sub_links = sub_data.get('links', [])
+                # 构建子图链接映射
+                sub_link_map = {}
+                for sl in sub_links:
+                    sub_link_map[sl['id']] = (
+                        str(sl['origin_id']), sl['origin_slot'],
+                        str(sl['target_id']), sl['target_slot'],
+                    )
+                # 查找 -10（子图输入节点）在此 slot 的连接
+                sub_input_slot = to_slot
+                for _, (from_id, from_slot, to_id, to_slot2) in sub_link_map.items():
+                    if from_id == '-10' and from_slot == sub_input_slot:
+                        # 递归检查子图目标节点
+                        for sn in sub_nodes:
+                            if str(sn['id']) == to_id:
+                                sntype = sn.get('type', '')
+                                if 'VAEEncode' in sntype:
+                                    return 'image_asset_hash', '输入图片'
+                                # 继续追踪（如 FluxKontextImageScale → VAEEncode）
+                                for _, (fid, fslot, tid, tslot) in sub_link_map.items():
+                                    if fid == to_id:
+                                        for sn2 in sub_nodes:
+                                            if str(sn2['id']) == tid and 'VAEEncode' in sn2.get('type', ''):
+                                                return 'image_asset_hash', '输入图片'
 
     # 非 VAEEncode 连接 → 参考图
     if downstream_nodes:
@@ -602,7 +636,9 @@ def convert_native_to_api(native_data):
                     link = inp.get('link')
 
                     if link is not None:
-                        # 已链接的输入：不占 proxyWidget 位
+                        # 如果是 widget 输入，仍占一个 proxyWidget 位（跳过它）
+                        if _is_widget_input(inp):
+                            _get_proxy_info()
                         if inp_type in ('IMAGE', 'MASK'):
                             # 如果是链接到 LoadImage，跳过（LoadImage 自己已生成图片字段）
                             src_type = ''
@@ -666,6 +702,11 @@ def convert_native_to_api(native_data):
                                 })
                         continue
 
+                    # 只有带 widget 的输入才对应 proxyWidget 槽位
+                    # 否则跳过（如可选的 IMAGE/MASK 输入不占槽位）
+                    if not _is_widget_input(inp):
+                        continue
+
                     # 未链接的 widget 输入：获取对应 proxyWidget 和内部节点值
                     internal_nid, internal_inp, proxy_val = _get_proxy_info()
                     # 生成正确的嵌套路径：wrapperId.内部节点ID.inputs.内部输入名
@@ -719,21 +760,8 @@ def convert_native_to_api(native_data):
                                 'max': 0xffffffffffffffff,
                             })
 
-                # ---- 再合并子图内部字段（冲突时自动加前缀） ----
-                for fname, target in sub_mapping.items():
-                    full_target = f'{nid}.{target}'
-                    sub_fname = fname
-                    if sub_fname in seen_ui_field_names:
-                        sub_fname = f'{nid}_{fname}'
-                    field_mapping[sub_fname] = full_target
-                    if sub_fname not in seen_ui_field_names:
-                        seen_ui_field_names.add(sub_fname)
-                        for sf in sub_fields:
-                            if sf['name'] == fname:
-                                sub_entry = dict(sf)
-                                sub_entry['name'] = sub_fname
-                                ui_fields.append(sub_entry)
-                                break
+                # UUID Group Node 的内部子图字段不暴露到 UI
+                # proxyWidgets 已将必要参数映射到包装器输入，子图内部字段为实现细节
 
                 continue
             else:

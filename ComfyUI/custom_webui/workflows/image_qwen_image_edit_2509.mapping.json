@@ -12,20 +12,6 @@
         "default": "ComfyUI"
       },
       {
-        "name": "image_asset_hash",
-        "type": "string",
-        "label": "image2 (optional)",
-        "role": "image_upload",
-        "default": ""
-      },
-      {
-        "name": "target_asset_hash",
-        "type": "string",
-        "label": "image3 (optional)",
-        "role": "image_upload",
-        "default": "677412778775534"
-      },
-      {
         "name": "prompt",
         "type": "string",
         "default": "change clothes to red"
@@ -33,247 +19,26 @@
       {
         "name": "seed",
         "type": "number",
-        "default": 1,
+        "default": 677412778775534,
         "min": 0,
         "max": 18446744073709551615
       },
       {
-        "name": "strength",
-        "type": "number",
-        "default": 1
-      },
-      {
-        "name": "pre_cfg",
-        "type": "boolean",
-        "default": false
-      },
-      {
-        "name": "466_prompt",
+        "name": "image_asset_hash",
         "type": "string",
-        "default": ""
+        "default": "O1CN01yoeq2A1GnzcHSAWUp_!!2217456700668.jpeg",
+        "label": "输入图片",
+        "role": "image_upload"
       },
       {
-        "name": "shift",
-        "type": "number",
-        "default": 3
-      },
-      {
-        "name": "466_seed",
-        "type": "number",
-        "default": 1,
-        "min": 0,
-        "max": 18446744073709551615
-      },
-      {
-        "name": "steps",
-        "type": "number",
-        "default": 20,
-        "min": 1,
-        "max": 10000
-      },
-      {
-        "name": "cfg",
-        "type": "number",
-        "default": 7.5,
-        "min": 1,
-        "max": 30,
-        "step": 0.5
-      },
-      {
-        "name": "sampler_name",
-        "type": "combo",
-        "default": "euler",
-        "options": [
-          "euler",
-          "euler_ancestral",
-          "heun",
-          "heunpp2",
-          "dpm_2",
-          "dpm_2_ancestral",
-          "lms",
-          "dpm_fast",
-          "dpm_adaptive",
-          "dpmpp_2s_ancestral",
-          "dpmpp_sde",
-          "dpmpp_sde_gpu",
-          "dpmpp_2m",
-          "dpmpp_2m_sde",
-          "dpmpp_2m_sde_gpu",
-          "dpmpp_3m_sde",
-          "dpmpp_3m_sde_gpu",
-          "ddim",
-          "uni_pc",
-          "uni_pc_bh2",
-          "lcm",
-          "ipndm",
-          "ipndm_v",
-          "res_multistep",
-          "res_multistep_cfg",
-          "res_multistep_ancestral",
-          "res_multistep_ancestral_cfg",
-          "gradient_estimation",
-          "restart"
-        ]
-      },
-      {
-        "name": "scheduler",
-        "type": "combo",
-        "default": "normal",
-        "options": [
-          "normal",
-          "karras",
-          "exponential",
-          "sgm_uniform",
-          "simple",
-          "ddim_uniform",
-          "beta",
-          "linear_quadratic",
-          "kl_optimal",
-          "align_your_steps",
-          "ays"
-        ]
-      },
-      {
-        "name": "denoise",
-        "type": "number",
-        "default": 1.0,
-        "min": 0,
-        "max": 1,
-        "step": 0.05
-      },
-      {
-        "name": "on_false",
-        "type": "number",
-        "default": 20
-      },
-      {
-        "name": "on_true",
-        "type": "number",
-        "default": 4
-      },
-      {
-        "name": "target_asset_hash_2",
+        "name": "target_asset_hash",
         "type": "string",
         "default": "20260520-020926.jpg",
         "label": "参考图片",
         "role": "image_upload"
       },
       {
-        "name": "433_strength",
-        "type": "number",
-        "default": 1
-      },
-      {
-        "name": "433_pre_cfg",
-        "type": "boolean",
-        "default": false
-      },
-      {
-        "name": "433_prompt",
-        "type": "string",
-        "default": ""
-      },
-      {
-        "name": "433_shift",
-        "type": "number",
-        "default": 3
-      },
-      {
-        "name": "433_seed",
-        "type": "number",
-        "default": 1,
-        "min": 0,
-        "max": 18446744073709551615
-      },
-      {
-        "name": "433_steps",
-        "type": "number",
-        "default": 20,
-        "min": 1,
-        "max": 10000
-      },
-      {
-        "name": "433_cfg",
-        "type": "number",
-        "default": 7.5,
-        "min": 1,
-        "max": 30,
-        "step": 0.5
-      },
-      {
-        "name": "433_sampler_name",
-        "type": "combo",
-        "default": "euler",
-        "options": [
-          "euler",
-          "euler_ancestral",
-          "heun",
-          "heunpp2",
-          "dpm_2",
-          "dpm_2_ancestral",
-          "lms",
-          "dpm_fast",
-          "dpm_adaptive",
-          "dpmpp_2s_ancestral",
-          "dpmpp_sde",
-          "dpmpp_sde_gpu",
-          "dpmpp_2m",
-          "dpmpp_2m_sde",
-          "dpmpp_2m_sde_gpu",
-          "dpmpp_3m_sde",
-          "dpmpp_3m_sde_gpu",
-          "ddim",
-          "uni_pc",
-          "uni_pc_bh2",
-          "lcm",
-          "ipndm",
-          "ipndm_v",
-          "res_multistep",
-          "res_multistep_cfg",
-          "res_multistep_ancestral",
-          "res_multistep_ancestral_cfg",
-          "gradient_estimation",
-          "restart"
-        ]
-      },
-      {
-        "name": "433_scheduler",
-        "type": "combo",
-        "default": "normal",
-        "options": [
-          "normal",
-          "karras",
-          "exponential",
-          "sgm_uniform",
-          "simple",
-          "ddim_uniform",
-          "beta",
-          "linear_quadratic",
-          "kl_optimal",
-          "align_your_steps",
-          "ays"
-        ]
-      },
-      {
-        "name": "433_denoise",
-        "type": "number",
-        "default": 1.0,
-        "min": 0,
-        "max": 1,
-        "step": 0.05
-      },
-      {
-        "name": "433_on_false",
-        "type": "number",
-        "default": 20
-      },
-      {
-        "name": "433_on_true",
-        "type": "number",
-        "default": 4
-      },
-      {
-        "name": "target_asset_hash_3",
+        "name": "target_asset_hash_2",
         "type": "string",
         "default": "20260520-020926.jpg",
         "label": "参考图片",
@@ -283,35 +48,10 @@
   },
   "field_mapping": {
     "filename_prefix": "60.inputs.filename_prefix",
-    "image_asset_hash": "466.451.inputs.prompt",
-    "target_asset_hash": "78.inputs.image",
     "prompt": "435.inputs.value",
-    "seed": "466.464.inputs.value",
-    "strength": "466.445.inputs.strength",
-    "pre_cfg": "466.445.inputs.pre_cfg",
-    "466_prompt": "466.449.inputs.prompt",
-    "shift": "466.450.inputs.shift",
-    "466_seed": "466.456.inputs.seed",
-    "steps": "466.456.inputs.steps",
-    "cfg": "466.456.inputs.cfg",
-    "sampler_name": "466.456.inputs.sampler_name",
-    "scheduler": "466.456.inputs.scheduler",
-    "denoise": "466.456.inputs.denoise",
-    "on_false": "466.459.inputs.value",
-    "on_true": "466.457.inputs.value",
-    "target_asset_hash_2": "469.inputs.image",
-    "433_strength": "433.75.inputs.strength",
-    "433_pre_cfg": "433.75.inputs.pre_cfg",
-    "433_prompt": "433.110.inputs.prompt",
-    "433_shift": "433.66.inputs.shift",
-    "433_seed": "433.3.inputs.seed",
-    "433_steps": "433.3.inputs.steps",
-    "433_cfg": "433.3.inputs.cfg",
-    "433_sampler_name": "433.3.inputs.sampler_name",
-    "433_scheduler": "433.3.inputs.scheduler",
-    "433_denoise": "433.3.inputs.denoise",
-    "433_on_false": "433.438.inputs.value",
-    "433_on_true": "433.436.inputs.value",
-    "target_asset_hash_3": "470.inputs.image"
+    "seed": "466.456.inputs.seed",
+    "image_asset_hash": "78.inputs.image",
+    "target_asset_hash": "469.inputs.image",
+    "target_asset_hash_2": "470.inputs.image"
   }
 }

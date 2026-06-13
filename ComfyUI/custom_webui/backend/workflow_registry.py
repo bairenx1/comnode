@@ -33,6 +33,7 @@ class WorkflowRegistry:
         self.reload()
 
     def reload(self) -> None:
+        auto_convert_all()
         self._definitions.clear()
         for mapping_file in sorted(self.workflows_dir.glob("*.mapping.json")):
             data = json.loads(mapping_file.read_text(encoding="utf-8"))

@@ -1071,22 +1071,29 @@ def convert_native_to_api(native_data):
 
 
 def _convert_workflow_files(source_dir: Path, converted: int) -> int:
-    """扫描目录中的 JSON 工作流文件并转换"""
+    """扫描目录中的 JSON 工作流文件并转换（跳过未修改的）"""
     if not source_dir.exists():
         return converted
     for fpath in sorted(source_dir.glob('*.json')):
         try:
+            # 检查是否需要重新转换：输出文件是否存在且比源文件新
+            workflow_id = re.sub(r'[^a-zA-Z0-9_]', '_', fpath.stem).lower()
+            if not workflow_id:
+                workflow_id = f'workflow_{converted}'
+            api_path = WORKFLOWS_DIR / f'{workflow_id}.json'
+            mapping_path = WORKFLOWS_DIR / f'{workflow_id}.mapping.json'
+            src_mtime = fpath.stat().st_mtime
+            if api_path.exists() and mapping_path.exists():
+                if api_path.stat().st_mtime >= src_mtime:
+                    converted += 1
+                    continue
+
             native = json.loads(fpath.read_text(encoding='utf-8'))
             if 'nodes' not in native:
                 continue
             api_data, field_mapping, ui_fields = convert_native_to_api(native)
             if not api_data:
-                print(f'SKIP {fpath.name}: no convertible nodes')
                 continue
-            workflow_id = re.sub(r'[^a-zA-Z0-9_]', '_', fpath.stem).lower()
-            if not workflow_id:
-                workflow_id = f'workflow_{converted}'
-            api_path = WORKFLOWS_DIR / f'{workflow_id}.json'
             api_path.write_text(json.dumps(api_data, indent=2, ensure_ascii=False), encoding='utf-8')
             name = native.get('extra', {}).get('workflow_name', fpath.stem)
             mapping = {
@@ -1098,7 +1105,6 @@ def _convert_workflow_files(source_dir: Path, converted: int) -> int:
                 'ui_schema': {'fields': ui_fields},
                 'field_mapping': field_mapping,
             }
-            mapping_path = WORKFLOWS_DIR / f'{workflow_id}.mapping.json'
             mapping_path.write_text(json.dumps(mapping, indent=2, ensure_ascii=False), encoding='utf-8')
             print(f'OK {fpath.name} -> {workflow_id}')
             converted += 1

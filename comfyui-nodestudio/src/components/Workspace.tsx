@@ -28,6 +28,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   const [bindingMenuOpen, setBindingMenuOpen] = useState(false);
   const [workflowSchemas, setWorkflowSchemas] = useState<Record<string, {ui_schema: {fields: any[]}}>>({});
   const [workflowList, setWorkflowList] = useState<{workflow_id: string; name: string}[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
   const [negativePrompt, setNegativePrompt] = useState("");
   const [params, setParams] = useState<Record<string, any>>({});
   const [seedFixed, setSeedFixed] = useState(false);
@@ -79,9 +80,21 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   // 基于工作流 schema 动态检测图片上传字段
   const imageFields = (dynamicFields || []).filter(f => f.role === 'image_upload' || f.name.endsWith('_asset_hash'));
   const showImageUpload = imageFields.length > 0;
-  useEffect(() => {
+  const loadWorkflows = useCallback(() => {
     api.workflows().then(r => { setWorkflowList(r.workflows.map(w => ({workflow_id: w.workflow_id, name: w.name}))); const sm: Record<string, any> = {}; r.workflows.forEach(w => { sm[w.workflow_id] = {ui_schema: w.ui_schema}; }); setWorkflowSchemas(sm); }).catch(() => {});
   }, []);
+  useEffect(() => { loadWorkflows(); }, [loadWorkflows]);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const r = await api.refreshWorkflows();
+      setWorkflowList(r.workflows.map(w => ({workflow_id: w.workflow_id, name: w.name})));
+      const sm: Record<string, any> = {};
+      r.workflows.forEach(w => { sm[w.workflow_id] = {ui_schema: w.ui_schema}; });
+      setWorkflowSchemas(sm);
+    } catch (_) {}
+    setRefreshing(false);
+  };
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -629,6 +642,14 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                 {customBindings[mode]
                   ? (workflowList.find(w => w.workflow_id === customBindings[mode])?.name || customBindings[mode])
                   : "绑定工作流"}
+              </button>
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className={"text-[11px] font-mono flex items-center gap-1 px-2 py-1 rounded border border-border-main/60 bg-bg-input/40 hover:bg-bg-input hover:border-accent/40 text-text-secondary hover:text-text-primary transition-all " + (refreshing ? "animate-spin" : "")}
+                title="从 ComfyUI 刷新工作流"
+              >
+                <RefreshCw className="w-3 h-3" />
               </button>
               {bindingMenuOpen && (
                 <div className="absolute top-full left-0 mt-1 w-56 bg-bg-panel border border-border-main rounded-lg shadow-xl py-1 z-50 max-h-60 overflow-y-auto">

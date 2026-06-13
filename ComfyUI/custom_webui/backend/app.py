@@ -11,6 +11,7 @@ from aiohttp import web
 from .comfy_client import ComfyClient
 from .config import SETTINGS
 from .workflow_registry import WorkflowRegistry
+from .convert_workflow import auto_convert_all
 
 
 def create_app() -> web.Application:
@@ -45,6 +46,12 @@ def create_app() -> web.Application:
     async def list_workflows(_: web.Request) -> web.Response:
         registry.reload()
         return web.json_response({"workflows": registry.list_workflows()})
+
+    @routes.post("/api/workflows/refresh")
+    async def refresh_workflows(_: web.Request) -> web.Response:
+        count = auto_convert_all()
+        registry.reload()
+        return web.json_response({"converted": count, "workflows": registry.list_workflows()})
 
     @routes.post("/api/queue/batch")
     async def queue_batch(request: web.Request) -> web.Response:

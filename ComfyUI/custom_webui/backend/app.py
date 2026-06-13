@@ -112,6 +112,14 @@ def create_app() -> web.Application:
         except aiohttp.ClientError as e:
             return comfy_down_response(e)
 
+    @routes.post("/api/interrupt")
+    async def interrupt(_: web.Request) -> web.Response:
+        try:
+            result = await comfy.interrupt()
+            return web.json_response(result)
+        except aiohttp.ClientError as e:
+            return comfy_down_response(e)
+
     @routes.get("/api/assets")
     async def list_assets(request: web.Request) -> web.Response:
         try:
@@ -195,14 +203,15 @@ def create_app() -> web.Application:
 
     @routes.get("/api/ws")
     async def ws_proxy(request: web.Request) -> web.WebSocketResponse:
-        ws_server = web.WebSocketResponse()
+        ws_server = web.WebSocketResponse(heartbeat=30.0)
         await ws_server.prepare(request)
         target_url = comfy.ws_url()
 
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.ws_connect(
-                    target_url + "?" + request.query_string
+                    target_url + "?" + request.query_string,
+                    heartbeat=30.0,
                 ) as ws_client:
 
                     async def pump(source, sink):
@@ -211,7 +220,13 @@ def create_app() -> web.Application:
                                 await sink.send_str(msg.data)
                             elif msg.type == aiohttp.WSMsgType.BINARY:
                                 await sink.send_bytes(msg.data)
+                            elif msg.type == aiohttp.WSMsgType.PING:
+                                await sink.pong(msg.data)
+                            elif msg.type == aiohttp.WSMsgType.PONG:
+                                pass
                             elif msg.type in (aiohttp.WSMsgType.CLOSE, aiohttp.WSMsgType.CLOSING, aiohttp.WSMsgType.CLOSED):
+                                break
+                            elif msg.type == aiohttp.WSMsgType.ERROR:
                                 break
 
                     task_c2s = asyncio.ensure_future(pump(ws_server, ws_client))

@@ -42,6 +42,12 @@ class ComfyClient:
             payload["extra_data"] = extra_data
         return await self._post_json("/prompt", payload)
 
+    async def interrupt(self) -> dict[str, Any]:
+        session = await self._ensure_session()
+        async with session.post(f"{self.base_url}/interrupt") as resp:
+            resp.raise_for_status()
+            return await resp.json()
+
     async def get_queue(self) -> dict[str, Any]:
         return await self._get_json("/queue")
 

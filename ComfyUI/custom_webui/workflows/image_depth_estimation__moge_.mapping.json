@@ -7,6 +7,13 @@
   "ui_schema": {
     "fields": [
       {
+        "name": "image_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "source_image",
+        "default": ""
+      },
+      {
         "name": "inference_resolution",
         "type": "number",
         "default": 0
@@ -29,6 +36,7 @@
     ]
   },
   "field_mapping": {
+    "image_asset_hash": "49.inputs.source_image",
     "inference_resolution": "49.inputs.inference_resolution",
     "inference_batch_size": "49.inputs.inference_batch_size",
     "moge_model": "49.inputs.moge_model",

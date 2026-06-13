@@ -636,6 +636,32 @@ def convert_native_to_api(native_data):
                 widget_idx += 1
                 continue
 
+            # UUID 子图引用节点的 IMAGE/MASK 类型输入 → 图片上传字段
+            # 不写入 inputs（ComfyUI 不认空字符串），只生成 UI 字段和映射
+            inp_type = (inp.get('type') or '').upper()
+            if is_uuid_ref and inp_type in ('IMAGE', 'MASK') and link is None:
+                image_count = sum(1 for f in ui_fields if f.get('role') == 'image_upload')
+                if image_count == 0:
+                    safe_name = 'image_asset_hash'
+                elif image_count == 1:
+                    safe_name = 'target_asset_hash'
+                else:
+                    safe_name = f'{inp_name}_asset_hash'
+                label = inp.get('label') or inp.get('name')
+                if safe_name not in seen_ui_field_names:
+                    seen_ui_field_names.add(safe_name)
+                    entry = {
+                        'name': safe_name,
+                        'type': 'string',
+                        'role': 'image_upload',
+                        'label': label,
+                        'default': '',
+                    }
+                    field_mapping[safe_name] = f'{nid}.inputs.{inp_name}'
+                    ui_fields.append(entry)
+                widget_idx += 1
+                continue
+
             if _is_widget_input(inp):
                 val = _get_input_value(inp, widgets_values, widget_idx)
                 if val is not None:

@@ -7,6 +7,13 @@
   "ui_schema": {
     "fields": [
       {
+        "name": "image_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "image",
+        "default": ""
+      },
+      {
         "name": "detector_variant",
         "type": "string",
         "default": ""
@@ -49,6 +56,7 @@
     ]
   },
   "field_mapping": {
+    "image_asset_hash": "33.inputs.image",
     "detector_variant": "33.inputs.detector_variant",
     "num_faces": "33.inputs.num_faces",
     "regions.face_oval": "33.inputs.regions.face_oval",

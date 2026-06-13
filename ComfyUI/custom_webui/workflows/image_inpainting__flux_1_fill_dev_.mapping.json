@@ -7,6 +7,20 @@
   "ui_schema": {
     "fields": [
       {
+        "name": "image_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "image",
+        "default": ""
+      },
+      {
+        "name": "target_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "mask",
+        "default": ""
+      },
+      {
         "name": "text",
         "type": "string",
         "default": ""
@@ -39,6 +53,8 @@
     ]
   },
   "field_mapping": {
+    "image_asset_hash": "232.inputs.pixels",
+    "target_asset_hash": "232.inputs.mask",
     "text": "232.inputs.text",
     "seed": "232.inputs.seed",
     "unet_name": "232.inputs.unet_name",

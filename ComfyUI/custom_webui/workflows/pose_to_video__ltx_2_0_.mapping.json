@@ -12,6 +12,20 @@
         "default": ""
       },
       {
+        "name": "image_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "control_images",
+        "default": ""
+      },
+      {
+        "name": "target_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "first_frame",
+        "default": ""
+      },
+      {
         "name": "strength_1",
         "type": "number",
         "default": 0.0
@@ -50,6 +64,8 @@
   },
   "field_mapping": {
     "text": "143.inputs.text",
+    "image_asset_hash": "143.inputs.image",
+    "target_asset_hash": "143.inputs.image_1",
     "strength_1": "143.inputs.strength_1",
     "noise_seed": "143.inputs.noise_seed",
     "ckpt_name": "143.inputs.ckpt_name",

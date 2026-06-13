@@ -7,6 +7,13 @@
   "ui_schema": {
     "fields": [
       {
+        "name": "image_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "image",
+        "default": ""
+      },
+      {
         "name": "text",
         "type": "string",
         "default": ""
@@ -19,6 +26,7 @@
     ]
   },
   "field_mapping": {
+    "image_asset_hash": "13.inputs.image",
     "text": "13.inputs.text",
     "unet_name": "13.inputs.unet_name"
   }

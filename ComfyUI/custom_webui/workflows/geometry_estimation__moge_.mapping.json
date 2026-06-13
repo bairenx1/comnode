@@ -7,6 +7,13 @@
   "ui_schema": {
     "fields": [
       {
+        "name": "image_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "source_image",
+        "default": ""
+      },
+      {
         "name": "inference_resolution",
         "type": "number",
         "default": 0
@@ -49,6 +56,7 @@
     ]
   },
   "field_mapping": {
+    "image_asset_hash": "67.inputs.source_image",
     "inference_resolution": "67.inputs.inference_resolution",
     "inference_batch_size": "67.inputs.inference_batch_size",
     "mesh_frame_index": "67.inputs.mesh_frame_index",

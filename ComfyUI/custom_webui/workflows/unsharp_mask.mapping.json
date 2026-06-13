@@ -5,7 +5,17 @@
   "workflow_file": "unsharp_mask.json",
   "mapping_file": "unsharp_mask.mapping.json",
   "ui_schema": {
-    "fields": []
+    "fields": [
+      {
+        "name": "image_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "image0",
+        "default": ""
+      }
+    ]
   },
-  "field_mapping": {}
+  "field_mapping": {
+    "image_asset_hash": "30.inputs.images.image0"
+  }
 }

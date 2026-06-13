@@ -7,6 +7,13 @@
   "ui_schema": {
     "fields": [
       {
+        "name": "image_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "first frame",
+        "default": ""
+      },
+      {
         "name": "resize_type.height",
         "type": "number",
         "default": 0
@@ -19,6 +26,7 @@
     ]
   },
   "field_mapping": {
+    "image_asset_hash": "143.inputs.image_2",
     "resize_type.height": "143.inputs.resize_type.height",
     "frame_count": "143.inputs.length"
   }

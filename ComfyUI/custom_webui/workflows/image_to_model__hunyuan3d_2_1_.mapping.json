@@ -7,6 +7,13 @@
   "ui_schema": {
     "fields": [
       {
+        "name": "image_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "image",
+        "default": ""
+      },
+      {
         "name": "ckpt_name",
         "type": "string",
         "default": ""
@@ -14,6 +21,7 @@
     ]
   },
   "field_mapping": {
+    "image_asset_hash": "19.inputs.image",
     "ckpt_name": "19.inputs.ckpt_name"
   }
 }

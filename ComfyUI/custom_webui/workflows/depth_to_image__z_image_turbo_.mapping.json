@@ -7,6 +7,13 @@
   "ui_schema": {
     "fields": [
       {
+        "name": "image_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "control image",
+        "default": ""
+      },
+      {
         "name": "vae_name_1",
         "type": "string",
         "default": ""
@@ -14,6 +21,7 @@
     ]
   },
   "field_mapping": {
+    "image_asset_hash": "13.inputs.image",
     "vae_name_1": "13.inputs.vae_name_1"
   }
 }

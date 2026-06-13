@@ -7,6 +7,13 @@
   "ui_schema": {
     "fields": [
       {
+        "name": "image_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "images",
+        "default": ""
+      },
+      {
         "name": "model",
         "type": "string",
         "default": ""
@@ -14,6 +21,7 @@
     ]
   },
   "field_mapping": {
+    "image_asset_hash": "231.inputs.images",
     "model": "231.inputs.model"
   }
 }

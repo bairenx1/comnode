@@ -5,7 +5,17 @@
   "workflow_file": "glow.json",
   "mapping_file": "glow.mapping.json",
   "ui_schema": {
-    "fields": []
+    "fields": [
+      {
+        "name": "image_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "image",
+        "default": ""
+      }
+    ]
   },
-  "field_mapping": {}
+  "field_mapping": {
+    "image_asset_hash": "37.inputs.images.image0"
+  }
 }

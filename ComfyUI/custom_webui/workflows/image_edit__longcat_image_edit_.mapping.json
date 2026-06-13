@@ -7,6 +7,13 @@
   "ui_schema": {
     "fields": [
       {
+        "name": "image_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "image",
+        "default": ""
+      },
+      {
         "name": "prompt",
         "type": "string",
         "default": ""
@@ -44,6 +51,7 @@
     ]
   },
   "field_mapping": {
+    "image_asset_hash": "176.inputs.image",
     "prompt": "176.inputs.prompt",
     "steps": "176.inputs.steps",
     "cfg": "176.inputs.cfg",

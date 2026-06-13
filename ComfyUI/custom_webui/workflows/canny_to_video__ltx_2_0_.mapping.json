@@ -7,6 +7,13 @@
   "ui_schema": {
     "fields": [
       {
+        "name": "image_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "canny_images",
+        "default": ""
+      },
+      {
         "name": "strength",
         "type": "number",
         "default": 0.0
@@ -15,11 +22,20 @@
         "name": "bypass",
         "type": "string",
         "default": false
+      },
+      {
+        "name": "target_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "first_frame",
+        "default": ""
       }
     ]
   },
   "field_mapping": {
+    "image_asset_hash": "1.inputs.image",
     "strength": "1.inputs.strength",
-    "bypass": "1.inputs.bypass"
+    "bypass": "1.inputs.bypass",
+    "target_asset_hash": "1.inputs.image_1"
   }
 }

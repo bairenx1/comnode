@@ -7,6 +7,13 @@
   "ui_schema": {
     "fields": [
       {
+        "name": "image_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "image",
+        "default": ""
+      },
+      {
         "name": "text",
         "type": "string",
         "default": ""
@@ -44,6 +51,7 @@
     ]
   },
   "field_mapping": {
+    "image_asset_hash": "99.inputs.image",
     "text": "99.inputs.text",
     "positive_coords": "99.inputs.positive_coords",
     "negative_coords": "99.inputs.negative_coords",

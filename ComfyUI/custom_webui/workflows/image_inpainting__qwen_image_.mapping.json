@@ -7,6 +7,20 @@
   "ui_schema": {
     "fields": [
       {
+        "name": "image_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "image",
+        "default": ""
+      },
+      {
+        "name": "target_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "mask",
+        "default": ""
+      },
+      {
         "name": "vae_name",
         "type": "string",
         "default": ""
@@ -19,6 +33,8 @@
     ]
   },
   "field_mapping": {
+    "image_asset_hash": "256.inputs.image",
+    "target_asset_hash": "256.inputs.mask",
     "vae_name": "256.inputs.vae_name",
     "control_net_name": "256.inputs.control_net_name"
   }

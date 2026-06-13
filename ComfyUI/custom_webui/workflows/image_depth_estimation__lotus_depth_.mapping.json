@@ -7,6 +7,13 @@
   "ui_schema": {
     "fields": [
       {
+        "name": "image_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "pixels",
+        "default": ""
+      },
+      {
         "name": "sigma",
         "type": "number",
         "default": 0.0
@@ -24,6 +31,7 @@
     ]
   },
   "field_mapping": {
+    "image_asset_hash": "76.inputs.pixels",
     "sigma": "76.inputs.sigma",
     "unet_name": "76.inputs.unet_name",
     "vae_name": "76.inputs.vae_name"

@@ -7,6 +7,13 @@
   "ui_schema": {
     "fields": [
       {
+        "name": "image_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "start image",
+        "default": ""
+      },
+      {
         "name": "frame_count",
         "type": "number",
         "default": 0
@@ -19,6 +26,7 @@
     ]
   },
   "field_mapping": {
+    "image_asset_hash": "116.inputs.start_image",
     "frame_count": "116.inputs.length",
     "unet_name": "116.inputs.unet_name"
   }

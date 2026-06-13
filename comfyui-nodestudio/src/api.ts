@@ -111,6 +111,8 @@ class ComfyApiClient {
 
   async queue() { return this.request<unknown>("/api/queue"); }
 
+  async interrupt() { return this.request<unknown>("/api/interrupt", { method: "POST" }); }
+
   async job(promptId: string) {
     return this.request<{job: unknown; history: {prompt_id: string; outputs?: Record<string, unknown>; status?: {completed: boolean; status_str?: string}} | null}>("/api/jobs/" + promptId);
   }

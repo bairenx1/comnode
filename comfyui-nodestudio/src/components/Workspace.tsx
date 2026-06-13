@@ -57,7 +57,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   const wsRef = useRef<WebSocket | null>(null);
   const uploadInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [generationHistory, setGenerationHistory] = useState<{url: string; prompt: string; mode: string; time: string}[]>(() => {
+  const [generationHistory, setGenerationHistory] = useState<{url: string; prompt: string; mode: string; time: string; isVideo?: boolean}[]>(() => {
     try { return JSON.parse(localStorage.getItem("ws_history") || "[]"); } catch { return []; }
   });
   const [assetSaved, setAssetSaved] = useState(false);
@@ -117,112 +117,139 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
     localStorage.setItem("ws_history", JSON.stringify(generationHistory));
   }, [generationHistory]);
   useEffect(() => {
-    async function connectWs() {
+    let retryId: ReturnType<typeof setTimeout> | null = null;
+    let retryCount = 0;
+
+    const onMsg = (evt: MessageEvent) => {
       try {
-        const info = await api.wsInfo();
-        const ws = new WebSocket(info.ws_url + "?clientId=" + clientId);
-        wsRef.current = ws;
-        ws.onopen = () => setWsConnected(true);
-        ws.onmessage = (evt) => {
-          try {
-            const msg = JSON.parse(evt.data);
-            if (msg.type === "progress") {
-              const pct = (msg.data.step / msg.data.max_step) * 100;
-              setProgress(pct);
-              setProgressStep(msg.data.step);
-              setProgressTotal(msg.data.max_step);
-              const nodeLabel = executingNode ? `[${executingNode}] ` : "";
-              setStatusText(`${nodeLabel}采样迭代 ${msg.data.step}/${msg.data.max_step}`);
-            } else if (msg.type === "progress_state") {
-              // 各节点独立进度
-              const nodesData = msg.data?.nodes || {};
-              setNodeProgress((prev: any) => {
-                const next = { ...prev };
-                for (const [nid, info] of Object.entries(nodesData) as [string, any][]) {
-                  next[nid] = {
-                    name: info.display_node_name || info.display_node_id || nid,
-                    state: info.state || "running",
-                    value: info.value || 0,
-                    max: info.max || 1,
-                  };
-                }
-                return next;
-              });
-            } else if (msg.type === "executing") {
-              const nodeName = msg.data.node;
-              setExecutingNode(nodeName || "");
-              if (nodeName) {
-                setStatusText("执行节点: " + nodeName);
-              } else {
-                setStatusText("节点执行完毕, 等待输出...");
-              }
-            } else if (msg.type === "execution_start") {
-              setStatusText("工作流开始执行...");
-              setNodeProgress({});
-            } else if (msg.type === "executed") {
-              const nodeData = msg.data;
-              if (nodeData?.output?.images && nodeData.output.images[0]) {
-                const img = nodeData.output.images[0];
-                const baseUrl = "http://" + window.location.host;
-                const imgUrl = baseUrl + "/view?filename=" + encodeURIComponent(img.filename) + "&subfolder=" + encodeURIComponent(img.subfolder || "") + "&type=" + (img.type || "output");
-                const newItem = { url: imgUrl, prompt_id: msg.data.prompt_id || nodeData.prompt_id };
-                // 累积批量结果
-                setBatchResults(prev => {
-                  const updated = [...prev, newItem];
-                  if (prev.length === 0) {
-                    setResult({ url: imgUrl, prompt_id: newItem.prompt_id, outputs: nodeData.output });
-                    setSelectedBatchIndex(0);
-                  }
-                  return updated;
-                });
-                setAssetSaved(false);
-                // 清除轮询，防止覆盖 WebSocket 已设置的结果
-                if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
-                fetch(imgUrl)
-                  .then(resp => resp.blob())
-                  .then(blob => {
-                    const file = new File([blob], img.filename || "generated.png", { type: blob.type || "image/png" });
-                    return api.uploadAsset(file, "generated");
-                  })
-                  .then(() => { setAssetSaved(true); })
-                  .catch((err: any) => console.warn("Asset save skipped:", err));
-                const entry = {
-                  url: imgUrl,
-                  prompt: prompt || "(empty)",
-                  mode: mode,
-                  time: new Date().toISOString(),
-                };
-                setGenerationHistory(prev => {
-                  const updated = [entry, ...prev];
-                  if (updated.length > 100) updated.length = 100;
-                  return updated;
-                });
-                receivedJobCountRef.current += 1;
-                const done = receivedJobCountRef.current;
-                const total = expectedJobCountRef.current || 1;
-                setProgress(100);
-                setStatusText("生成完成 (" + done + "/" + total + ")");
-                if (done >= total) {
-                  setGenerating(false);
-                  receivedJobCountRef.current = 0;
-                  expectedJobCountRef.current = 0;
-                }
-              }
-            } else if (msg.type === "status") {
-              if (msg.data?.status?.exec_info) {
-                setGpuUsage(msg.data.status.exec_info.queue_remaining > 0 ? 85 : 12);
-              }
+        const msg = JSON.parse(evt.data);
+        if (msg.type === "progress") {
+          const pct = (msg.data.step / msg.data.max_step) * 100;
+          setProgress(pct);
+          setProgressStep(msg.data.step);
+          setProgressTotal(msg.data.max_step);
+          const nodeLabel = executingNode ? `[${executingNode}] ` : "";
+          setStatusText(`${nodeLabel}采样迭代 ${msg.data.step}/${msg.data.max_step}`);
+        } else if (msg.type === "progress_state") {
+          // 各节点独立进度
+          const nodesData = msg.data?.nodes || {};
+          setNodeProgress((prev: any) => {
+            const next = { ...prev };
+            for (const [nid, info] of Object.entries(nodesData) as [string, any][]) {
+              next[nid] = {
+                name: info.display_node_name || info.display_node_id || nid,
+                state: info.state || "running",
+                value: info.value || 0,
+                max: info.max || 1,
+              };
             }
-          } catch (e) { /* ignore parse errors */ }
+            return next;
+          });
+        } else if (msg.type === "executing") {
+          const nodeName = msg.data.node;
+          setExecutingNode(nodeName || "");
+          if (nodeName) {
+            setStatusText("执行节点: " + nodeName);
+          } else {
+            setStatusText("节点执行完毕, 等待输出...");
+          }
+        } else if (msg.type === "execution_start") {
+          setStatusText("工作流开始执行...");
+          setNodeProgress({});
+        } else if (msg.type === "executed") {
+          const nodeData = msg.data;
+          // 处理图片输出 (SaveImage/PreviewImage) 和视频输出 (SaveVideo/PreviewVideo)
+          const isImage = nodeData?.output?.images && nodeData.output.images[0];
+          const isVideo = nodeData?.output?.gifs && nodeData.output.gifs[0];
+          const media = isImage ? nodeData.output.images[0] : (isVideo ? nodeData.output.gifs[0] : null);
+          const isMediaVideo = !!isVideo;
+          if (media) {
+            const mediaType = isMediaVideo ? "gifs" : (media.type || "output");
+            const baseUrl = "http://" + window.location.host;
+            const mediaUrl = baseUrl + "/view?filename=" + encodeURIComponent(media.filename) + "&subfolder=" + encodeURIComponent(media.subfolder || "") + "&type=" + mediaType;
+            const newItem = { url: mediaUrl, prompt_id: msg.data.prompt_id || nodeData.prompt_id };
+            // 累积批量结果
+            setBatchResults(prev => {
+              const updated = [...prev, newItem];
+              if (prev.length === 0) {
+                setResult({ url: mediaUrl, prompt_id: newItem.prompt_id, outputs: nodeData.output });
+                setSelectedBatchIndex(0);
+              }
+              return updated;
+            });
+            setAssetSaved(false);
+            // 清除轮询，防止覆盖 WebSocket 已设置的结果
+            if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+            fetch(mediaUrl)
+              .then(resp => resp.blob())
+              .then(blob => {
+                const file = new File([blob], media.filename || (isMediaVideo ? "generated.mp4" : "generated.png"), { type: blob.type || "application/octet-stream" });
+                return api.uploadAsset(file, "generated");
+              })
+              .then(() => { setAssetSaved(true); })
+              .catch((err: any) => console.warn("Asset save skipped:", err));
+            const entry = {
+              url: mediaUrl,
+              prompt: prompt || "(empty)",
+              mode: mode,
+              time: new Date().toISOString(),
+              isVideo: isMediaVideo,
+            };
+            setGenerationHistory(prev => {
+              const updated = [entry, ...prev];
+              if (updated.length > 100) updated.length = 100;
+              return updated;
+            });
+            receivedJobCountRef.current += 1;
+            const done = receivedJobCountRef.current;
+            const total = expectedJobCountRef.current || 1;
+            setProgress(100);
+            setStatusText("生成完成 (" + done + "/" + total + ")");
+            if (done >= total) {
+              setGenerating(false);
+              receivedJobCountRef.current = 0;
+              expectedJobCountRef.current = 0;
+            }
+          }
+        } else if (msg.type === "status") {
+          if (msg.data?.status?.exec_info) {
+            setGpuUsage(msg.data.status.exec_info.queue_remaining > 0 ? 85 : 12);
+          }
+        }
+      } catch (e) { /* ignore parse errors */ }
+    };
+
+    const doConnect = async () => {
+      try {
+        const wsInfo = await api.wsInfo();
+        const newWs = new WebSocket(wsInfo.ws_url + "?clientId=" + clientId);
+        wsRef.current = newWs;
+        newWs.onopen = () => { setWsConnected(true); retryCount = 0; };
+        newWs.onmessage = onMsg;
+        newWs.onerror = () => {};
+        newWs.onclose = () => {
+          setWsConnected(false);
+          if (wsRef.current === newWs) wsRef.current = null;
+          // 指数退避重连（最多 5 次）
+          if (retryCount < 5 && !wsRef.current) {
+            const delay = Math.min(2000 * Math.pow(2, retryCount), 30000);
+            retryCount++;
+            retryId = setTimeout(doConnect, delay);
+          }
         };
-        ws.onclose = () => { setWsConnected(false); wsRef.current = null; };
-        ws.onerror = () => {};
       } catch (e) {
-        console.warn("WS connect failed", e);
+        if (retryCount < 5) {
+          retryCount++;
+          retryId = setTimeout(doConnect, 3000);
+        }
       }
-    }
-    connectWs();
-    return () => { if (wsRef.current) { wsRef.current.close(); wsRef.current = null; } };
+    };
+
+    doConnect();
+    return () => {
+      if (retryId) clearTimeout(retryId);
+      if (wsRef.current) { wsRef.current.close(); wsRef.current = null; }
+    };
   }, [clientId]);
   useEffect(() => {
     return () => {
@@ -294,6 +321,19 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
       return null;
     }
   };
+  const handleInterrupt = async () => {
+    setStatusText("正在中断...");
+    try {
+      await api.interrupt();
+      setGenerating(false);
+      setStatusText("已中断");
+      setProgress(0);
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    } catch (e) {
+      setError("中断失败: " + (e instanceof Error ? e.message : String(e)));
+    }
+  };
+
   const handleGenerate = async () => {
     setError(null);
     setResult(null);
@@ -448,6 +488,59 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
       const batchResult = await api.queueBatch(workflowId, jobs, clientId);
       setQueuedJobs(batchResult.queued);
       setStatusText("已提交 " + batchResult.queued.length + " 个任务，等待生成...");
+      // 轮询所有 prompt_id，作为 WebSocket 断连时的回退
+      const promptIds = batchResult.queued.map(q => q.prompt_id).filter(Boolean) as string[];
+      const completedIds = new Set<string>();
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+      let pollAttempts = 0;
+      pollRef.current = setInterval(async () => {
+        pollAttempts++;
+        try {
+          for (const pid of promptIds) {
+            if (completedIds.has(pid)) continue;
+            const jobResult = await api.job(pid);
+            if (jobResult.history?.status?.completed || jobResult.history?.outputs) {
+              completedIds.add(pid);
+              const outputs = jobResult.history?.outputs;
+              if (outputs) {
+                const firstNode: any = Object.values(outputs).find((v: any) => v?.images?.length > 0 || v?.gifs?.length > 0);
+                if (firstNode) {
+                  const isVideo = firstNode.gifs?.length > 0;
+                  const media = isVideo ? firstNode.gifs[0] : firstNode.images?.[0];
+                  if (media) {
+                    const mediaType = isVideo ? "gifs" : (media.type || "output");
+                    const baseUrl = "http://" + window.location.host;
+                    const mediaUrl = baseUrl + "/view?filename=" + encodeURIComponent(media.filename) + "&subfolder=" + encodeURIComponent(media.subfolder || "") + "&type=" + mediaType;
+                    const newItem = { url: mediaUrl, prompt_id: pid };
+                    setBatchResults(prev => {
+                      if (prev.some(p => p.prompt_id === pid)) return prev;
+                      const updated = [...prev, newItem];
+                      if (prev.length === 0) {
+                        setResult({ url: mediaUrl, prompt_id: pid, outputs });
+                        setSelectedBatchIndex(0);
+                      }
+                      return updated;
+                    });
+                  }
+                }
+              }
+            }
+          }
+          if (completedIds.size >= promptIds.length) {
+            setGenerating(false);
+            expectedJobCountRef.current = 0;
+            receivedJobCountRef.current = 0;
+            setProgress(100);
+            setStatusText("生成完成 (" + completedIds.size + "/" + promptIds.length + ")");
+            if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+          }
+        } catch (_) { /* ignore poll errors */ }
+        if (pollAttempts > 120) {
+          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+          setGenerating(false);
+          setStatusText("部分任务超时 (" + completedIds.size + "/" + promptIds.length + ")");
+        }
+      }, 5000);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setGenerating(false);
@@ -1021,12 +1114,21 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
           )}
         </div>
         <div className="p-5 border-t border-border-main/80 bg-bg-base/30 space-y-3 sticky bottom-0 backdrop-blur-md">
-          <button onClick={handleGenerate} disabled={generating}
-            className="w-full flex items-center justify-center gap-2 bg-accent hover:opacity-90 text-accent-text font-bold py-3.5 px-4 rounded-md transition-all glow-accent active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {generating ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-current" />}
-            {generating ? "生成中.." : "开始生成"}
-          </button>
+          {generating ? (
+            <button onClick={handleInterrupt}
+              className="w-full flex items-center justify-center gap-2 bg-danger hover:bg-danger/90 text-white font-bold py-3.5 px-4 rounded-md transition-all active:scale-[0.98]"
+            >
+              <XCircle className="w-5 h-5" />
+              中断生成
+            </button>
+          ) : (
+            <button onClick={handleGenerate}
+              className="w-full flex items-center justify-center gap-2 bg-accent hover:opacity-90 text-accent-text font-bold py-3.5 px-4 rounded-md transition-all glow-accent active:scale-[0.98]"
+            >
+              <Play className="w-5 h-5 fill-current" />
+              开始生成
+            </button>
+          )}
           <div className="flex gap-2">
             <button onClick={handleBatchGenerate} disabled={generating}
               className="flex-1 flex items-center justify-center gap-2 bg-bg-input hover:brightness-110 border border-border-main text-text-primary font-medium py-2.5 px-4 rounded-md transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1114,7 +1216,11 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
         <div className="flex-1 p-4 lg:p-8 flex flex-col items-center justify-center relative overflow-y-auto custom-scrollbar bg-grid-pattern gap-3">
           <div className="max-w-4xl w-full aspect-square sm:aspect-[4/3] md:aspect-video lg:aspect-auto lg:h-[75%] bg-bg-base/80 border border-border-main/80 rounded-lg shadow-2xl flex flex-col items-center justify-center text-text-secondary relative overflow-visible group transition-all duration-500 backdrop-blur-sm">
             {result?.url ? (
-              <img src={result.url} alt="output" className="w-full h-full object-contain rounded-lg" />
+              result.url.includes('type=gifs') ? (
+                <video src={result.url} controls className="w-full h-full object-contain rounded-lg" />
+              ) : (
+                <img src={result.url} alt="output" className="w-full h-full object-contain rounded-lg" />
+              )
             ) : error ? (
               <div className="text-center">
                 <XCircle className="w-16 h-16 mb-4 text-danger opacity-40" />
@@ -1200,7 +1306,11 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                   onClick={() => switchBatchImage(idx)}
                   className={"flex-shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 transition-all hover:scale-105 active:scale-95 " + (idx === selectedBatchIndex ? "border-accent shadow-[0_0_8px_var(--theme-accent)]" : "border-transparent hover:border-border-main")}
                 >
-                  <img src={item.url} alt={"结果 " + (idx + 1)} className="w-full h-full object-cover" loading="lazy" />
+                  {item.url.includes('type=gifs') ? (
+                    <video src={item.url} className="w-full h-full object-cover" preload="metadata" />
+                  ) : (
+                    <img src={item.url} alt={"结果 " + (idx + 1)} className="w-full h-full object-cover" loading="lazy" />
+                  )}
                 </button>
               ))}
             </div>
@@ -1300,7 +1410,11 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                   >
                     <div className="flex gap-3">
                       <div className="w-16 h-16 rounded-md bg-bg-input overflow-hidden flex-shrink-0 border border-border-main/50">
-                        <img src={entry.url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        {entry.isVideo ? (
+                          <video src={entry.url} className="w-full h-full object-cover" preload="metadata" />
+                        ) : (
+                          <img src={entry.url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">

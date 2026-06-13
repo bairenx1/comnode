@@ -3,9 +3,18 @@ from pathlib import Path
 
 WORKFLOWS_DIR = Path(__file__).resolve().parent.parent / "workflows"
 USER_WORKFLOWS_DIR = Path(__file__).resolve().parent.parent.parent / "user" / "default" / "workflows"
-BLUEPRINTS_DIR = Path(__file__).resolve().parent.parent.parent / "blueprints"
 
 SKIP_TYPES = {'MarkdownNote', 'Note', 'PrimitiveNode', 'Reroute'}
+
+# 不暴露 UI 参数的节点类型（模型加载器等，用户不需要在工作流中切换）
+HIDDEN_UI_TYPES = {
+    'CheckpointLoaderSimple', 'CheckpointLoader',
+    'VAELoader',
+    'CLIPLoader', 'DualCLIPLoader',
+    'LoraLoader', 'LoraLoaderModelOnly',
+    'ControlNetLoader',
+    'unCLIPCheckpointLoader', 'ImageOnlyCheckpointLoader',
+}
 
 # UUID 格式的 class_type 表示 ComfyUI Group Node（包装器节点），其内部子节点已在图中独立存在
 UUID_TYPE_RE = re.compile(
@@ -575,48 +584,51 @@ def convert_native_to_api(native_data):
 
                     if val is not None:
                         inputs[inp_name] = val
-                        # LoadImage 节点使用预扫描分配的唯一字段名
-                        if ntype == 'LoadImage' and nid in loadimage_field_map:
-                            field_name, label = loadimage_field_map[nid]
-                        else:
-                            field_name = cfg['field']
-                            label = cfg.get('label', '')
-                        field_mapping[field_name] = f'{nid}.inputs.{inp_name}'
-                        if field_name not in seen_ui_field_names:
-                            seen_ui_field_names.add(field_name)
-                            entry = {
-                                'name': field_name,
-                                'type': cfg['type'],
-                                'default': val,
-                            }
-                            if label:
-                                entry['label'] = label
-                            # 图片上传类型标记 role，供前端识别
-                            if ntype == 'LoadImage':
-                                entry['role'] = 'image_upload'
-                            for k in ('min', 'max', 'step', 'options', 'tooltip'):
-                                if k in cfg:
-                                    entry[k] = cfg[k]
-                            ui_fields.append(entry)
+                        # 模型/LoRA/VAE 加载器：参数用于图执行但不暴露给前端
+                        if ntype not in HIDDEN_UI_TYPES:
+                            # LoadImage 节点使用预扫描分配的唯一字段名
+                            if ntype == 'LoadImage' and nid in loadimage_field_map:
+                                field_name, label = loadimage_field_map[nid]
+                            else:
+                                field_name = cfg['field']
+                                label = cfg.get('label', '')
+                            field_mapping[field_name] = f'{nid}.inputs.{inp_name}'
+                            if field_name not in seen_ui_field_names:
+                                seen_ui_field_names.add(field_name)
+                                entry = {
+                                    'name': field_name,
+                                    'type': cfg['type'],
+                                    'default': val,
+                                }
+                                if label:
+                                    entry['label'] = label
+                                # 图片上传类型标记 role，供前端识别
+                                if ntype == 'LoadImage':
+                                    entry['role'] = 'image_upload'
+                                for k in ('min', 'max', 'step', 'options', 'tooltip'):
+                                    if k in cfg:
+                                        entry[k] = cfg[k]
+                                ui_fields.append(entry)
                 else:
                     # 该输入不在特殊配置中，但仍是 widget 类型则原样保留
                     if _is_widget_input(inp):
                         val = _get_input_value(inp, widgets_values, widget_idx)
                         if val is not None:
                             inputs[inp_name] = val
-                            safe_name = FIELD_ALIASES.get(inp_name, inp_name)
-                            if safe_name not in seen_ui_field_names:
-                                seen_ui_field_names.add(safe_name)
-                                inp_type = inp.get('type', 'STRING')
-                                entry = {'name': safe_name, 'type': 'number' if inp_type in ('INT', 'FLOAT') else 'string', 'default': val}
-                                if inp.get('min') is not None:
-                                    entry['min'] = inp['min']
-                                if inp.get('max') is not None:
-                                    entry['max'] = inp['max']
-                                if inp.get('step') is not None:
-                                    entry['step'] = inp['step']
-                                field_mapping[safe_name] = f'{nid}.inputs.{inp_name}'
-                                ui_fields.append(entry)
+                            if ntype not in HIDDEN_UI_TYPES:
+                                safe_name = FIELD_ALIASES.get(inp_name, inp_name)
+                                if safe_name not in seen_ui_field_names:
+                                    seen_ui_field_names.add(safe_name)
+                                    inp_type = inp.get('type', 'STRING')
+                                    entry = {'name': safe_name, 'type': 'number' if inp_type in ('INT', 'FLOAT') else 'string', 'default': val}
+                                    if inp.get('min') is not None:
+                                        entry['min'] = inp['min']
+                                    if inp.get('max') is not None:
+                                        entry['max'] = inp['max']
+                                    if inp.get('step') is not None:
+                                        entry['step'] = inp['step']
+                                    field_mapping[safe_name] = f'{nid}.inputs.{inp_name}'
+                                    ui_fields.append(entry)
 
                 widget_idx += 1
 
@@ -793,7 +805,6 @@ def _convert_workflow_files(source_dir: Path, converted: int) -> int:
 
 def auto_convert_all():
     converted = _convert_workflow_files(USER_WORKFLOWS_DIR, 0)
-    converted = _convert_workflow_files(BLUEPRINTS_DIR, converted)
     print(f'Converted {converted} workflows')
     return converted
 

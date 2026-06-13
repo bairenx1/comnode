@@ -16,6 +16,7 @@ __pycache__/
 /custom_nodes/*
 !/custom_nodes/.gitkeep
 !custom_nodes/example_node.py.example
+!custom_nodes/websocket_image_save.py
 extra_model_paths.yaml
 /.vs
 .vscode/

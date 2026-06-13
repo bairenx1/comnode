@@ -7,6 +7,76 @@
   "ui_schema": {
     "fields": [
       {
+        "name": "output_type",
+        "type": "string",
+        "default": "float"
+      },
+      {
+        "name": "sampler_name",
+        "type": "string",
+        "default": "lcm"
+      },
+      {
+        "name": "Xi",
+        "type": "number",
+        "default": 1
+      },
+      {
+        "name": "Xf",
+        "type": "number",
+        "default": 1
+      },
+      {
+        "name": "isfloatX",
+        "type": "number",
+        "default": 1
+      },
+      {
+        "name": "crop",
+        "type": "string",
+        "default": "none"
+      },
+      {
+        "name": "number_of_faces",
+        "type": "number",
+        "default": 5
+      },
+      {
+        "name": "scale_factor",
+        "type": "number",
+        "default": 2
+      },
+      {
+        "name": "shift_factor",
+        "type": "number",
+        "default": 0.55
+      },
+      {
+        "name": "start_index",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "max_faces_per_image",
+        "type": "number",
+        "default": 50
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "string",
+        "default": "1:1"
+      },
+      {
+        "name": "expression",
+        "type": "string",
+        "default": "a*b"
+      },
+      {
+        "name": "scheduler_name",
+        "type": "string",
+        "default": "simple"
+      },
+      {
         "name": "seed",
         "type": "number",
         "default": 1,
@@ -27,42 +97,6 @@
         "min": 1,
         "max": 30,
         "step": 0.5
-      },
-      {
-        "name": "sampler_name",
-        "type": "combo",
-        "default": "euler",
-        "options": [
-          "euler",
-          "euler_ancestral",
-          "heun",
-          "heunpp2",
-          "dpm_2",
-          "dpm_2_ancestral",
-          "lms",
-          "dpm_fast",
-          "dpm_adaptive",
-          "dpmpp_2s_ancestral",
-          "dpmpp_sde",
-          "dpmpp_sde_gpu",
-          "dpmpp_2m",
-          "dpmpp_2m_sde",
-          "dpmpp_2m_sde_gpu",
-          "dpmpp_3m_sde",
-          "dpmpp_3m_sde_gpu",
-          "ddim",
-          "uni_pc",
-          "uni_pc_bh2",
-          "lcm",
-          "ipndm",
-          "ipndm_v",
-          "res_multistep",
-          "res_multistep_cfg",
-          "res_multistep_ancestral",
-          "res_multistep_ancestral_cfg",
-          "gradient_estimation",
-          "restart"
-        ]
       },
       {
         "name": "scheduler",
@@ -91,14 +125,89 @@
         "step": 0.05
       },
       {
+        "name": "fast_mode",
+        "type": "boolean",
+        "default": 10
+      },
+      {
+        "name": "ensemble",
+        "type": "boolean",
+        "default": 2
+      },
+      {
+        "name": "loop_count",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "filename_prefix",
+        "type": "string",
+        "default": "lazy_wan22_"
+      },
+      {
+        "name": "format",
+        "type": "string",
+        "default": "video/h264-mp4"
+      },
+      {
+        "name": "pingpong",
+        "type": "boolean",
+        "default": false
+      },
+      {
+        "name": "save_output",
+        "type": "boolean",
+        "default": true
+      },
+      {
+        "name": "pix_fmt",
+        "type": "string",
+        "default": "yuv420p"
+      },
+      {
+        "name": "crf",
+        "type": "number",
+        "default": 19
+      },
+      {
+        "name": "save_metadata",
+        "type": "boolean",
+        "default": true
+      },
+      {
+        "name": "trim_to_audio",
+        "type": "boolean",
+        "default": false
+      },
+      {
+        "name": "ipadapter",
+        "type": "string",
+        "default": "ip-adapter.bin"
+      },
+      {
+        "name": "provider",
+        "type": "string",
+        "default": "cuda"
+      },
+      {
+        "name": "largest_size",
+        "type": "number",
+        "default": 640
+      },
+      {
         "name": "prompt",
         "type": "string",
-        "default": ""
+        "default": "looping, reverse motion, ping pong, bouncing，色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"
       },
       {
         "name": "negative_prompt",
         "type": "string",
-        "default": ""
+        "default": "d0gg1e, the girl takes off all her clothes, and the girl exposing her pussy and tits，she is completely naked，without wearing bra and underwear"
+      },
+      {
+        "name": "text",
+        "type": "string",
+        "default": "[object Object]"
       },
       {
         "name": "target_asset_hash",
@@ -110,14 +219,42 @@
     ]
   },
   "field_mapping": {
+    "output_type": "239.inputs.output_type",
+    "sampler_name": "584.inputs.sampler_name",
+    "Xi": "484.inputs.Xi",
+    "Xf": "484.inputs.Xf",
+    "isfloatX": "484.inputs.isfloatX",
+    "crop": "464.inputs.crop",
+    "number_of_faces": "512.inputs.number_of_faces",
+    "scale_factor": "512.inputs.scale_factor",
+    "shift_factor": "512.inputs.shift_factor",
+    "start_index": "512.inputs.start_index",
+    "max_faces_per_image": "512.inputs.max_faces_per_image",
+    "aspect_ratio": "512.inputs.aspect_ratio",
+    "expression": "264.inputs.expression",
+    "scheduler_name": "274.inputs.scheduler_name",
     "seed": "584.inputs.seed",
     "steps": "584.inputs.steps",
     "cfg": "584.inputs.cfg",
-    "sampler_name": "584.inputs.sampler_name",
     "scheduler": "584.inputs.scheduler",
     "denoise": "584.inputs.denoise",
+    "fast_mode": "453.inputs.fast_mode",
+    "ensemble": "453.inputs.ensemble",
+    "loop_count": "124.inputs.loop_count",
+    "filename_prefix": "124.inputs.filename_prefix",
+    "format": "124.inputs.format",
+    "pingpong": "124.inputs.pingpong",
+    "save_output": "124.inputs.save_output",
+    "pix_fmt": "124.inputs.pix_fmt",
+    "crf": "124.inputs.crf",
+    "save_metadata": "124.inputs.save_metadata",
+    "trim_to_audio": "124.inputs.trim_to_audio",
+    "ipadapter": "462.inputs.ipadapter",
+    "provider": "462.inputs.provider",
+    "largest_size": "536.inputs.largest_size",
     "prompt": "89.inputs.text",
     "negative_prompt": "566.inputs.text",
+    "text": "130.inputs.text",
     "target_asset_hash": "97.inputs.image"
   }
 }

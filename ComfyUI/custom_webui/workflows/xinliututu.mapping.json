@@ -7,6 +7,11 @@
   "ui_schema": {
     "fields": [
       {
+        "name": "filename_prefix",
+        "type": "string",
+        "default": "ComfyUI"
+      },
+      {
         "name": "image_asset_hash",
         "type": "string",
         "label": "image2 (optional)",
@@ -31,6 +36,26 @@
         "default": 1,
         "min": 0,
         "max": 18446744073709551615
+      },
+      {
+        "name": "strength",
+        "type": "number",
+        "default": 1
+      },
+      {
+        "name": "pre_cfg",
+        "type": "boolean",
+        "default": false
+      },
+      {
+        "name": "466_prompt",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "shift",
+        "type": "number",
+        "default": 3
       },
       {
         "name": "466_seed",
@@ -117,11 +142,41 @@
         "step": 0.05
       },
       {
+        "name": "on_false",
+        "type": "number",
+        "default": 20
+      },
+      {
+        "name": "on_true",
+        "type": "number",
+        "default": 4
+      },
+      {
         "name": "target_asset_hash_2",
         "type": "string",
         "default": "20260520-020926.jpg",
         "label": "参考图片",
         "role": "image_upload"
+      },
+      {
+        "name": "433_strength",
+        "type": "number",
+        "default": 1
+      },
+      {
+        "name": "433_pre_cfg",
+        "type": "boolean",
+        "default": false
+      },
+      {
+        "name": "433_prompt",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "433_shift",
+        "type": "number",
+        "default": 3
       },
       {
         "name": "433_seed",
@@ -208,6 +263,16 @@
         "step": 0.05
       },
       {
+        "name": "433_on_false",
+        "type": "number",
+        "default": 20
+      },
+      {
+        "name": "433_on_true",
+        "type": "number",
+        "default": 4
+      },
+      {
         "name": "target_asset_hash_3",
         "type": "string",
         "default": "20260520-020926.jpg",
@@ -217,23 +282,36 @@
     ]
   },
   "field_mapping": {
+    "filename_prefix": "60.inputs.filename_prefix",
     "image_asset_hash": "466.451.inputs.prompt",
     "target_asset_hash": "78.inputs.image",
     "prompt": "435.inputs.value",
     "seed": "466.464.inputs.value",
+    "strength": "466.445.inputs.strength",
+    "pre_cfg": "466.445.inputs.pre_cfg",
+    "466_prompt": "466.449.inputs.prompt",
+    "shift": "466.450.inputs.shift",
     "466_seed": "466.456.inputs.seed",
     "steps": "466.456.inputs.steps",
     "cfg": "466.456.inputs.cfg",
     "sampler_name": "466.456.inputs.sampler_name",
     "scheduler": "466.456.inputs.scheduler",
     "denoise": "466.456.inputs.denoise",
+    "on_false": "466.459.inputs.value",
+    "on_true": "466.457.inputs.value",
     "target_asset_hash_2": "469.inputs.image",
+    "433_strength": "433.75.inputs.strength",
+    "433_pre_cfg": "433.75.inputs.pre_cfg",
+    "433_prompt": "433.110.inputs.prompt",
+    "433_shift": "433.66.inputs.shift",
     "433_seed": "433.3.inputs.seed",
     "433_steps": "433.3.inputs.steps",
     "433_cfg": "433.3.inputs.cfg",
     "433_sampler_name": "433.3.inputs.sampler_name",
     "433_scheduler": "433.3.inputs.scheduler",
     "433_denoise": "433.3.inputs.denoise",
+    "433_on_false": "433.438.inputs.value",
+    "433_on_true": "433.436.inputs.value",
     "target_asset_hash_3": "470.inputs.image"
   }
 }

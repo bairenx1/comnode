@@ -83,7 +83,8 @@
       "*": [
         "236",
         0
-      ]
+      ],
+      "output_type": "float"
     }
   },
   "235": {
@@ -101,7 +102,8 @@
       "*": [
         "237",
         0
-      ]
+      ],
+      "output_type": "float"
     }
   },
   "233": {
@@ -155,7 +157,8 @@
       "*": [
         "266",
         0
-      ]
+      ],
+      "output_type": "int"
     }
   },
   "272": {
@@ -170,7 +173,8 @@
       "*": [
         "479",
         0
-      ]
+      ],
+      "output_type": "float"
     }
   },
   "486": {
@@ -188,7 +192,8 @@
       "*": [
         "482",
         0
-      ]
+      ],
+      "output_type": "float"
     }
   },
   "488": {
@@ -206,7 +211,8 @@
       "*": [
         "484",
         0
-      ]
+      ],
+      "output_type": "float"
     }
   },
   "489": {
@@ -352,7 +358,8 @@
       "image": [
         "500",
         0
-      ]
+      ],
+      "crop": "none"
     }
   },
   "465": {
@@ -408,11 +415,12 @@
         "466",
         0
       ],
-      "number_of_faces": 2,
-      "scale_factor": 0.55,
-      "shift_factor": 0,
-      "start_index": 50,
-      "max_faces_per_image": "1:1"
+      "number_of_faces": 5,
+      "scale_factor": 2,
+      "shift_factor": 0.55,
+      "start_index": 0,
+      "max_faces_per_image": 50,
+      "aspect_ratio": "1:1"
     }
   },
   "265": {
@@ -421,7 +429,8 @@
       "*": [
         "263",
         0
-      ]
+      ],
+      "output_type": "int"
     }
   },
   "116": {
@@ -514,7 +523,8 @@
       "b": [
         "267",
         0
-      ]
+      ],
+      "expression": "a*b"
     }
   },
   "445": {
@@ -523,7 +533,8 @@
       "*": [
         "266",
         0
-      ]
+      ],
+      "output_type": "int"
     }
   },
   "125": {
@@ -716,7 +727,7 @@
   "453": {
     "class_type": "RIFE VFI",
     "inputs": {
-      "ckpt_name": 2,
+      "ckpt_name": "rife47.pth",
       "clear_cache_after_n_frames": [
         "264",
         0
@@ -725,7 +736,9 @@
         "445",
         0
       ],
-      "fast_mode": 1
+      "fast_mode": 10,
+      "ensemble": 2,
+      "scale_factor": true
     }
   },
   "402": {
@@ -752,7 +765,8 @@
       "*": [
         "178",
         0
-      ]
+      ],
+      "output_type": "float"
     }
   },
   "184": {
@@ -848,8 +862,8 @@
         "243",
         0
       ],
-      "lora_name": 1.0000000000000002,
-      "strength_model": 1.0
+      "lora_name": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
+      "strength_model": 1.0000000000000002
     }
   },
   "132": {
@@ -859,8 +873,8 @@
         "244",
         0
       ],
-      "lora_name": 1.0000000000000002,
-      "strength_model": 1.0
+      "lora_name": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
+      "strength_model": 1.0000000000000002
     }
   },
   "536": {
@@ -870,7 +884,8 @@
         "525",
         0
       ],
-      "upscale_method": 640
+      "upscale_method": "bilinear",
+      "largest_size": 640
     }
   },
   "89": {
@@ -880,7 +895,7 @@
         "154",
         0
       ],
-      "text": ""
+      "text": "looping, reverse motion, ping pong, bouncing，色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"
     }
   },
   "166": {
@@ -898,7 +913,7 @@
         "565",
         0
       ],
-      "text": ""
+      "text": "d0gg1e, the girl takes off all her clothes, and the girl exposing her pussy and tits，she is completely naked，without wearing bra and underwear"
     }
   },
   "130": {
@@ -908,7 +923,7 @@
         "145",
         0
       ],
-      "text": "",
+      "text": "[object Object]",
       "clip": [
         "146",
         0
@@ -918,7 +933,10 @@
   "134": {
     "class_type": "Lora Loader (LoraManager)",
     "inputs": {
-      "text": ""
+      "text": {
+        "version": 1,
+        "textWidgetName": "text"
+      }
     }
   },
   "135": {

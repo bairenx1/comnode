@@ -14,6 +14,21 @@
         "role": "image_upload"
       },
       {
+        "name": "filename_prefix",
+        "type": "string",
+        "default": "video/LTX_2.3_i2v"
+      },
+      {
+        "name": "format",
+        "type": "string",
+        "default": "auto"
+      },
+      {
+        "name": "codec",
+        "type": "string",
+        "default": "auto"
+      },
+      {
         "name": "prompt",
         "type": "string",
         "default": "Egyptian royal in blue-and-gold headdress and high collar, white dress with golden embroidery and armbands, desert, robot soldiers in formation left and right. She walks steadily forward, head held level and gaze fixed ahead—no dipping or lowering of the head. The camera performs a single, smooth push-in only: starting in a wider shot of her, the robots, and the desert, it moves steadily forward until she is in a medium or medium-close frame, then holds. She stops, posture and head still upright, and says: “The old gods are silent. I am not.” Robot soldiers shift or march in place; sand and fabric move with the wind. No pull-back; the only camera move is the continuous push-in."
@@ -26,16 +41,217 @@
         "max": 18446744073709551615
       },
       {
+        "name": "noise_seed",
+        "type": "number",
+        "default": 42
+      },
+      {
+        "name": "sampler_name",
+        "type": "string",
+        "default": "euler"
+      },
+      {
+        "name": "sigmas",
+        "type": "string",
+        "default": "0.85, 0.7250, 0.4219, 0.0"
+      },
+      {
+        "name": "cfg",
+        "type": "number",
+        "default": 1
+      },
+      {
+        "name": "longer_edge",
+        "type": "number",
+        "default": 1536
+      },
+      {
+        "name": "strength",
+        "type": "number",
+        "default": 1
+      },
+      {
+        "name": "img_compression",
+        "type": "number",
+        "default": 18
+      },
+      {
+        "name": "resize_type",
+        "type": "string",
+        "default": "scale dimensions"
+      },
+      {
+        "name": "resize_type.width",
+        "type": "number",
+        "default": 1280
+      },
+      {
+        "name": "resize_type.height",
+        "type": "number",
+        "default": 720
+      },
+      {
+        "name": "resize_type.crop",
+        "type": "string",
+        "default": 1920
+      },
+      {
+        "name": "scale_method",
+        "type": "string",
+        "default": 1088
+      },
+      {
+        "name": "values.a",
+        "type": "number",
+        "default": 1280
+      },
+      {
+        "name": "expression",
+        "type": "string",
+        "default": "a/2"
+      },
+      {
+        "name": "batch_size",
+        "type": "number",
+        "default": 768
+      },
+      {
+        "name": "negative_prompt",
+        "type": "string",
+        "default": "pc game, console game, video game, cartoon, childish, ugly"
+      },
+      {
+        "name": "tile_size",
+        "type": "number",
+        "default": 768
+      },
+      {
+        "name": "overlap",
+        "type": "number",
+        "default": 64
+      },
+      {
+        "name": "temporal_size",
+        "type": "number",
+        "default": 4096
+      },
+      {
+        "name": "temporal_overlap",
+        "type": "number",
+        "default": 4
+      },
+      {
+        "name": "values.b",
+        "type": "number",
+        "default": 25
+      },
+      {
         "name": "320_prompt",
         "type": "string",
+        "default": "Egyptian royal in blue-and-gold headdress and high collar, white dress with golden embroidery and armbands, desert, robot soldiers in formation left and right. She walks steadily forward, head held level and gaze fixed ahead—no dipping or lowering of the head. The camera performs a single, smooth push-in only: starting in a wider shot of her, the robots, and the desert, it moves steadily forward until she is in a medium or medium-close frame, then holds. She stops, posture and head still upright, and says: “The old gods are silent. I am not.” Robot soldiers shift or march in place; sand and fabric move with the wind. No pull-back; the only camera move is the continuous push-in."
+      },
+      {
+        "name": "max_length",
+        "type": "number",
         "default": ""
+      },
+      {
+        "name": "sampling_mode",
+        "type": "string",
+        "default": 2048
+      },
+      {
+        "name": "sampling_mode.temperature",
+        "type": "number",
+        "default": "on"
+      },
+      {
+        "name": "sampling_mode.top_k",
+        "type": "number",
+        "default": 0.7
+      },
+      {
+        "name": "sampling_mode.top_p",
+        "type": "number",
+        "default": 64
+      },
+      {
+        "name": "sampling_mode.min_p",
+        "type": "number",
+        "default": 0.95
+      },
+      {
+        "name": "sampling_mode.repetition_penalty",
+        "type": "number",
+        "default": 0.05
+      },
+      {
+        "name": "sampling_mode.seed",
+        "type": "number",
+        "default": 1.05
+      },
+      {
+        "name": "sampling_mode.presence_penalty",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "thinking",
+        "type": "boolean",
+        "default": 0
+      },
+      {
+        "name": "use_default_template",
+        "type": "boolean",
+        "default": false
+      },
+      {
+        "name": "on_false",
+        "type": "string",
+        "default": "Egyptian royal in blue-and-gold headdress and high collar, white dress with golden embroidery and armbands, desert, robot soldiers in formation left and right. She walks steadily forward, head held level and gaze fixed ahead—no dipping or lowering of the head. The camera performs a single, smooth push-in only: starting in a wider shot of her, the robots, and the desert, it moves steadily forward until she is in a medium or medium-close frame, then holds. She stops, posture and head still upright, and says: “The old gods are silent. I am not.” Robot soldiers shift or march in place; sand and fabric move with the wind. No pull-back; the only camera move is the continuous push-in."
       }
     ]
   },
   "field_mapping": {
     "target_asset_hash": "269.inputs.image",
+    "filename_prefix": "75.inputs.filename_prefix",
+    "format": "75.inputs.format",
+    "codec": "75.inputs.codec",
     "prompt": "320.319.inputs.value",
     "seed": "320.277.inputs.noise_seed",
-    "320_prompt": "320.313.inputs.text"
+    "noise_seed": "320.276.inputs.noise_seed",
+    "sampler_name": "320.280.inputs.sampler_name",
+    "sigmas": "320.281.inputs.sigmas",
+    "cfg": "320.282.inputs.cfg",
+    "longer_edge": "320.286.inputs.longer_edge",
+    "strength": "320.288.inputs.strength",
+    "img_compression": "320.289.inputs.img_compression",
+    "resize_type": "320.290.inputs.resize_type",
+    "resize_type.width": "320.312.inputs.value",
+    "resize_type.height": "320.299.inputs.value",
+    "resize_type.crop": "320.290.inputs.resize_type.crop",
+    "scale_method": "320.290.inputs.scale_method",
+    "values.a": "320.312.inputs.value",
+    "expression": "320.292.inputs.expression",
+    "batch_size": "320.295.inputs.batch_size",
+    "negative_prompt": "320.313.inputs.text",
+    "tile_size": "320.315.inputs.tile_size",
+    "overlap": "320.315.inputs.overlap",
+    "temporal_size": "320.315.inputs.temporal_size",
+    "temporal_overlap": "320.315.inputs.temporal_overlap",
+    "values.b": "320.300.inputs.value",
+    "320_prompt": "320.319.inputs.value",
+    "max_length": "320.325.inputs.max_length",
+    "sampling_mode": "320.325.inputs.sampling_mode",
+    "sampling_mode.temperature": "320.325.inputs.sampling_mode.temperature",
+    "sampling_mode.top_k": "320.325.inputs.sampling_mode.top_k",
+    "sampling_mode.top_p": "320.325.inputs.sampling_mode.top_p",
+    "sampling_mode.min_p": "320.325.inputs.sampling_mode.min_p",
+    "sampling_mode.repetition_penalty": "320.325.inputs.sampling_mode.repetition_penalty",
+    "sampling_mode.seed": "320.325.inputs.sampling_mode.seed",
+    "sampling_mode.presence_penalty": "320.325.inputs.sampling_mode.presence_penalty",
+    "thinking": "320.325.inputs.thinking",
+    "use_default_template": "320.325.inputs.use_default_template",
+    "on_false": "320.319.inputs.value"
   }
 }

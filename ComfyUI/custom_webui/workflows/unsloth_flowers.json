@@ -15,7 +15,8 @@
         "7",
         0
       ],
-      "upscale_method": 0.5
+      "upscale_method": "lanczos",
+      "scale_by": 0.5
     }
   },
   "20": {
@@ -63,7 +64,8 @@
       "negative": [
         "21",
         1
-      ]
+      ],
+      "cfg": 1
     }
   },
   "33": {
@@ -111,8 +113,10 @@
         "2",
         0
       ],
-      "tile_size": 4096,
-      "overlap": 8
+      "tile_size": 512,
+      "overlap": 64,
+      "temporal_size": 4096,
+      "temporal_overlap": 8
     }
   },
   "35": {
@@ -215,7 +219,7 @@
         "47",
         0
       ],
-      "text": ""
+      "text": "blurry, low quality, still frame, frames, watermark, overlay, titles, has blurbox, has subtitles"
     }
   },
   "38": {
@@ -225,8 +229,9 @@
         "36",
         0
       ],
-      "filename_prefix": "mp4",
-      "format": "auto"
+      "filename_prefix": "video/ComfyUI",
+      "format": "mp4",
+      "codec": "auto"
     }
   },
   "36": {
@@ -260,7 +265,8 @@
       "negative": [
         "23",
         1
-      ]
+      ],
+      "cfg": 4
     }
   },
   "2": {
@@ -286,8 +292,8 @@
         "3",
         0
       ],
-      "lora_name": 1,
-      "strength_model": 1.0
+      "lora_name": "ltx-2.3-22b-distilled-lora-384.safetensors",
+      "strength_model": 1
     }
   },
   "26": {
@@ -315,10 +321,11 @@
         "15",
         0
       ],
-      "steps": 2.05,
-      "max_shift": 0.95,
-      "base_shift": true,
-      "stretch": 0.1
+      "steps": 20,
+      "max_shift": 2.05,
+      "base_shift": 0.95,
+      "stretch": true,
+      "terminal": 0.1
     }
   },
   "7": {
@@ -373,7 +380,7 @@
         "10",
         0
       ],
-      "batch_size": 1
+      "batch_size": 768
     }
   },
   "13": {
@@ -390,7 +397,8 @@
       "frame_rate": [
         "11",
         0
-      ]
+      ],
+      "batch_size": 97
     }
   },
   "23": {
@@ -430,14 +438,18 @@
         "47",
         0
       ],
-      "prompt": 64,
-      "max_length": 0.95,
-      "sampling_mode": 0.05,
-      "sampling_mode.temperature": 1.05,
-      "sampling_mode.top_k": 0,
-      "sampling_mode.top_p": 0,
-      "sampling_mode.min_p": false,
-      "sampling_mode.repetition_penalty": true
+      "prompt": "Cinematic handheld close-up of a florist trimming stems and unwrapping fresh flowers in a narrow shop at opening time, soft morning light through the front glass, intimate handheld movement weaving between bouquets and hands. Rich ambient audio: paper crinkling, scissors snipping stems, water filling a bucket, door chime in the background, faint street noise outside. The subject looks directly into camera and says, “Can't beat the smell of fresh cut flowers.” End on a row of flowers catching the light as the front door opens.",
+      "max_length": 256,
+      "sampling_mode": "on",
+      "sampling_mode.temperature": 0.7,
+      "sampling_mode.top_k": 64,
+      "sampling_mode.top_p": 0.95,
+      "sampling_mode.min_p": 0.05,
+      "sampling_mode.repetition_penalty": 1.05,
+      "sampling_mode.seed": 0,
+      "sampling_mode.presence_penalty": 0,
+      "thinking": false,
+      "use_default_template": true
     }
   },
   "3": {

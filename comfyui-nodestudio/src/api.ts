@@ -3,7 +3,7 @@
 export const modeToWorkflowId: Record<string, string> = {
   t2i: "txt2img",
   i2i: "img2img",
-  i2v: "video_ltx2_3_i2v",
+  i2v: "unsloth_flowers",
   face: "img2img",
   clothes: "img2img",
   inpaint: "img2img",

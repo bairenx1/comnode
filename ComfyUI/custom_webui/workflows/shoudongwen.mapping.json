@@ -9,12 +9,32 @@
       {
         "name": "prompt",
         "type": "string",
-        "default": ""
+        "default": "美女跳钢管舞"
       },
       {
         "name": "negative_prompt",
         "type": "string",
-        "default": ""
+        "default": "bad"
+      },
+      {
+        "name": "filename_prefix",
+        "type": "string",
+        "default": "ComfyUI"
+      },
+      {
+        "name": "width",
+        "type": "number",
+        "default": 512
+      },
+      {
+        "name": "height",
+        "type": "number",
+        "default": 512
+      },
+      {
+        "name": "batch_size",
+        "type": "number",
+        "default": 1
       },
       {
         "name": "seed",
@@ -105,6 +125,10 @@
   "field_mapping": {
     "prompt": "5.inputs.text",
     "negative_prompt": "6.inputs.text",
+    "filename_prefix": "13.inputs.filename_prefix",
+    "width": "9.inputs.width",
+    "height": "9.inputs.height",
+    "batch_size": "9.inputs.batch_size",
     "seed": "4.inputs.seed",
     "steps": "4.inputs.steps",
     "cfg": "4.inputs.cfg",

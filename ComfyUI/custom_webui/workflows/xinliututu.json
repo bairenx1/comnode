@@ -5,7 +5,8 @@
       "images": [
         "433",
         0
-      ]
+      ],
+      "filename_prefix": "ComfyUI"
     }
   },
   "342": {
@@ -14,7 +15,8 @@
       "images": [
         "466",
         0
-      ]
+      ],
+      "filename_prefix": "ComfyUI"
     }
   },
   "466": {
@@ -28,7 +30,8 @@
             "450",
             0
           ],
-          "strength": false
+          "strength": 1,
+          "pre_cfg": false
         }
       },
       "446": {
@@ -47,8 +50,8 @@
             "-10",
             7
           ],
-          "type": "qwen_image",
-          "device": "default"
+          "type": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "device": "qwen_image"
         }
       },
       "448": {
@@ -58,7 +61,7 @@
             "-10",
             6
           ],
-          "weight_dtype": "default"
+          "weight_dtype": "qwen_image_edit_2509_fp8_e4m3fn.safetensors"
         }
       },
       "449": {
@@ -83,7 +86,8 @@
           "image3": [
             "-10",
             2
-          ]
+          ],
+          "prompt": ""
         }
       },
       "450": {
@@ -92,7 +96,8 @@
           "model": [
             "461",
             0
-          ]
+          ],
+          "shift": 3
         }
       },
       "451": {
@@ -157,8 +162,8 @@
             "448",
             0
           ],
-          "lora_name": 1,
-          "strength_model": 1.0
+          "lora_name": "Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors",
+          "strength_model": 1
         }
       },
       "455": {
@@ -2076,7 +2081,8 @@
             "66",
             0
           ],
-          "strength": false
+          "strength": 1,
+          "pre_cfg": false
         }
       },
       "39": {
@@ -2095,8 +2101,8 @@
             "-10",
             7
           ],
-          "type": "qwen_image",
-          "device": "default"
+          "type": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "device": "qwen_image"
         }
       },
       "37": {
@@ -2106,7 +2112,7 @@
             "-10",
             6
           ],
-          "weight_dtype": "default"
+          "weight_dtype": "qwen_image_edit_2509_fp8_e4m3fn.safetensors"
         }
       },
       "110": {
@@ -2131,7 +2137,8 @@
           "image3": [
             "-10",
             2
-          ]
+          ],
+          "prompt": ""
         }
       },
       "66": {
@@ -2140,7 +2147,8 @@
           "model": [
             "440",
             0
-          ]
+          ],
+          "shift": 3
         }
       },
       "111": {
@@ -2205,8 +2213,8 @@
             "37",
             0
           ],
-          "lora_name": 1,
-          "strength_model": 1.0
+          "lora_name": "Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors",
+          "strength_model": 1
         }
       },
       "117": {

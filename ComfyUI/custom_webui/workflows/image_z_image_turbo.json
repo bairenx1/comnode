@@ -5,7 +5,8 @@
       "images": [
         "57",
         0
-      ]
+      ],
+      "filename_prefix": "z-image-turbo"
     }
   },
   "57": {
@@ -45,7 +46,7 @@
             "-10",
             2
           ],
-          "batch_size": 1
+          "batch_size": 1024
         }
       },
       "11": {
@@ -54,7 +55,8 @@
           "model": [
             "28",
             0
-          ]
+          ],
+          "shift": 3
         }
       },
       "3": {
@@ -106,8 +108,8 @@
             "-10",
             6
           ],
-          "type": "lumina2",
-          "device": "default"
+          "type": "qwen_3_4b.safetensors",
+          "device": "lumina2"
         }
       },
       "28": {
@@ -117,7 +119,7 @@
             "-10",
             5
           ],
-          "weight_dtype": "default"
+          "weight_dtype": "z_image_turbo_bf16.safetensors"
         }
       },
       "27": {

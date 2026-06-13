@@ -31,6 +31,9 @@ HIDDEN_FIELD_NAMES = {
     'upload',
     # 各种节点的内部/通用参数
     'text_encoder',
+    'device', 'weight_dtype',  # 加载器内部硬件参数
+    'type',  # DualCLIPLoaderGGUF 等节点的内部 type 参数
+    'upscale_method', 'scale_by',  # ImageScaleBy 内部参数
     'value', 'value_1', 'value_2', 'value_3', 'value_4', 'value_5',
     'value_6', 'value_7', 'value_8', 'value_9', 'value_10',
 }
@@ -335,36 +338,48 @@ def _trace_clip_polarity(nodes, reverse_map):
 
     遍历所有 KSampler 节点，找到其 positive/negative 输入连接到的 CLIPTextEncode
     """
-    clip_polarity = {}  # clip_node_id -> 'prompt' | 'negative_prompt'
+    clip_polarity: dict[str, str] = {}
+    nodes_by_id = {str(n['id']): n for n in nodes}
+    source_types = ('KSampler', 'KSamplerAdvanced', 'SamplerCustom',
+                    'SamplerCustomAdvanced', 'CFGGuider')
+    pos_inputs = ('positive', 'positive_cond', 'positive_conditioning')
+    neg_inputs = ('negative', 'negative_cond', 'negative_conditioning')
+    all_inputs = pos_inputs + neg_inputs
+
+    def _trace_back(node_id: str, polarity: str, visited: set) -> None:
+        if node_id in visited:
+            return
+        visited.add(node_id)
+        node = nodes_by_id.get(node_id)
+        if not node:
+            return
+        if 'CLIPTextEncode' in node.get('type', ''):
+            clip_polarity[node_id] = polarity
+            return
+        # 穿透中间节点，继续向上一层追踪
+        for inp_name in all_inputs:
+            key = (node_id, inp_name)
+            if key in reverse_map:
+                for from_node_id, _ in reverse_map[key]:
+                    is_pos = 'positive' in inp_name
+                    child_polarity = 'prompt' if is_pos else 'negative_prompt'
+                    _trace_back(from_node_id, child_polarity, visited)
 
     for node in nodes:
         nid = str(node['id'])
         ntype = node.get('type', '')
-
-        if ntype not in ('KSampler', 'KSamplerAdvanced', 'SamplerCustom', 'SamplerCustomAdvanced'):
+        if ntype not in source_types:
             continue
-
-        # 正向提示词
-        for input_name in ('positive', 'positive_cond', 'positive_conditioning'):
-            pos_key = (nid, input_name)
-            if pos_key in reverse_map:
-                for from_node_id, _ in reverse_map[pos_key]:
-                    for n2 in nodes:
-                        if (str(n2['id']) == from_node_id and
-                                'CLIPTextEncode' in n2.get('type', '')):
-                            clip_polarity[from_node_id] = 'prompt'
-                            break
-
-        # 负向提示词
-        for input_name in ('negative', 'negative_cond', 'negative_conditioning'):
-            neg_key = (nid, input_name)
-            if neg_key in reverse_map:
-                for from_node_id, _ in reverse_map[neg_key]:
-                    for n2 in nodes:
-                        if (str(n2['id']) == from_node_id and
-                                'CLIPTextEncode' in n2.get('type', '')):
-                            clip_polarity[from_node_id] = 'negative_prompt'
-                            break
+        for inp_name in pos_inputs:
+            key = (nid, inp_name)
+            if key in reverse_map:
+                for from_node_id, _ in reverse_map[key]:
+                    _trace_back(from_node_id, 'prompt', set())
+        for inp_name in neg_inputs:
+            key = (nid, inp_name)
+            if key in reverse_map:
+                for from_node_id, _ in reverse_map[key]:
+                    _trace_back(from_node_id, 'negative_prompt', set())
 
     return clip_polarity
 
@@ -798,17 +813,24 @@ def convert_native_to_api(native_data):
                         clip_fallback_count += 1
                         is_neg = clip_fallback_count > 1
 
-                    # 查找 text 值
+                    # 查找 text 值：计算 text 在所有 widget 输入中的位置
                     text_val = None
-                    for wi, wv in enumerate(widgets_values):
-                        if wi < len(node_inputs) and node_inputs[wi].get('name') == 'text':
-                            text_val = wv
+                    widget_pos = 0
+                    for ni in node_inputs:
+                        if ni.get('name') == 'text':
+                            if widget_pos < len(widgets_values):
+                                text_val = widgets_values[widget_pos]
                             break
+                        if ni.get('link') is None and _is_widget_input(ni):
+                            widget_pos += 1
                     if text_val is None:
                         text_val = inp.get('default', '')
 
                     inputs[inp_name] = text_val
                     fname = 'negative_prompt' if is_neg else 'prompt'
+                    # 如果 prompt 已被其他节点（如 TextGenerate 类）占用，退化为 negative_prompt
+                    if fname == 'prompt' and fname in seen_ui_field_names:
+                        fname = 'negative_prompt'
                     field_mapping[fname] = f'{nid}.inputs.text'
                     if fname not in seen_ui_field_names:
                         seen_ui_field_names.add(fname)
@@ -833,7 +855,6 @@ def convert_native_to_api(native_data):
                 if link is not None and link in link_map:
                     from_node, from_slot, _, _ = link_map[link]
                     inputs[inp_name] = [from_node, from_slot]
-                    widget_idx += 1
                     continue
 
                 cfg = special_cfg.get(inp_name)
@@ -906,31 +927,29 @@ def convert_native_to_api(native_data):
                 from_node, from_slot, _, _ = link_map[link]
                 inputs[inp_name] = [from_node, from_slot]
 
-                # UUID ref: 追踪链接到 PrimitiveNode 提取文本/数字值作为 UI 字段
-                if is_uuid_ref:
-                    src_node = nodes_by_id.get(str(from_node))
-                    src_type = src_node.get('type', '') if src_node else ''
-                    if src_type in PRIMITIVE_VALUE_TYPES:
-                        wv = src_node.get('widgets_values', [])
-                        if isinstance(wv, list) and from_slot < len(wv):
-                            prim_val = wv[from_slot]
-                        elif isinstance(wv, dict):
-                            prim_val = list(wv.values())[from_slot] if from_slot < len(wv) else ''
-                        else:
-                            prim_val = ''
-                        safe_name = FIELD_ALIASES.get(inp_name, inp_name)
-                        if safe_name not in seen_ui_field_names and not _is_hidden_field_name(safe_name):
-                            seen_ui_field_names.add(safe_name)
-                            inp_t = _get_input_type(inp)
-                            entry = {
-                                'name': safe_name,
-                                'type': 'string' if inp_t == 'STRING' else 'number',
-                                'default': prim_val,
-                            }
-                            field_mapping[safe_name] = f'{from_node}.inputs.value'
-                            ui_fields.append(entry)
+                # 追踪链接到 Primitive 节点的值作为 UI 字段（所有节点类型通用）
+                src_node = nodes_by_id.get(str(from_node))
+                src_type = src_node.get('type', '') if src_node else ''
+                if src_type in PRIMITIVE_VALUE_TYPES or src_type in ('PrimitiveInt', 'PrimitiveFloat'):
+                    wv = src_node.get('widgets_values', [])
+                    if isinstance(wv, list) and from_slot < len(wv):
+                        prim_val = wv[from_slot]
+                    elif isinstance(wv, dict):
+                        prim_val = list(wv.values())[from_slot] if from_slot < len(wv) else ''
+                    else:
+                        prim_val = ''
+                    safe_name = FIELD_ALIASES.get(inp_name, inp_name)
+                    if safe_name not in seen_ui_field_names and not _is_hidden_field_name(safe_name):
+                        seen_ui_field_names.add(safe_name)
+                        inp_t = _get_input_type(inp)
+                        entry = {
+                            'name': safe_name,
+                            'type': 'string' if inp_t == 'STRING' else 'number',
+                            'default': prim_val,
+                        }
+                        field_mapping[safe_name] = f'{from_node}.inputs.value'
+                        ui_fields.append(entry)
 
-                widget_idx += 1
                 continue
 
             # UUID 子图引用节点的 IMAGE/MASK 类型输入 → 图片上传字段
@@ -964,7 +983,7 @@ def convert_native_to_api(native_data):
                 if val is not None:
                     inputs[inp_name] = val
                 elif is_uuid_ref:
-                    # UUID 子图引用节点：widget 值取自 subgraph 定义，这里保留空默认值
+                    # UUID 子图引用节点：widget 值取自 subgraph 定义，取默认值
                     inp_type = _get_input_type(inp)
                     if inp_type.startswith('INT'):
                         default_val = inp.get('default', 0)
@@ -984,24 +1003,25 @@ def convert_native_to_api(native_data):
                         inputs[inp_name] = str(inp.get('default', ''))
                     else:
                         inputs[inp_name] = str(inp.get('default', ''))
-                    # 为 UUID 引用节点生成 UI 字段（跳过模型相关字段）
-                    safe_name = FIELD_ALIASES.get(inp_name, inp_name)
-                    if safe_name not in seen_ui_field_names and not _is_hidden_field_name(safe_name):
-                        seen_ui_field_names.add(safe_name)
-                        field_type = 'number' if inp_type in ('INT', 'FLOAT') else 'string'
-                        if inp_type == 'COMBO' and isinstance(inp.get('options'), list):
-                            field_type = 'combo'
-                        entry = {'name': safe_name, 'type': field_type, 'default': inputs[inp_name]}
-                        if inp.get('min') is not None:
-                            entry['min'] = inp['min']
-                        if inp.get('max') is not None:
-                            entry['max'] = inp['max']
-                        if inp.get('step') is not None:
-                            entry['step'] = inp['step']
-                        if field_type == 'combo':
-                            entry['options'] = inp['options']
-                        field_mapping[safe_name] = f'{nid}.inputs.{inp_name}'
-                        ui_fields.append(entry)
+                # 为所有 widget 输入生成 UI 字段（跳过模型相关字段）
+                safe_name = FIELD_ALIASES.get(inp_name, inp_name)
+                if safe_name not in seen_ui_field_names and not _is_hidden_field_name(safe_name):
+                    seen_ui_field_names.add(safe_name)
+                    inp_type = _get_input_type(inp)
+                    field_type = 'boolean' if inp_type == 'BOOLEAN' else ('number' if inp_type in ('INT', 'FLOAT') else 'string')
+                    if inp_type == 'COMBO' and isinstance(inp.get('options'), list):
+                        field_type = 'combo'
+                    entry = {'name': safe_name, 'type': field_type, 'default': inputs.get(inp_name, inp.get('default', ''))}
+                    if inp.get('min') is not None:
+                        entry['min'] = inp['min']
+                    if inp.get('max') is not None:
+                        entry['max'] = inp['max']
+                    if inp.get('step') is not None:
+                        entry['step'] = inp['step']
+                    if field_type == 'combo':
+                        entry['options'] = inp['options']
+                    field_mapping[safe_name] = f'{nid}.inputs.{inp_name}'
+                    ui_fields.append(entry)
                 widget_idx += 1
                 continue
 
@@ -1020,7 +1040,7 @@ def convert_native_to_api(native_data):
                     if safe_name not in seen_ui_field_names and not _is_hidden_field_name(safe_name):
                         seen_ui_field_names.add(safe_name)
                         inp_type = _get_input_type(inp)
-                        field_type = 'number' if inp_type in ('INT', 'FLOAT') else 'string'
+                        field_type = 'boolean' if inp_type == 'BOOLEAN' else ('number' if inp_type in ('INT', 'FLOAT') else 'string')
                         entry = {'name': safe_name, 'type': field_type, 'default': val}
                         if inp.get('min') is not None:
                             entry['min'] = inp['min']
@@ -1033,7 +1053,6 @@ def convert_native_to_api(native_data):
                             entry['options'] = inp['options']
                         field_mapping[safe_name] = f'{nid}.inputs.{inp_name}'
                         ui_fields.append(entry)
-            widget_idx += 1
 
         # 只处理连接器节点链路（无 widget 的节点）
         if not inputs and ntype in CONNECTOR_TYPES:

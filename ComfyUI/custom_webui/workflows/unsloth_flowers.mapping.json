@@ -7,13 +7,223 @@
   "ui_schema": {
     "fields": [
       {
+        "name": "sampler_name",
+        "type": "string",
+        "default": "euler_ancestral"
+      },
+      {
+        "name": "sigmas",
+        "type": "string",
+        "default": "0.909375, 0.725, 0.421875, 0.0"
+      },
+      {
+        "name": "cfg",
+        "type": "number",
+        "default": 1
+      },
+      {
+        "name": "tile_size",
+        "type": "number",
+        "default": 512
+      },
+      {
+        "name": "overlap",
+        "type": "number",
+        "default": 64
+      },
+      {
+        "name": "temporal_size",
+        "type": "number",
+        "default": 4096
+      },
+      {
+        "name": "temporal_overlap",
+        "type": "number",
+        "default": 8
+      },
+      {
+        "name": "negative_prompt",
+        "type": "string",
+        "default": "blurry, low quality, still frame, frames, watermark, overlay, titles, has blurbox, has subtitles"
+      },
+      {
+        "name": "filename_prefix",
+        "type": "string",
+        "default": "video/ComfyUI"
+      },
+      {
+        "name": "format",
+        "type": "string",
+        "default": "mp4"
+      },
+      {
+        "name": "codec",
+        "type": "string",
+        "default": "auto"
+      },
+      {
+        "name": "fps",
+        "type": "number",
+        "default": 24
+      },
+      {
+        "name": "noise_seed",
+        "type": "number",
+        "default": 730111737779717
+      },
+      {
+        "name": "steps",
+        "type": "number",
+        "default": 20
+      },
+      {
+        "name": "max_shift",
+        "type": "number",
+        "default": 2.05
+      },
+      {
+        "name": "base_shift",
+        "type": "number",
+        "default": 0.95
+      },
+      {
+        "name": "stretch",
+        "type": "boolean",
+        "default": true
+      },
+      {
+        "name": "terminal",
+        "type": "number",
+        "default": 0.1
+      },
+      {
+        "name": "width",
+        "type": "number",
+        "default": 1280
+      },
+      {
+        "name": "height",
+        "type": "number",
+        "default": 720
+      },
+      {
+        "name": "batch_size",
+        "type": "number",
+        "default": 1
+      },
+      {
+        "name": "color",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "frame_count",
+        "type": "number",
+        "default": 121
+      },
+      {
+        "name": "frames_number",
+        "type": "number",
+        "default": 121
+      },
+      {
         "name": "prompt",
         "type": "string",
-        "default": ""
+        "default": "Cinematic handheld close-up of a florist trimming stems and unwrapping fresh flowers in a narrow shop at opening time, soft morning light through the front glass, intimate handheld movement weaving between bouquets and hands. Rich ambient audio: paper crinkling, scissors snipping stems, water filling a bucket, door chime in the background, faint street noise outside. The subject looks directly into camera and says, “Can't beat the smell of fresh cut flowers.” End on a row of flowers catching the light as the front door opens."
+      },
+      {
+        "name": "max_length",
+        "type": "number",
+        "default": 256
+      },
+      {
+        "name": "sampling_mode",
+        "type": "string",
+        "default": "on"
+      },
+      {
+        "name": "sampling_mode.temperature",
+        "type": "number",
+        "default": 0.7
+      },
+      {
+        "name": "sampling_mode.top_k",
+        "type": "number",
+        "default": 64
+      },
+      {
+        "name": "sampling_mode.top_p",
+        "type": "number",
+        "default": 0.95
+      },
+      {
+        "name": "sampling_mode.min_p",
+        "type": "number",
+        "default": 0.05
+      },
+      {
+        "name": "sampling_mode.repetition_penalty",
+        "type": "number",
+        "default": 1.05
+      },
+      {
+        "name": "sampling_mode.seed",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "sampling_mode.presence_penalty",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "thinking",
+        "type": "boolean",
+        "default": false
+      },
+      {
+        "name": "use_default_template",
+        "type": "boolean",
+        "default": true
       }
     ]
   },
   "field_mapping": {
-    "prompt": "6.inputs.text"
+    "sampler_name": "20.inputs.sampler_name",
+    "sigmas": "30.inputs.sigmas",
+    "cfg": "31.inputs.cfg",
+    "tile_size": "37.inputs.tile_size",
+    "overlap": "37.inputs.overlap",
+    "temporal_size": "37.inputs.temporal_size",
+    "temporal_overlap": "37.inputs.temporal_overlap",
+    "negative_prompt": "6.inputs.text",
+    "filename_prefix": "38.inputs.filename_prefix",
+    "format": "38.inputs.format",
+    "codec": "38.inputs.codec",
+    "fps": "12.inputs.value",
+    "noise_seed": "16.inputs.noise_seed",
+    "steps": "22.inputs.steps",
+    "max_shift": "22.inputs.max_shift",
+    "base_shift": "22.inputs.base_shift",
+    "stretch": "22.inputs.stretch",
+    "terminal": "22.inputs.terminal",
+    "width": "7.inputs.width",
+    "height": "7.inputs.height",
+    "batch_size": "7.inputs.batch_size",
+    "color": "7.inputs.color",
+    "frame_count": "10.inputs.value",
+    "frames_number": "10.inputs.value",
+    "prompt": "48.inputs.prompt",
+    "max_length": "48.inputs.max_length",
+    "sampling_mode": "48.inputs.sampling_mode",
+    "sampling_mode.temperature": "48.inputs.sampling_mode.temperature",
+    "sampling_mode.top_k": "48.inputs.sampling_mode.top_k",
+    "sampling_mode.top_p": "48.inputs.sampling_mode.top_p",
+    "sampling_mode.min_p": "48.inputs.sampling_mode.min_p",
+    "sampling_mode.repetition_penalty": "48.inputs.sampling_mode.repetition_penalty",
+    "sampling_mode.seed": "48.inputs.sampling_mode.seed",
+    "sampling_mode.presence_penalty": "48.inputs.sampling_mode.presence_penalty",
+    "thinking": "48.inputs.thinking",
+    "use_default_template": "48.inputs.use_default_template"
   }
 }

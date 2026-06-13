@@ -7,6 +7,11 @@
   "ui_schema": {
     "fields": [
       {
+        "name": "filename_prefix",
+        "type": "string",
+        "default": "z-image-turbo"
+      },
+      {
         "name": "prompt",
         "type": "string",
         "default": "Latina female with thick wavy hair, harbor boats and pastel houses behind. Breezy seaside light, warm tones, cinematic close-up. "
@@ -17,6 +22,16 @@
         "default": 28505901259480,
         "min": 0,
         "max": 18446744073709551615
+      },
+      {
+        "name": "batch_size",
+        "type": "number",
+        "default": 1024
+      },
+      {
+        "name": "shift",
+        "type": "number",
+        "default": 3
       },
       {
         "name": "57_seed",
@@ -105,8 +120,11 @@
     ]
   },
   "field_mapping": {
+    "filename_prefix": "9.inputs.filename_prefix",
     "prompt": "57.27.inputs.text",
     "seed": "57.3.inputs.seed",
+    "batch_size": "57.13.inputs.batch_size",
+    "shift": "57.11.inputs.shift",
     "57_seed": "57.3.inputs.seed",
     "steps": "57.3.inputs.steps",
     "cfg": "57.3.inputs.cfg",

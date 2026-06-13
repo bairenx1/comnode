@@ -4,9 +4,9 @@ export const modeToWorkflowId: Record<string, string> = {
   t2i: "txt2img",
   i2i: "img2img",
   i2v: "img2video",
-  face: "face",
-  clothes: "clothes",
-  inpaint: "inpaint",
+  face: "img2img",
+  clothes: "img2img",
+  inpaint: "img2img",
 };
 
 export const modeNameMap: Record<string, string> = {

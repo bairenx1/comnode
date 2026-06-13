@@ -537,7 +537,15 @@ def convert_native_to_api(native_data):
                 sub_api, sub_mapping, sub_fields = convert_native_to_api(
                     {'nodes': subgraph_data['nodes'], 'links': subgraph_data.get('links', [])}
                 )
-                node_api[nid] = {'class_type': ntype, 'inputs': inputs if inputs else {}, '_subgraph': sub_api}
+                node_api[nid] = {
+                    'class_type': ntype,
+                    'inputs': inputs if inputs else {},
+                    '_subgraph': sub_api,
+                    '_comfy_def': {
+                        'nodes': subgraph_data['nodes'],
+                        'links': subgraph_data.get('links', []),
+                    },
+                }
 
                 # ---- 先从 UUID 包装器输入提取 UI 字段（优先级高于子图内部字段） ----
                 sg_nodes = {str(sn['id']): sn for sn in subgraph_data['nodes']}

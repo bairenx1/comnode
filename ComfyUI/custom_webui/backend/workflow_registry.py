@@ -73,26 +73,39 @@ class WorkflowRegistry:
         workflow_id: str,
         params: dict[str, Any],
         asset_hashes: dict[str, str] | None = None,
-    ) -> dict[str, Any]:
+    ) -> tuple[dict[str, Any], dict[str, Any] | None]:
         definition = self.get(workflow_id)
         graph = json.loads(definition.workflow_file.read_text(encoding="utf-8"))
         graph = copy.deepcopy(graph)
-
-        # 安全过滤：移除 UUID 类型的 Group Node 包装器（convert 阶段理论上已过滤，此处做兜底）
-        uuids_to_remove = [nid for nid, nd in graph.items()
-                           if isinstance(nd, dict) and _UUID_TYPE_RE.match(nd.get('class_type', ''))]
-        for nid in uuids_to_remove:
-            del graph[nid]
 
         merged_params = dict(params)
         if asset_hashes:
             merged_params.update(asset_hashes)
 
+        # 先通过 _subgraph 遍历设置参数值
         for ui_field, target in definition.field_mapping.items():
             if ui_field not in merged_params or merged_params.get(ui_field) in (None, "", [], {}):
                 continue
             self._set_graph_value(graph, target, merged_params[ui_field])
-        return graph
+
+        # 再提取 ComfyUI 原生定义并清理内部字段
+        comfy_defs: dict[str, dict[str, Any]] = {}
+        for nid, nd in list(graph.items()):
+            if isinstance(nd, dict) and '_comfy_def' in nd:
+                comfy_defs[nd['class_type']] = nd.pop('_comfy_def')
+            if isinstance(nd, dict) and '_subgraph' in nd:
+                del nd['_subgraph']
+
+        extra_data = None
+        if comfy_defs:
+            extra_data = {
+                "extra_pnginfo": {
+                    "workflow": {
+                        "definitions": comfy_defs,
+                    }
+                }
+            }
+        return graph, extra_data
 
     @staticmethod
     def _set_graph_value(graph: dict[str, Any], target: str, value: Any) -> None:

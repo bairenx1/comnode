@@ -58,16 +58,19 @@ def create_app() -> web.Application:
                 params = job.get("params", {})
                 assets = job.get("asset_hashes", {})
                 try:
-                    prompt_graph = registry.build_prompt_graph(workflow_id, params, assets)
+                    prompt_graph, comfy_extra = registry.build_prompt_graph(workflow_id, params, assets)
                 except KeyError as e:
                     return web.json_response(
                         {"error": "unknown_workflow", "message": f"工作流 '{workflow_id}' 不存在: {e}"},
                         status=400,
                     )
+                extra = {"source": "custom_webui", "workflow_id": workflow_id}
+                if comfy_extra:
+                    extra.update(comfy_extra)
                 result = await comfy.submit_prompt(
                     prompt_graph,
                     client_id=client_id,
-                    extra_data={"source": "custom_webui", "workflow_id": workflow_id},
+                    extra_data=extra,
                 )
                 queued.append(
                     {

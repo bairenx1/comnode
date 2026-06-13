@@ -34,8 +34,8 @@
   },
   "field_mapping": {
     "target_asset_hash": "269.inputs.image",
-    "prompt": "320.inputs.value",
-    "seed": "320.inputs.noise_seed",
+    "prompt": "320.319.inputs.value",
+    "seed": "320.277.inputs.noise_seed",
     "320_prompt": "320.313.inputs.text"
   }
 }

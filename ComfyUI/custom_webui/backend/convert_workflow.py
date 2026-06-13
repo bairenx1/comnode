@@ -544,22 +544,26 @@ def convert_native_to_api(native_data):
                 proxy_list = node.get('properties', {}).get('proxyWidgets', [])
                 proxy_idx = 0  # 按位置匹配未链接的 widget 输入
 
-                def _get_proxy_value():
-                    """从当前 proxyWidget 对应的内部节点提取默认值"""
+                def _get_proxy_info():
+                    """从当前 proxyWidget 对应的内部节点提取 (internal_nid, internal_inp, value)"""
                     nonlocal proxy_idx
                     if proxy_idx < len(proxy_list) and len(proxy_list[proxy_idx]) >= 2:
                         pw = proxy_list[proxy_idx]
                         proxy_idx += 1
-                        pn = sg_nodes.get(str(pw[0]))
+                        internal_nid = str(pw[0])
+                        internal_inp = str(pw[1])
+                        pn = sg_nodes.get(internal_nid)
+                        val = None
                         if pn:
                             wv = pn.get('widgets_values', [])
                             if isinstance(wv, list) and wv:
-                                return wv[0]
+                                val = wv[0]
                             elif isinstance(wv, dict):
-                                return wv.get(str(pw[1]))
+                                val = wv.get(internal_inp)
+                        return internal_nid, internal_inp, val
                     else:
                         proxy_idx += 1
-                    return None
+                    return None, None, None
 
                 for inp in node_inputs:
                     inp_name = inp['name']
@@ -572,10 +576,19 @@ def convert_native_to_api(native_data):
                         if inp_type in ('IMAGE', 'MASK'):
                             # 如果是链接到 LoadImage，跳过（LoadImage 自己已生成图片字段）
                             src_type = ''
+                            src_nid = None
+                            mapping_target = f'{nid}.inputs.{inp_name}'
                             if link in link_map:
                                 src_nid = link_map[link][0]
                                 src_node = nodes_by_id.get(src_nid)
                                 src_type = src_node.get('type', '') if src_node else ''
+                                if src_node:
+                                    src_inputs = src_node.get('inputs', [])
+                                    src_slot = link_map[link][1]
+                                    if isinstance(src_inputs, list) and src_slot < len(src_inputs):
+                                        src_inp = src_inputs[src_slot]
+                                        if isinstance(src_inp, dict):
+                                            mapping_target = f'{src_nid}.inputs.{src_inp.get("name", inp_name)}'
                             if src_type == 'LoadImage':
                                 continue
                             img_count = sum(1 for f in ui_fields if f.get('role') == 'image_upload')
@@ -587,7 +600,7 @@ def convert_native_to_api(native_data):
                                 safe_name = f'target_asset_hash_{img_count}'
                             if safe_name not in seen_ui_field_names:
                                 seen_ui_field_names.add(safe_name)
-                                field_mapping[safe_name] = f'{nid}.inputs.{inp_name}'
+                                field_mapping[safe_name] = mapping_target
                                 ui_fields.append({
                                     'name': safe_name, 'type': 'string',
                                     'label': label or inp_name,
@@ -597,8 +610,9 @@ def convert_native_to_api(native_data):
                             prompt_type = _classify_prompt(inp_name)
                             if not prompt_type:
                                 continue
-                            # 链接型提示词：从源节点提取默认文本
+                            # 链接型提示词：从源节点提取默认文本，映射到源节点
                             default_val = ''
+                            mapping_target = f'{nid}.inputs.{inp_name}'
                             if link in link_map:
                                 src_nid, src_slot = link_map[link][:2]
                                 src_node = nodes_by_id.get(src_nid)
@@ -606,10 +620,16 @@ def convert_native_to_api(native_data):
                                     wv = src_node.get('widgets_values', [])
                                     if isinstance(wv, list) and src_slot < len(wv):
                                         default_val = str(wv[src_slot]) if wv[src_slot] else ''
+                                    # 查找源节点的输入名（按 slot 顺序）
+                                    src_inputs = src_node.get('inputs', [])
+                                    if isinstance(src_inputs, list) and src_slot < len(src_inputs):
+                                        src_inp = src_inputs[src_slot]
+                                        if isinstance(src_inp, dict):
+                                            mapping_target = f'{src_nid}.inputs.{src_inp.get("name", inp_name)}'
                             field_name = prompt_type
                             if field_name not in seen_ui_field_names:
                                 seen_ui_field_names.add(field_name)
-                                field_mapping[field_name] = f'{nid}.inputs.{inp_name}'
+                                field_mapping[field_name] = mapping_target
                                 ui_fields.append({
                                     'name': field_name, 'type': 'string',
                                     'default': default_val,
@@ -617,7 +637,9 @@ def convert_native_to_api(native_data):
                         continue
 
                     # 未链接的 widget 输入：获取对应 proxyWidget 和内部节点值
-                    proxy_val = _get_proxy_value()
+                    internal_nid, internal_inp, proxy_val = _get_proxy_info()
+                    # 生成正确的嵌套路径：wrapperId.内部节点ID.inputs.内部输入名
+                    inner_target = f'{nid}.{internal_nid}.inputs.{internal_inp}' if internal_nid else f'{nid}.inputs.{inp_name}'
 
                     # 图片类型（未链接的 IMAGE/MASK widget）
                     if inp_type in ('IMAGE', 'MASK'):
@@ -631,7 +653,7 @@ def convert_native_to_api(native_data):
                         default_val = str(proxy_val) if proxy_val is not None and not isinstance(proxy_val, (bool,)) else ''
                         if safe_name not in seen_ui_field_names:
                             seen_ui_field_names.add(safe_name)
-                            field_mapping[safe_name] = f'{nid}.inputs.{inp_name}'
+                            field_mapping[safe_name] = inner_target
                             ui_fields.append({
                                 'name': safe_name, 'type': 'string',
                                 'label': label or inp_name,
@@ -647,7 +669,7 @@ def convert_native_to_api(native_data):
                         default_val = str(proxy_val) if isinstance(proxy_val, str) else ''
                         if field_name not in seen_ui_field_names:
                             seen_ui_field_names.add(field_name)
-                            field_mapping[field_name] = f'{nid}.inputs.{inp_name}'
+                            field_mapping[field_name] = inner_target
                             ui_fields.append({
                                 'name': field_name, 'type': 'string',
                                 'default': default_val,
@@ -659,7 +681,7 @@ def convert_native_to_api(native_data):
                         default_val = int(proxy_val) if isinstance(proxy_val, (int, float)) else 0
                         if field_name not in seen_ui_field_names:
                             seen_ui_field_names.add(field_name)
-                            field_mapping[field_name] = f'{nid}.inputs.{inp_name}'
+                            field_mapping[field_name] = inner_target
                             ui_fields.append({
                                 'name': field_name, 'type': 'number',
                                 'default': default_val,

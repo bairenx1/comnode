@@ -217,10 +217,10 @@
     ]
   },
   "field_mapping": {
-    "image_asset_hash": "466.inputs.image2",
+    "image_asset_hash": "466.451.inputs.prompt",
     "target_asset_hash": "78.inputs.image",
-    "prompt": "466.inputs.prompt",
-    "seed": "466.inputs.seed",
+    "prompt": "435.inputs.value",
+    "seed": "466.464.inputs.value",
     "466_seed": "466.456.inputs.seed",
     "steps": "466.456.inputs.steps",
     "cfg": "466.456.inputs.cfg",

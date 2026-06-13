@@ -105,8 +105,8 @@
     ]
   },
   "field_mapping": {
-    "prompt": "57.inputs.text",
-    "seed": "57.inputs.seed",
+    "prompt": "57.27.inputs.text",
+    "seed": "57.3.inputs.seed",
     "57_seed": "57.3.inputs.seed",
     "steps": "57.3.inputs.steps",
     "cfg": "57.3.inputs.cfg",

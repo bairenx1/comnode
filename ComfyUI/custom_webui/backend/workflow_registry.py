@@ -100,21 +100,35 @@ class WorkflowRegistry:
 
     @staticmethod
     def _set_graph_value(graph: dict[str, Any], target: str, value: Any) -> None:
-        # target 格式: nodeId.inputs.key  或  parentId.childId.inputs.key (子图嵌套)
+        # target 格式:
+        #   "nodeId.inputs.key"              — 直接节点输入
+        #   "parentId.childId.inputs.key"    — 嵌套子图（UUID wrapper → 内部节点）
         parts = target.split(".")
-        if len(parts) < 3 or parts[1] != "inputs":
+        try:
+            inputs_idx = parts.index("inputs")
+        except ValueError:
             raise ValueError(f"Unsupported mapping target: {target}")
-        node_id = parts[0]
-        key = ".".join(parts[2:])
+        if inputs_idx < 1:
+            raise ValueError(f"Unsupported mapping target: {target}")
 
-        if node_id not in graph:
-            raise KeyError(f"Node not found in workflow: {node_id}")
+        node_path = parts[:inputs_idx]   # e.g. ["320", "313"] 或 ["584"]
+        key = ".".join(parts[inputs_idx + 1:])
 
-        # 如果该节点包含子图，则递归查找子图中的目标节点
-        node_data = graph[node_id]
-        if '_subgraph' in node_data:
-            # target 中剩下的部分是子图中的目标: childNode.inputs.key
-            sub_target = '.'.join(parts[1:])
-            WorkflowRegistry._set_graph_value(node_data['_subgraph'], sub_target, value)
-        else:
-            node_data["inputs"][key] = value
+        # 沿着节点路径逐层进入子图
+        current_graph = graph
+        for i, nid in enumerate(node_path):
+            if nid not in current_graph:
+                raise KeyError(f"Node not found in workflow: {nid} (target: {target})")
+            node_data = current_graph[nid]
+            is_last = (i == len(node_path) - 1)
+
+            if is_last:
+                # 路径终点：在此节点设置输入值
+                node_data["inputs"][key] = value
+            elif '_subgraph' in node_data:
+                # 中间节点：进入子图继续遍历
+                current_graph = node_data['_subgraph']
+            else:
+                raise KeyError(
+                    f"Node {nid} has no subgraph, cannot traverse to {'.'.join(node_path[i+1:])}"
+                )

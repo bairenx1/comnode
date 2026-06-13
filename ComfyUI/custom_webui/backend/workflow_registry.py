@@ -101,7 +101,9 @@ class WorkflowRegistry:
             extra_data = {
                 "extra_pnginfo": {
                     "workflow": {
-                        "definitions": comfy_defs,
+                        "definitions": {
+                            "subgraphs": comfy_defs,
+                        },
                     }
                 }
             }

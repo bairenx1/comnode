@@ -542,6 +542,8 @@ def convert_native_to_api(native_data):
                     'inputs': inputs if inputs else {},
                     '_subgraph': sub_api,
                     '_comfy_def': {
+                        'id': ntype,
+                        'title': node.get('title', ''),
                         'nodes': subgraph_data['nodes'],
                         'links': subgraph_data.get('links', []),
                     },

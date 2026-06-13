@@ -313,10 +313,18 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
         }
       }
       const workflowId = customBindings[mode] || modeToWorkflowId[mode] || "txt2img";
+      // 工作流字段默认值（用户未修改时使用）
+      const fieldDefaults: Record<string, unknown> = {};
+      if (dynamicFields) {
+        for (const f of dynamicFields) {
+          if (f.default !== undefined && f.default !== null) fieldDefaults[f.name] = f.default;
+        }
+      }
       const jobParams: JobParams = {
-        prompt: prompt || "masterpiece, best quality",
-        negative_prompt: negativePrompt || undefined,
-        seed: seedFixed ? (params.seed || 0) : Math.floor(Math.random() * 2**32),
+        ...fieldDefaults,
+        prompt: params.prompt || prompt || fieldDefaults.prompt || "masterpiece, best quality",
+        negative_prompt: params.negative_prompt || negativePrompt || fieldDefaults.negative_prompt || undefined,
+        seed: seedFixed ? (params.seed ?? fieldDefaults.seed ?? 0) : Math.floor(Math.random() * 2**32),
         ...params,
         ...imageHashes,
       };
@@ -406,11 +414,19 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
         }
       }
       const workflowId = customBindings[mode] || modeToWorkflowId[mode] || "txt2img";
-      const baseSeed = params.seed || Math.floor(Math.random() * 2**32);
+      // 工作流字段默认值（用户未修改时使用）
+      const fieldDefaults: Record<string, unknown> = {};
+      if (dynamicFields) {
+        for (const f of dynamicFields) {
+          if (f.default !== undefined && f.default !== null) fieldDefaults[f.name] = f.default;
+        }
+      }
+      const baseSeed = params.seed || fieldDefaults.seed || Math.floor(Math.random() * 2**32);
       const jobs = Array.from({ length: batchCount }, (_, i) => ({
         params: {
-          prompt: prompt || "masterpiece, best quality",
-          negative_prompt: negativePrompt || undefined,
+          ...fieldDefaults,
+          prompt: params.prompt || prompt || fieldDefaults.prompt || "masterpiece, best quality",
+          negative_prompt: params.negative_prompt || negativePrompt || fieldDefaults.negative_prompt || undefined,
           seed: seedFixed ? (baseSeed + i) : Math.floor(Math.random() * 2**32),
           ...params,
           ...imageHashes,
@@ -675,9 +691,15 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                 pose_strength: 62, pose_start: 63, pose_end: 64,
                 vace_strength: 65, track_temperature: 66, track_topk: 67,
               };
+              // 前端只展示核心可操作字段：提示词 + 种子 + 图片上传
+              const CORE_VISIBLE_FIELDS = new Set([
+                'prompt', 'positive_prompt', 'text',
+                'negative_prompt', 'negative_text',
+                'seed', 'noise_seed',
+              ]);
               const uploadFieldNames = new Set(imageFields.map(f => f.name));
               const sorted = [...dynamicFields]
-                .filter(f => !uploadFieldNames.has(f.name))
+                .filter(f => !uploadFieldNames.has(f.name) && CORE_VISIBLE_FIELDS.has(f.name))
                 .sort((a, b) => (order[a.name] ?? 60) - (order[b.name] ?? 60));
 
               // 中文标签映射

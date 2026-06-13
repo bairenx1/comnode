@@ -66,8 +66,7 @@ echo
     --disable-auto-launch \
     --enable-assets \
     --enable-cors-header \
-    --enable-manager \
-    --front-end-root "$ROOT_DIR/custom_webui/frontend" &
+    --enable-manager &
 COMFY_PID=$!
 
 sleep 3

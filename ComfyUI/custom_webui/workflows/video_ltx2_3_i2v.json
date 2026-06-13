@@ -1,0 +1,41 @@
+{
+  "269": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "egyptian_queen.png",
+      "upload": "image"
+    }
+  },
+  "75": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": [
+        "320",
+        0
+      ],
+      "filename_prefix": "auto",
+      "format": "auto"
+    }
+  },
+  "320": {
+    "class_type": "2454ad83-157c-40dd-9f19-5daaf4041ce0",
+    "inputs": {
+      "input": [
+        "269",
+        0
+      ],
+      "value": "",
+      "value_1": false,
+      "value_2": 0,
+      "value_3": 0,
+      "value_4": 0,
+      "value_5": 0,
+      "noise_seed": 0,
+      "ckpt_name": "",
+      "lora_name": "",
+      "text_encoder": "",
+      "model_name": "",
+      "lora_name_1": ""
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "workflow_id": "image_z_image_turbo",
+  "name": "image_z_image_turbo",
+  "category": "converted",
+  "workflow_file": "image_z_image_turbo.json",
+  "mapping_file": "image_z_image_turbo.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "text",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "width",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "height",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "seed",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "steps",
+        "type": "number",
+        "default": 0
+      }
+    ]
+  },
+  "field_mapping": {
+    "text": "57.inputs.text",
+    "width": "57.inputs.width",
+    "height": "57.inputs.height",
+    "seed": "57.inputs.seed",
+    "steps": "57.inputs.steps"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "57",
+        0
+      ]
+    }
+  },
+  "57": {
+    "class_type": "f2fdebf6-dfaf-43b6-9eb2-7f70613cfdc1",
+    "inputs": {
+      "text": "",
+      "width": 0,
+      "height": 0,
+      "seed": 0,
+      "steps": 0,
+      "unet_name": "",
+      "clip_name": "",
+      "vae_name": ""
+    }
+  }
+}

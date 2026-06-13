@@ -2,7 +2,7 @@ import sys, json, re
 from pathlib import Path
 
 WORKFLOWS_DIR = Path(__file__).resolve().parent.parent / "workflows"
-USER_WORKFLOWS_DIR = Path(__file__).resolve().parent.parent.parent / "user" / "default" / "workflows"
+USER_WORKFLOWS_DIR = Path(__file__).resolve().parent.parent.parent / "user" / "default" / "workflow"
 
 SKIP_TYPES = {'MarkdownNote', 'Note', 'PrimitiveNode', 'Reroute'}
 
@@ -14,6 +14,15 @@ HIDDEN_UI_TYPES = {
     'LoraLoader', 'LoraLoaderModelOnly',
     'ControlNetLoader',
     'unCLIPCheckpointLoader', 'ImageOnlyCheckpointLoader',
+}
+
+# 不暴露 UI 的字段名（模型/VAE/CLIP/unet 选择器，可能出现在任意节点类型中）
+HIDDEN_FIELD_NAMES = {
+    'ckpt_name', 'checkpoint_name',
+    'vae_name',
+    'clip_name', 'clip_name1', 'clip_name2',
+    'unet_name', 'model_name',
+    'lora_name', 'control_net_name',
 }
 
 # UUID 格式的 class_type 表示 ComfyUI Group Node（包装器节点），其内部子节点已在图中独立存在
@@ -364,10 +373,22 @@ def _is_widget_input(inp):
     return t in ('INT', 'FLOAT', 'STRING', 'COMBO', 'BOOLEAN', 'INT:seed')
 
 
+def _get_input_type(inp):
+    """安全获取输入类型字符串（type 可能是 str 或 list）"""
+    t = inp.get('type') or 'STRING'
+    if isinstance(t, list):
+        return str(t[0]).upper() if t else 'STRING'
+    return str(t).upper()
+
+
 def _get_input_value(inp, widgets_values, widget_idx):
-    """从 widgets_values 中按索引或按名称获取输入值"""
+    """从 widgets_values 中按索引或按名称获取输入值（兼容 list 和 dict 格式）"""
     val = None
-    if widget_idx < len(widgets_values):
+    if isinstance(widgets_values, dict):
+        # dict 格式：按键名查找
+        val = widgets_values.get(inp.get('name'))
+    elif isinstance(widgets_values, list) and widget_idx < len(widgets_values):
+        # list 格式：按索引查找
         val = widgets_values[widget_idx]
     if val is None:
         val = inp.get('default')
@@ -584,14 +605,14 @@ def convert_native_to_api(native_data):
 
                     if val is not None:
                         inputs[inp_name] = val
+                        # LoadImage 节点使用预扫描分配的唯一字段名
+                        if ntype == 'LoadImage' and nid in loadimage_field_map:
+                            field_name, label = loadimage_field_map[nid]
+                        else:
+                            field_name = cfg['field']
+                            label = cfg.get('label', '')
                         # 模型/LoRA/VAE 加载器：参数用于图执行但不暴露给前端
-                        if ntype not in HIDDEN_UI_TYPES:
-                            # LoadImage 节点使用预扫描分配的唯一字段名
-                            if ntype == 'LoadImage' and nid in loadimage_field_map:
-                                field_name, label = loadimage_field_map[nid]
-                            else:
-                                field_name = cfg['field']
-                                label = cfg.get('label', '')
+                        if ntype not in HIDDEN_UI_TYPES and field_name not in HIDDEN_FIELD_NAMES:
                             field_mapping[field_name] = f'{nid}.inputs.{inp_name}'
                             if field_name not in seen_ui_field_names:
                                 seen_ui_field_names.add(field_name)
@@ -615,11 +636,11 @@ def convert_native_to_api(native_data):
                         val = _get_input_value(inp, widgets_values, widget_idx)
                         if val is not None:
                             inputs[inp_name] = val
-                            if ntype not in HIDDEN_UI_TYPES:
-                                safe_name = FIELD_ALIASES.get(inp_name, inp_name)
+                            safe_name = FIELD_ALIASES.get(inp_name, inp_name)
+                            if ntype not in HIDDEN_UI_TYPES and safe_name not in HIDDEN_FIELD_NAMES:
                                 if safe_name not in seen_ui_field_names:
                                     seen_ui_field_names.add(safe_name)
-                                    inp_type = inp.get('type', 'STRING')
+                                    inp_type = _get_input_type(inp)
                                     entry = {'name': safe_name, 'type': 'number' if inp_type in ('INT', 'FLOAT') else 'string', 'default': val}
                                     if inp.get('min') is not None:
                                         entry['min'] = inp['min']
@@ -650,7 +671,7 @@ def convert_native_to_api(native_data):
 
             # UUID 子图引用节点的 IMAGE/MASK 类型输入 → 图片上传字段
             # 不写入 inputs（ComfyUI 不认空字符串），只生成 UI 字段和映射
-            inp_type = (inp.get('type') or '').upper()
+            inp_type = _get_input_type(inp)
             if is_uuid_ref and inp_type in ('IMAGE', 'MASK') and link is None:
                 image_count = sum(1 for f in ui_fields if f.get('role') == 'image_upload')
                 if image_count == 0:
@@ -680,7 +701,7 @@ def convert_native_to_api(native_data):
                     inputs[inp_name] = val
                 elif is_uuid_ref:
                     # UUID 子图引用节点：widget 值取自 subgraph 定义，这里保留空默认值
-                    inp_type = (inp.get('type') or 'STRING').upper()
+                    inp_type = _get_input_type(inp)
                     if inp_type.startswith('INT'):
                         default_val = inp.get('default', 0)
                         if default_val is not None:
@@ -699,9 +720,9 @@ def convert_native_to_api(native_data):
                         inputs[inp_name] = str(inp.get('default', ''))
                     else:
                         inputs[inp_name] = str(inp.get('default', ''))
-                    # 为 UUID 引用节点生成 UI 字段
+                    # 为 UUID 引用节点生成 UI 字段（跳过模型相关字段）
                     safe_name = FIELD_ALIASES.get(inp_name, inp_name)
-                    if safe_name not in seen_ui_field_names:
+                    if safe_name not in seen_ui_field_names and safe_name not in HIDDEN_FIELD_NAMES:
                         seen_ui_field_names.add(safe_name)
                         field_type = 'number' if inp_type in ('INT', 'FLOAT') else 'string'
                         if inp_type == 'COMBO' and isinstance(inp.get('options'), list):
@@ -732,9 +753,9 @@ def convert_native_to_api(native_data):
                 if val is not None:
                     inputs[inp_name] = val
                     safe_name = FIELD_ALIASES.get(inp_name, inp_name)
-                    if safe_name not in seen_ui_field_names:
+                    if safe_name not in seen_ui_field_names and safe_name not in HIDDEN_FIELD_NAMES:
                         seen_ui_field_names.add(safe_name)
-                        inp_type = inp.get('type', 'STRING').upper()
+                        inp_type = _get_input_type(inp)
                         field_type = 'number' if inp_type in ('INT', 'FLOAT') else 'string'
                         entry = {'name': safe_name, 'type': field_type, 'default': val}
                         if inp.get('min') is not None:

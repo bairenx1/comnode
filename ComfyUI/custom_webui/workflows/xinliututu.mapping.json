@@ -1,0 +1,63 @@
+{
+  "workflow_id": "xinliututu",
+  "name": "xinliututu",
+  "category": "converted",
+  "workflow_file": "xinliututu.json",
+  "mapping_file": "xinliututu.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "image_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "image2 (optional)",
+        "default": ""
+      },
+      {
+        "name": "target_asset_hash",
+        "type": "string",
+        "role": "image_upload",
+        "label": "image3 (optional)",
+        "default": ""
+      },
+      {
+        "name": "seed",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "value",
+        "type": "string",
+        "default": false
+      },
+      {
+        "name": "upload",
+        "type": "string",
+        "default": "image"
+      },
+      {
+        "name": "target_asset_hash_2",
+        "type": "string",
+        "default": "20260520-020926.jpg",
+        "label": "参考图片",
+        "role": "image_upload"
+      },
+      {
+        "name": "target_asset_hash_3",
+        "type": "string",
+        "default": "20260520-020926.jpg",
+        "label": "参考图片",
+        "role": "image_upload"
+      }
+    ]
+  },
+  "field_mapping": {
+    "image_asset_hash": "466.inputs.image2",
+    "target_asset_hash": "78.inputs.image",
+    "seed": "466.inputs.seed",
+    "value": "466.inputs.value",
+    "upload": "78.inputs.upload",
+    "target_asset_hash_2": "469.inputs.image",
+    "target_asset_hash_3": "470.inputs.image"
+  }
+}

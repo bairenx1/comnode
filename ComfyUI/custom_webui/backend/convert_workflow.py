@@ -1,5 +1,7 @@
+import copy
 import sys, json, re
 from pathlib import Path
+from typing import Any
 
 WORKFLOWS_DIR = Path(__file__).resolve().parent.parent / "workflows"
 # ComfyUI 标准保存路径
@@ -1139,7 +1141,130 @@ def convert_native_to_api(native_data):
         if inputs or is_uuid_ref:
             node_api[nid] = {'class_type': ntype, 'inputs': inputs}
 
+    # 后处理：展开 UUID Group Node 包装器，使输出 API 格式不再包含 UUID class_type
+    field_mapping = _inline_uuid_wrappers(node_api, field_mapping)
+
     return node_api, field_mapping, ui_fields
+
+
+def _inline_uuid_wrappers(graph: dict[str, Any], field_mapping: dict[str, str]) -> dict[str, str]:
+    """展开所有 UUID Group Node 包装器，将其 _subgraph 中的内部节点提升到主图
+
+    在 convert_native_to_api 完成后调用，一次性完成子图展开。
+    返回更新后的 field_mapping（两段式路径 "wrapper.internal.inputs.key" 已更新为 "wrapper__internal.inputs.key"）。
+    """
+    wrapper_ids = [
+        nid for nid, nd in graph.items()
+        if isinstance(nd, dict) and UUID_TYPE_RE.match(nd.get('class_type', ''))
+        and '_subgraph' in nd
+    ]
+    if not wrapper_ids:
+        return field_mapping
+
+    new_mapping = dict(field_mapping)
+
+    for wrapper_id in wrapper_ids:
+        wrapper = graph[wrapper_id]
+        subgraph = wrapper.get('_subgraph', {})
+        comfy_def = wrapper.get('_comfy_def', {})
+        wrapper_inputs = wrapper.get('inputs', {})
+        wrapper_input_names = comfy_def.get('wrapper_input_names', [])
+
+        # 构建 slot → 外部连接 映射
+        slot_to_external: dict[int, list] = {}
+        for slot_idx, name in enumerate(wrapper_input_names):
+            if name in wrapper_inputs:
+                slot_to_external[slot_idx] = wrapper_inputs[name]
+
+        # 构建 ID 重映射表
+        prefix = f'{wrapper_id}__'
+        id_remap: dict[str, str] = {}
+        for old_id in subgraph:
+            id_remap[str(old_id)] = f'{prefix}{old_id}'
+
+        # 构建内部节点默认值映射（从 _comfy_def.nodes 提取 widget 默认值）
+        # 当 -10 引用无法从外部连接解析时，使用此默认值作为回退
+        node_defaults: dict[str, dict[str, Any]] = {}
+        for native_node in comfy_def.get('nodes', []):
+            nn_id = str(native_node.get('id', ''))
+            if not nn_id:
+                continue
+            node_defaults[nn_id] = {}
+            widgets_values = native_node.get('widgets_values', [])
+            widget_idx = 0
+            for inp in native_node.get('inputs', []):
+                if inp.get('widget'):
+                    val = None
+                    if isinstance(widgets_values, list) and widget_idx < len(widgets_values):
+                        val = widgets_values[widget_idx]
+                    elif isinstance(widgets_values, dict):
+                        val = widgets_values.get(inp.get('name'))
+                    if val is not None:
+                        node_defaults[nn_id][inp['name']] = val
+                    widget_idx += 1
+
+        # 解析 -20 引用：哪个内部节点的哪个输出连接到包装器外部输出
+        minus20_outputs: dict[int, tuple[str, int]] = {}
+        for link in comfy_def.get('links', []):
+            if isinstance(link, dict):
+                origin_id = str(link.get('origin_id', ''))
+                target_id = str(link.get('target_id', ''))
+                if target_id == '-20':
+                    minus20_outputs[link['target_slot']] = (origin_id, link['origin_slot'])
+            elif isinstance(link, list) and len(link) >= 5:
+                if str(link[3]) == '-20':
+                    minus20_outputs[link[4]] = (str(link[1]), link[2])
+
+        # 复制内部节点到主图，解析 -10 引用并重映射内部引用
+        for old_id, node_data in subgraph.items():
+            new_id = id_remap[str(old_id)]
+            new_node = copy.deepcopy(node_data)
+
+            for inp_key, inp_val in list(new_node.get('inputs', {}).items()):
+                # 解析 -10 引用：替换为外部连接或内部默认值
+                if isinstance(inp_val, list) and len(inp_val) == 2 and inp_val[0] == '-10':
+                    slot = inp_val[1]
+                    if slot in slot_to_external:
+                        new_node['inputs'][inp_key] = list(slot_to_external[slot])
+                    else:
+                        defaults = node_defaults.get(str(old_id), {})
+                        if inp_key in defaults:
+                            new_node['inputs'][inp_key] = defaults[inp_key]
+                        else:
+                            new_node['inputs'][inp_key] = None
+                # 重映射内部节点引用
+                elif isinstance(inp_val, list) and len(inp_val) == 2 and isinstance(inp_val[0], str):
+                    if inp_val[0] in id_remap:
+                        new_node['inputs'][inp_key] = [id_remap[inp_val[0]], inp_val[1]]
+
+            graph[new_id] = new_node
+
+        # 重路由外部消费者：将指向包装器输出的连接改为指向内部输出节点
+        processed_ids = set(id_remap.values()) | set(wrapper_ids)
+        for wrapper_slot, (internal_id, internal_slot) in minus20_outputs.items():
+            internal_new_id = id_remap.get(internal_id)
+            if not internal_new_id:
+                continue
+            for nid, nd in graph.items():
+                if nid in processed_ids:
+                    continue
+                for inp_key, inp_val in nd.get('inputs', {}).items():
+                    if (isinstance(inp_val, list) and len(inp_val) == 2
+                            and inp_val[0] == wrapper_id and inp_val[1] == wrapper_slot):
+                        nd['inputs'][inp_key] = [internal_new_id, internal_slot]
+
+        # 更新 field_mapping：将 "wrapperId.internalId.inputs.key" → "wrapperId__internalId.inputs.key"
+        for fname, target in list(new_mapping.items()):
+            parts = target.split(".")
+            if len(parts) >= 2 and parts[0] == wrapper_id:
+                if parts[1] in id_remap:
+                    new_target = f"{id_remap[parts[1]]}." + ".".join(parts[2:])
+                    new_mapping[fname] = new_target
+
+        # 删除 UUID 包装器节点
+        del graph[wrapper_id]
+
+    return new_mapping
 
 
 def _convert_workflow_files(source_dir: Path, converted: int) -> int:

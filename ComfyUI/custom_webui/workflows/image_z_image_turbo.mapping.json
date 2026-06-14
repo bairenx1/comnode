@@ -27,7 +27,7 @@
   },
   "field_mapping": {
     "filename_prefix": "9.inputs.filename_prefix",
-    "prompt": "57.27.inputs.text",
-    "seed": "57.3.inputs.seed"
+    "prompt": "57__27.inputs.text",
+    "seed": "57__3.inputs.seed"
   }
 }

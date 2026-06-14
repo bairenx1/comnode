@@ -47,7 +47,7 @@
     "filename_prefix": "75.inputs.filename_prefix",
     "format": "75.inputs.format",
     "codec": "75.inputs.codec",
-    "prompt": "320.319.inputs.value",
-    "seed": "320.277.inputs.noise_seed"
+    "prompt": "320__319.inputs.value",
+    "seed": "320__277.inputs.noise_seed"
   }
 }

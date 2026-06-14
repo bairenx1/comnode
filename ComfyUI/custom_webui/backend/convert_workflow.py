@@ -554,21 +554,23 @@ def _is_seed_name(inp_name: str, label: str = '') -> bool:
     return name_lower in ('noise_seed', 'seed') or 'seed' in label_lower
 
 
-def convert_native_to_api(native_data):
+def convert_native_to_api(native_data, definitions=None):
     nodes = native_data.get('nodes', [])
     links = native_data.get('links', [])
 
     # ---- 预处理：将 definitions.subgraphs 中的子图数据注入到对应 UUID 节点 ----
     # ComfyUI 原生格式将子图定义在顶层 definitions，而非节点内部
+    # 嵌套 Group Node 需要传递外层 definitions 给递归调用
+    if definitions is None:
+        definitions = native_data.get('definitions', {})
     subgraph_defs: dict[str, dict] = {}
-    if 'definitions' in native_data:
-        for sg in native_data['definitions'].get('subgraphs', []):
-            sg_id = sg.get('id', '')
-            if sg_id:
-                subgraph_defs[sg_id] = {
-                    'nodes': sg.get('nodes', []),
-                    'links': sg.get('links', []),
-                }
+    for sg in definitions.get('subgraphs', []):
+        sg_id = sg.get('id', '')
+        if sg_id:
+            subgraph_defs[sg_id] = {
+                'nodes': sg.get('nodes', []),
+                'links': sg.get('links', []),
+            }
 
     for node in nodes:
         ntype = node.get('type', '')
@@ -624,7 +626,8 @@ def convert_native_to_api(native_data):
             if subgraph_data and isinstance(subgraph_data, dict) and subgraph_data.get('nodes'):
                 # 有嵌入子图：展开内部节点，跳过 UUID 包装器
                 sub_api, sub_mapping, sub_fields = convert_native_to_api(
-                    {'nodes': subgraph_data['nodes'], 'links': subgraph_data.get('links', [])}
+                    {'nodes': subgraph_data['nodes'], 'links': subgraph_data.get('links', [])},
+                    definitions=definitions,
                 )
 
                 # ---- 先从 UUID 包装器输入提取 UI 字段（优先级高于子图内部字段） ----
@@ -813,7 +816,8 @@ def convert_native_to_api(native_data):
             sub_nodes = subgraph_data.get('nodes')
             if sub_nodes and not UUID_TYPE_RE.match(ntype):
                 sub_api, sub_mapping, sub_fields = convert_native_to_api(
-                    {'nodes': sub_nodes, 'links': subgraph_data.get('links', [])}
+                    {'nodes': sub_nodes, 'links': subgraph_data.get('links', [])},
+                    definitions=definitions,
                 )
                 for fname, target in sub_mapping.items():
                     full_target = f'{nid}.{target}'

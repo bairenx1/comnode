@@ -1,0 +1,81 @@
+{
+  "workflow_id": "tushipin",
+  "name": "tushipin",
+  "category": "converted",
+  "workflow_file": "tushipin.json",
+  "mapping_file": "tushipin.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "loop_count",
+        "type": "number",
+        "default": 0
+      },
+      {
+        "name": "filename_prefix",
+        "type": "string",
+        "default": "ltx23"
+      },
+      {
+        "name": "format",
+        "type": "string",
+        "default": "video/h264-mp4"
+      },
+      {
+        "name": "pingpong",
+        "type": "boolean",
+        "default": false
+      },
+      {
+        "name": "save_output",
+        "type": "boolean",
+        "default": true
+      },
+      {
+        "name": "pix_fmt",
+        "type": "string",
+        "default": "yuv420p"
+      },
+      {
+        "name": "crf",
+        "type": "number",
+        "default": 19
+      },
+      {
+        "name": "save_metadata",
+        "type": "boolean",
+        "default": true
+      },
+      {
+        "name": "trim_to_audio",
+        "type": "boolean",
+        "default": false
+      },
+      {
+        "name": "target_asset_hash",
+        "type": "string",
+        "default": "20260520-021922.jpg",
+        "label": "参考图片",
+        "role": "image_upload"
+      },
+      {
+        "name": "prompt",
+        "type": "string",
+        "default": "Dancing"
+      }
+    ]
+  },
+  "field_mapping": {
+    "loop_count": "234.inputs.loop_count",
+    "filename_prefix": "234.inputs.filename_prefix",
+    "format": "234.inputs.format",
+    "pingpong": "234.inputs.pingpong",
+    "save_output": "234.inputs.save_output",
+    "pix_fmt": "234.inputs.pix_fmt",
+    "crf": "234.inputs.crf",
+    "save_metadata": "234.inputs.save_metadata",
+    "trim_to_audio": "234.inputs.trim_to_audio",
+    "target_asset_hash": "229.inputs.image",
+    "prompt": "230__86.inputs.text"
+  }
+}

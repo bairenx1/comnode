@@ -1,0 +1,589 @@
+{
+  "342": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "466__453",
+        0
+      ],
+      "filename_prefix": "ComfyUI"
+    }
+  },
+  "78": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "O1CN01yoeq2A1GnzcHSAWUp_!!2217456700668.jpeg",
+      "upload": "image"
+    }
+  },
+  "470": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "20260520-020926.jpg",
+      "upload": "image"
+    }
+  },
+  "469": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "20260520-020926.jpg",
+      "upload": "image"
+    }
+  },
+  "471": {
+    "class_type": "CFGNorm",
+    "inputs": {
+      "model": [
+        "476",
+        0
+      ],
+      "strength": 1,
+      "pre_cfg": false
+    }
+  },
+  "472": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    }
+  },
+  "473": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    }
+  },
+  "474": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "qwen_image_edit_2509_fp8_e4m3fn.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "475": {
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "inputs": {
+      "clip": [
+        "473",
+        0
+      ],
+      "vae": [
+        "472",
+        0
+      ],
+      "image1": [
+        "481",
+        0
+      ],
+      "image2": [
+        "469",
+        0
+      ],
+      "image3": [
+        "470",
+        0
+      ],
+      "prompt": ""
+    }
+  },
+  "476": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "model": [
+        "487",
+        0
+      ],
+      "shift": 3
+    }
+  },
+  "477": {
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "inputs": {
+      "clip": [
+        "473",
+        0
+      ],
+      "vae": [
+        "472",
+        0
+      ],
+      "image1": [
+        "481",
+        0
+      ],
+      "image2": [
+        "469",
+        0
+      ],
+      "image3": [
+        "470",
+        0
+      ],
+      "prompt": [
+        "435",
+        0
+      ]
+    }
+  },
+  "478": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "481",
+        0
+      ],
+      "vae": [
+        "472",
+        0
+      ]
+    }
+  },
+  "480": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "model": [
+        "474",
+        0
+      ],
+      "lora_name": "Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors",
+      "strength_model": 1
+    }
+  },
+  "481": {
+    "class_type": "FluxKontextImageScale",
+    "inputs": {
+      "image": [
+        "78",
+        0
+      ]
+    }
+  },
+  "482": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 794097078030572,
+      "steps": [
+        "488",
+        0
+      ],
+      "cfg": [
+        "489",
+        0
+      ],
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0,
+      "model": [
+        "471",
+        0
+      ],
+      "positive": [
+        "477",
+        0
+      ],
+      "negative": [
+        "475",
+        0
+      ],
+      "latent_image": [
+        "478",
+        0
+      ]
+    }
+  },
+  "483": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 4
+    }
+  },
+  "484": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 1
+    }
+  },
+  "485": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 20
+    }
+  },
+  "486": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 4
+    }
+  },
+  "487": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "474",
+        0
+      ],
+      "on_true": [
+        "480",
+        0
+      ],
+      "switch": [
+        "490",
+        0
+      ]
+    }
+  },
+  "488": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "485",
+        0
+      ],
+      "on_true": [
+        "483",
+        0
+      ],
+      "switch": [
+        "490",
+        0
+      ]
+    }
+  },
+  "489": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "486",
+        0
+      ],
+      "on_true": [
+        "484",
+        0
+      ],
+      "switch": [
+        "490",
+        0
+      ]
+    }
+  },
+  "490": {
+    "class_type": "PrimitiveBoolean",
+    "inputs": {
+      "value": true
+    }
+  },
+  "479": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "482",
+        0
+      ],
+      "vae": [
+        "472",
+        0
+      ]
+    }
+  },
+  "60": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "479",
+        0
+      ],
+      "filename_prefix": "ComfyUI"
+    }
+  },
+  "435": {
+    "class_type": "PrimitiveStringMultiline",
+    "inputs": {
+      "value": "图一女生在推销图二的徽章，身上也佩戴着"
+    }
+  },
+  "466__445": {
+    "class_type": "CFGNorm",
+    "inputs": {
+      "model": [
+        "466__450",
+        0
+      ],
+      "strength": 1,
+      "pre_cfg": false
+    }
+  },
+  "466__446": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    }
+  },
+  "466__447": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "type": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "device": "qwen_image"
+    }
+  },
+  "466__448": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "qwen_image_edit_2509_fp8_e4m3fn.safetensors",
+      "weight_dtype": "qwen_image_edit_2509_fp8_e4m3fn.safetensors"
+    }
+  },
+  "466__449": {
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "inputs": {
+      "clip": [
+        "466__447",
+        0
+      ],
+      "vae": [
+        "466__446",
+        0
+      ],
+      "image1": [
+        "466__455",
+        0
+      ],
+      "image2": [
+        "469",
+        0
+      ],
+      "image3": [
+        "470",
+        0
+      ],
+      "prompt": ""
+    }
+  },
+  "466__450": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "model": [
+        "466__461",
+        0
+      ],
+      "shift": 3
+    }
+  },
+  "466__451": {
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "inputs": {
+      "clip": [
+        "466__447",
+        0
+      ],
+      "vae": [
+        "466__446",
+        0
+      ],
+      "image1": [
+        "466__455",
+        0
+      ],
+      "image2": [
+        "469",
+        0
+      ],
+      "image3": [
+        "470",
+        0
+      ],
+      "prompt": [
+        "435",
+        0
+      ]
+    }
+  },
+  "466__452": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "466__455",
+        0
+      ],
+      "vae": [
+        "466__446",
+        0
+      ]
+    }
+  },
+  "466__453": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "466__456",
+        0
+      ],
+      "vae": [
+        "466__446",
+        0
+      ]
+    }
+  },
+  "466__454": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "model": [
+        "466__448",
+        0
+      ],
+      "lora_name": "Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors",
+      "strength_model": 1
+    }
+  },
+  "466__455": {
+    "class_type": "FluxKontextImageScale",
+    "inputs": {
+      "image": [
+        "78",
+        0
+      ]
+    }
+  },
+  "466__456": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 479025169807419,
+      "steps": [
+        "466__462",
+        0
+      ],
+      "cfg": [
+        "466__463",
+        0
+      ],
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0,
+      "model": [
+        "466__445",
+        0
+      ],
+      "positive": [
+        "466__467",
+        0
+      ],
+      "negative": [
+        "466__468",
+        0
+      ],
+      "latent_image": [
+        "466__452",
+        0
+      ]
+    }
+  },
+  "466__457": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 4
+    }
+  },
+  "466__458": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 1
+    }
+  },
+  "466__459": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 20
+    }
+  },
+  "466__460": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 4
+    }
+  },
+  "466__461": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "466__448",
+        0
+      ],
+      "on_true": [
+        "466__454",
+        0
+      ],
+      "switch": [
+        "466__464",
+        0
+      ]
+    }
+  },
+  "466__462": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "466__459",
+        0
+      ],
+      "on_true": [
+        "466__457",
+        0
+      ],
+      "switch": [
+        "466__464",
+        0
+      ]
+    }
+  },
+  "466__463": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "466__460",
+        0
+      ],
+      "on_true": [
+        "466__458",
+        0
+      ],
+      "switch": [
+        "466__464",
+        0
+      ]
+    }
+  },
+  "466__464": {
+    "class_type": "PrimitiveBoolean",
+    "inputs": {
+      "value": true
+    }
+  },
+  "466__467": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": [
+        "466__451",
+        0
+      ],
+      "latent": [
+        "466__452",
+        0
+      ]
+    }
+  },
+  "466__468": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": [
+        "466__449",
+        0
+      ],
+      "latent": [
+        "466__452",
+        0
+      ]
+    }
+  }
+}

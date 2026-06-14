@@ -83,7 +83,13 @@ class WorkflowRegistry:
         for ui_field, target in definition.field_mapping.items():
             if ui_field not in merged_params or merged_params.get(ui_field) in (None, "", [], {}):
                 continue
-            self._set_graph_value(graph, target, merged_params[ui_field])
+            value = merged_params[ui_field]
+            # 解析 blake3 哈希为实际文件名（LoadImage 等节点需要真实文件路径）
+            if isinstance(value, str) and value.startswith("blake3:") and asset_hashes:
+                resolved = asset_hashes.get(value)
+                if resolved:
+                    value = resolved
+            self._set_graph_value(graph, target, value)
 
         return graph, None
 

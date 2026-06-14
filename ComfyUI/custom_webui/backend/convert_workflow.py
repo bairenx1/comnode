@@ -933,6 +933,8 @@ def convert_native_to_api(native_data, definitions=None):
                 if link is not None and link in link_map:
                     from_node, from_slot, _, _ = link_map[link]
                     inputs[inp_name] = [from_node, from_slot]
+                    if _is_widget_input(inp):
+                        widget_idx += 1
                     continue
 
                 cfg = special_cfg.get(inp_name)
@@ -1004,6 +1006,8 @@ def convert_native_to_api(native_data, definitions=None):
             if link is not None and link in link_map:
                 from_node, from_slot, _, _ = link_map[link]
                 inputs[inp_name] = [from_node, from_slot]
+                if _is_widget_input(inp):
+                    widget_idx += 1
 
                 # 追踪链接到 Primitive 节点的值作为 UI 字段（所有节点类型通用）
                 src_node = nodes_by_id.get(str(from_node))

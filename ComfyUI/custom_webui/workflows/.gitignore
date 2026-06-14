@@ -1,0 +1,22 @@
+# 自动转换生成的工作流文件（由 auto_convert_all 从 ../user/default/workflow/ 生成）
+# 这些文件不应提交到 git，每个环境应本地生成
+image_qwen_image_edit_2509.json
+image_qwen_image_edit_2509.mapping.json
+image_z_image_turbo.json
+image_z_image_turbo.mapping.json
+shoudongwen.json
+shoudongwen.mapping.json
+unsloth_flowers.json
+unsloth_flowers.mapping.json
+video_ltx2_3_i2v.json
+video_ltx2_3_i2v.mapping.json
+video_wan2_2_5b_ti2v.json
+video_wan2_2_5b_ti2v.mapping.json
+w2_2__.json
+w2_2__.mapping.json
+xinliututu.json
+xinliututu.mapping.json
+jieyatu.json
+jieyatu.mapping.json
+tushipin.json
+tushipin.mapping.json

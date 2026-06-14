@@ -338,6 +338,36 @@ def _build_link_maps(nodes, links):
     return link_map, reverse_map
 
 
+def _resolve_reroute_links(link_map, nodes_by_id):
+    """解析 link_map 中经过 Reroute 节点的链接，替换为直接源节点
+
+    ComfyUI 的 Reroute 节点是纯连接器（1 输入 → 1 输出），转换时会被跳过。
+    但其他节点可能引用 Reroute 作为输入源，需要穿透 Reroute 找到真正的源节点。
+    """
+    resolved = {}
+    for link_id, (from_node, from_slot, to_node, to_slot) in link_map.items():
+        src_nid = str(from_node)
+        src_slot = from_slot
+        visited = set()
+        while src_nid in nodes_by_id:
+            node = nodes_by_id[src_nid]
+            if node.get('type') != 'Reroute':
+                break
+            if src_nid in visited:
+                break  # 防止循环引用
+            visited.add(src_nid)
+            inputs = node.get('inputs', [])
+            if not inputs:
+                break
+            inner_link = inputs[0].get('link')
+            if inner_link is None or inner_link not in link_map:
+                break
+            src_nid, src_slot, _, _ = link_map[inner_link]
+            src_nid = str(src_nid)
+        resolved[link_id] = (src_nid, src_slot, to_node, to_slot)
+    return resolved
+
+
 def _trace_clip_polarity(nodes, reverse_map):
     """通过链接追踪 CLIPTextEncode 节点是正向还是负向提示词
 
@@ -550,6 +580,9 @@ def convert_native_to_api(native_data):
     # 构建节点 ID 查找表（用于 UUID ref 追踪 PrimitiveNode 值）
     nodes_by_id: dict[str, dict] = {str(n['id']): n for n in nodes}
 
+    # 解析 Reroute 节点链：将 link_map 中通过 Reroute 的引用替换为直接源
+    link_map = _resolve_reroute_links(link_map, nodes_by_id)
+
     node_api = {}
     field_mapping = {}
     ui_fields = []
@@ -591,17 +624,6 @@ def convert_native_to_api(native_data):
                 sub_api, sub_mapping, sub_fields = convert_native_to_api(
                     {'nodes': subgraph_data['nodes'], 'links': subgraph_data.get('links', [])}
                 )
-                node_api[nid] = {
-                    'class_type': ntype,
-                    'inputs': inputs if inputs else {},
-                    '_subgraph': sub_api,
-                    '_comfy_def': {
-                        'id': ntype,
-                        'title': node.get('title', ''),
-                        'nodes': subgraph_data['nodes'],
-                        'links': subgraph_data.get('links', []),
-                    },
-                }
 
                 # ---- 先从 UUID 包装器输入提取 UI 字段（优先级高于子图内部字段） ----
                 sg_nodes = {str(sn['id']): sn for sn in subgraph_data['nodes']}
@@ -639,6 +661,10 @@ def convert_native_to_api(native_data):
                         # 如果是 widget 输入，仍占一个 proxyWidget 位（跳过它）
                         if _is_widget_input(inp):
                             _get_proxy_info()
+                        # 保存外部连接，供 workflow_registry 子图展开时解析 -10 引用
+                        if link in link_map:
+                            src_nid, src_slot, _, _ = link_map[link]
+                            inputs[inp_name] = [src_nid, src_slot]
                         if inp_type in ('IMAGE', 'MASK'):
                             # 如果是链接到 LoadImage，跳过（LoadImage 自己已生成图片字段）
                             src_type = ''
@@ -762,6 +788,19 @@ def convert_native_to_api(native_data):
 
                 # UUID Group Node 的内部子图字段不暴露到 UI
                 # proxyWidgets 已将必要参数映射到包装器输入，子图内部字段为实现细节
+
+                node_api[nid] = {
+                    'class_type': ntype,
+                    'inputs': inputs,
+                    '_subgraph': sub_api,
+                    '_comfy_def': {
+                        'id': ntype,
+                        'title': node.get('title', ''),
+                        'nodes': subgraph_data['nodes'],
+                        'links': subgraph_data.get('links', []),
+                        'wrapper_input_names': [inp.get('name', '') for inp in node_inputs],
+                    },
+                }
 
                 continue
             else:

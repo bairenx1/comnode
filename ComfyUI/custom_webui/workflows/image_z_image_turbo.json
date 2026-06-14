@@ -905,6 +905,16 @@
           "target_slot": 0,
           "type": "COMBO"
         }
+      ],
+      "wrapper_input_names": [
+        "text",
+        "width",
+        "height",
+        "seed",
+        "steps",
+        "unet_name",
+        "clip_name",
+        "vae_name"
       ]
     }
   }

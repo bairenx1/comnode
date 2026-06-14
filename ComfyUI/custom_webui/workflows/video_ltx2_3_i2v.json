@@ -20,7 +20,12 @@
   },
   "320": {
     "class_type": "2454ad83-157c-40dd-9f19-5daaf4041ce0",
-    "inputs": {},
+    "inputs": {
+      "input": [
+        "269",
+        0
+      ]
+    },
     "_subgraph": {
       "276": {
         "class_type": "RandomNoise",
@@ -4981,6 +4986,21 @@
           "target_slot": 0,
           "type": "INT"
         }
+      ],
+      "wrapper_input_names": [
+        "input",
+        "value",
+        "value_1",
+        "value_2",
+        "value_3",
+        "value_4",
+        "value_5",
+        "noise_seed",
+        "ckpt_name",
+        "lora_name",
+        "text_encoder",
+        "model_name",
+        "lora_name_1"
       ]
     }
   }

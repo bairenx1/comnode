@@ -21,7 +21,16 @@
   },
   "466": {
     "class_type": "c7f5c302-e46e-4a0f-91bd-0aec474e7659",
-    "inputs": {},
+    "inputs": {
+      "image": [
+        "78",
+        0
+      ],
+      "prompt": [
+        "435",
+        0
+      ]
+    },
     "_subgraph": {
       "445": {
         "class_type": "CFGNorm",
@@ -2047,6 +2056,17 @@
           "target_slot": 2,
           "type": "CONDITIONING"
         }
+      ],
+      "wrapper_input_names": [
+        "image",
+        "image2",
+        "image3",
+        "prompt",
+        "seed",
+        "value",
+        "unet_name",
+        "clip_name",
+        "vae_name"
       ]
     }
   },
@@ -2072,7 +2092,24 @@
   },
   "433": {
     "class_type": "eba40a3a-f6c5-48ac-b58e-55525d06b373",
-    "inputs": {},
+    "inputs": {
+      "image": [
+        "78",
+        0
+      ],
+      "image2": [
+        "469",
+        0
+      ],
+      "image3": [
+        "470",
+        0
+      ],
+      "prompt": [
+        "435",
+        0
+      ]
+    },
     "_subgraph": {
       "75": {
         "class_type": "CFGNorm",
@@ -3946,6 +3983,17 @@
           "target_slot": 0,
           "type": "COMBO"
         }
+      ],
+      "wrapper_input_names": [
+        "image",
+        "image2",
+        "image3",
+        "prompt",
+        "seed",
+        "value",
+        "unet_name",
+        "clip_name",
+        "vae_name"
       ]
     }
   },

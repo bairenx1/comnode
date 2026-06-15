@@ -31,11 +31,27 @@ def create_app() -> web.Application:
         if isinstance(err, aiohttp.ClientResponseError):
             # ComfyUI 验证失败 (400) 返回详细错误，直接透传给前端
             if err.status == 400:
+                import logging
+                logging.warning(f"ComfyUI 验证失败，完整响应: {msg}")
                 try:
                     body = json.loads(msg)
                 except (json.JSONDecodeError, TypeError):
                     body = {"error": msg}
-                return web.json_response(body, status=400)
+                # 提取 ComfyUI 错误详情（error 是嵌套对象，node_errors 包含每个节点的具体错误）
+                comfy_error = body.get("error", {})
+                node_errors = body.get("node_errors", {})
+                # 构建 node_errors 摘要：每个失败节点的错误信息
+                error_summary = []
+                for nid, nd in node_errors.items():
+                    for e in nd.get("errors", []):
+                        error_summary.append(f"[{nd.get('class_type', '?')} #{nid}] {e.get('message', '')}: {e.get('details', '')}")
+                return web.json_response({
+                    "error": "comfyui_validation_error",
+                    "message": comfy_error.get("message", "Validation failed") if isinstance(comfy_error, dict) else str(comfy_error),
+                    "details": comfy_error.get("details", "") if isinstance(comfy_error, dict) else "",
+                    "node_errors": node_errors,
+                    "error_summary": "\n".join(error_summary),
+                }, status=400)
             status = 502
             hint = f"ComfyUI 返回错误 ({err.status}): {msg}"
         else:

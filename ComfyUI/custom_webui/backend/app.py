@@ -312,10 +312,10 @@ def create_app() -> web.Application:
                         resp.content_type = upstream_ctype
                         if upstream_clen:
                             resp.content_length = int(upstream_clen)
+                        else:
+                            resp.enable_chunked_encoding()
                         if upstream_accept:
                             resp.headers["Accept-Ranges"] = upstream_accept
-                        # 告诉上游我们接受分块传输
-                        resp.enable_chunked_encoding()
 
                     await resp.prepare(request)
 

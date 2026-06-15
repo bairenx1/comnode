@@ -2,10 +2,24 @@
 
 import copy
 import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from .convert_workflow import auto_convert_all
+
+# 上传资产时建立的 blake3 哈希 → 文件名 映射表
+# 前端提交 blake3 哈希但不会带 asset_hashes 映射，由后端在上传时记录
+_asset_file_map: dict[str, str] = {}
+
+def register_asset_file(asset_hash: str, filename: str) -> None:
+    """注册 blake3 哈希到文件名的映射（上传资产时调用）"""
+    if asset_hash and filename:
+        _asset_file_map[asset_hash] = filename
+
+def resolve_asset_hash(asset_hash: str) -> str | None:
+    """根据 blake3 哈希查找对应的文件名"""
+    return _asset_file_map.get(asset_hash)
 
 
 @dataclass
@@ -90,10 +104,15 @@ class WorkflowRegistry:
                 continue
             value = merged_params[ui_field]
             # 解析 blake3 哈希为实际文件名（LoadImage 等节点需要真实文件路径）
-            if isinstance(value, str) and value.startswith("blake3:") and asset_hashes:
-                resolved = asset_hashes.get(value)
+            if isinstance(value, str) and value.startswith("blake3:"):
+                # 优先从请求中的 asset_hashes 查，次选从上传时记录的后备映射查
+                resolved = (asset_hashes or {}).get(value) or resolve_asset_hash(value)
                 if resolved:
                     value = resolved
+                else:
+                    # 无法解析哈希，跳过此字段（保留工作流中的默认值）
+                    logging.warning(f"无法解析 blake3 哈希 {value[:50]}...（字段 {ui_field}），保留默认值")
+                    continue
             # 根据 ui_schema 类型转换参数值，确保 ComfyUI 验证通过
             value = self._coerce_param_type(value, field_types.get(ui_field, "string"))
             self._set_graph_value(graph, target, value)

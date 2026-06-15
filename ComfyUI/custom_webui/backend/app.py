@@ -10,7 +10,7 @@ from aiohttp import web
 
 from .comfy_client import ComfyClient
 from .config import SETTINGS
-from .workflow_registry import WorkflowRegistry
+from .workflow_registry import WorkflowRegistry, register_asset_file
 from .convert_workflow import auto_convert_all
 
 
@@ -168,6 +168,11 @@ def create_app() -> web.Application:
                 tags=tags_list,
                 user_metadata={"uploader": "custom_webui"},
             )
+            # 记录 blake3 哈希 → 文件名 映射，供后续 build_prompt_graph 解析
+            asset_hash = result.get("hash") or result.get("asset_hash")
+            asset_name = result.get("name")
+            if asset_hash and asset_name:
+                register_asset_file(asset_hash, asset_name)
             return web.json_response(result)
         except aiohttp.ClientError as e:
             return comfy_down_response(e)

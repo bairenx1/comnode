@@ -62,6 +62,16 @@ class ComfyClient:
     async def list_assets(self, query: dict[str, str]) -> dict[str, Any]:
         return await self._get_json("/api/assets", params=query)
 
+    async def upload_image(self, file_bytes: bytes, filename: str) -> dict[str, Any]:
+        """上传图片到 ComfyUI input 目录，使 LoadImage 节点可识别"""
+        form = aiohttp.FormData()
+        form.add_field("image", file_bytes, filename=filename, content_type="application/octet-stream")
+        form.add_field("type", "input")
+        session = await self._ensure_session()
+        async with session.post(f"{self.base_url}/upload/image", data=form) as resp:
+            resp.raise_for_status()
+            return await resp.json()
+
     async def upload_asset(
         self,
         file_bytes: bytes,

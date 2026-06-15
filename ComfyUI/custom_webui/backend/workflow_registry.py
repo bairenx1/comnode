@@ -117,6 +117,12 @@ class WorkflowRegistry:
             value = self._coerce_param_type(value, field_types.get(ui_field, "string"))
             self._set_graph_value(graph, target, value)
 
+        # 调试：打印提交前 CLIPLoader/UNETLoader 的实际值
+        for check_nid in ["473", "466__447", "474", "466__448"]:
+            node = graph.get(check_nid)
+            if node:
+                logging.info(f"提交前 {check_nid} ({node.get('class_type','?')}): {json.dumps(node.get('inputs',{}), ensure_ascii=False)}")
+
         return graph, None
 
     @staticmethod

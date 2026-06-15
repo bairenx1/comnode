@@ -159,20 +159,24 @@ def create_app() -> web.Application:
             file_item = data.get("file")
             if file_item is None or not getattr(file_item, "file", None):
                 return web.json_response({"error": "file is required"}, status=400)
-            tags = data.get("tags", "input")
-            tags_list = [x.strip() for x in str(tags).split(",") if x.strip()]
             file_bytes = file_item.file.read()
-            result = await comfy.upload_asset(
+            # 上传到 ComfyUI input 目录（LoadImage 节点需要 input 目录下的文件）
+            result = await comfy.upload_image(
                 file_bytes=file_bytes,
                 filename=file_item.filename or "upload.bin",
-                tags=tags_list,
-                user_metadata={"uploader": "custom_webui"},
             )
-            # 记录 blake3 哈希 → 文件名 映射，供后续 build_prompt_graph 解析
-            asset_hash = result.get("hash") or result.get("asset_hash")
-            asset_name = result.get("name")
-            if asset_hash and asset_name:
-                register_asset_file(asset_hash, asset_name)
+            # 提取 asset_hash（blake3 哈希）供前端使用
+            asset = result.get("asset", {})
+            asset_hash = asset.get("asset_hash") if isinstance(asset, dict) else None
+            if asset_hash:
+                result["hash"] = asset_hash
+                # 同时保持原始字段名兼容
+                if "asset_hash" not in result:
+                    result["asset_hash"] = asset_hash
+                # 记录 blake3 哈希 → input 文件名 映射，供 build_prompt_graph 解析
+                name = result.get("name")
+                if name:
+                    register_asset_file(asset_hash, name)
             return web.json_response(result)
         except aiohttp.ClientError as e:
             return comfy_down_response(e)

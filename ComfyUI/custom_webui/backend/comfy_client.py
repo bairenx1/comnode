@@ -112,16 +112,14 @@ class ComfyClient:
             if resp.status >= 400:
                 try:
                     body = await resp.json()
-                    err_msg = body.get("error", {})
-                    if isinstance(err_msg, dict):
-                        err_msg = err_msg.get("message", str(body))
                 except Exception:
-                    err_msg = await resp.text()
+                    body = await resp.text()
+                # 将完整响应体附加到异常中，供上层提取 node_errors 等详情
                 raise aiohttp.ClientResponseError(
                     resp.request_info,
                     resp.history,
                     status=resp.status,
-                    message=f"{err_msg}",
+                    message=json.dumps(body, ensure_ascii=False),
                     headers=resp.headers,
                 )
             return await resp.json()

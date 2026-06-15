@@ -76,6 +76,11 @@ class WorkflowRegistry:
         graph = json.loads(definition.workflow_file.read_text(encoding="utf-8"))
         graph = copy.deepcopy(graph)
 
+        # 构建字段类型查找表，用于类型转换
+        field_types: dict[str, str] = {}
+        for f in definition.ui_schema.get("fields", []):
+            field_types[f["name"]] = f.get("type", "string")
+
         merged_params = dict(params)
         if asset_hashes:
             merged_params.update(asset_hashes)
@@ -89,9 +94,32 @@ class WorkflowRegistry:
                 resolved = asset_hashes.get(value)
                 if resolved:
                     value = resolved
+            # 根据 ui_schema 类型转换参数值，确保 ComfyUI 验证通过
+            value = self._coerce_param_type(value, field_types.get(ui_field, "string"))
             self._set_graph_value(graph, target, value)
 
         return graph, None
+
+    @staticmethod
+    def _coerce_param_type(value: Any, field_type: str) -> Any:
+        """将参数值转换为 ui_schema 声明的类型，避免 ComfyUI 验证类型不匹配。"""
+        if value is None:
+            return value
+        if field_type == "number":
+            if isinstance(value, str):
+                try:
+                    return int(value)
+                except ValueError:
+                    try:
+                        return float(value)
+                    except ValueError:
+                        return value
+            return value
+        if field_type == "boolean":
+            if isinstance(value, str):
+                return value.lower() in ("true", "1", "yes", "on")
+            return bool(value)
+        return value  # string / combo 保持原样
 
     @staticmethod
     def _set_graph_value(graph: dict[str, Any], target: str, value: Any) -> None:

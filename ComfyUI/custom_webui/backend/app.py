@@ -29,6 +29,13 @@ def create_app() -> web.Application:
         status = 503
         # 如果是 ComfyUI 返回的 4xx/5xx，透传真正错误
         if isinstance(err, aiohttp.ClientResponseError):
+            # ComfyUI 验证失败 (400) 返回详细错误，直接透传给前端
+            if err.status == 400:
+                try:
+                    body = json.loads(msg)
+                except (json.JSONDecodeError, TypeError):
+                    body = {"error": msg}
+                return web.json_response(body, status=400)
             status = 502
             hint = f"ComfyUI 返回错误 ({err.status}): {msg}"
         else:

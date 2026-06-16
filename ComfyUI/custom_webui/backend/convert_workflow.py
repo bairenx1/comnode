@@ -603,6 +603,109 @@ def _is_uuid_redundant(outer_nodes, inner_nodes, uuid_nid):
     return inner_sigs.issubset(outer_sigs)
 
 
+# 流水线节点类型：UUID 子图中除了模型加载器外的关键处理节点
+# 当这些节点在子图内外都存在时，说明整个执行链冗余
+_PIPELINE_TYPES = {
+    'KSampler', 'KSamplerAdvanced',
+    'CFGNorm', 'ModelSamplingAuraFlow',
+    'VAEEncode', 'VAEDecode',
+    'FluxKontextImageScale',
+    'VAELoader', 'CLIPLoader', 'UNETLoader',
+    'CheckpointLoaderSimple', 'CheckpointLoader', 'DualCLIPLoader',
+    'LoraLoaderModelOnly',
+    # 控制和参数节点：匹配以保证 field_mapping 等引用正确重定向
+    'PrimitiveInt', 'PrimitiveFloat', 'PrimitiveBoolean',
+    'INTConstant', 'ComfySwitchNode', 'ComfyNumberConvert',
+}
+
+
+def _is_uuid_fully_redundant(outer_nodes, inner_nodes, uuid_nid) -> bool:
+    """检查 UUID Group Node 是否完全冗余（包括流水线节点和模型加载器）
+
+    当子图的所有关键节点类型在外层都存在至少同数量时，认为完全冗余，
+    可以跳过 UUID 展开，直接使用外层节点。
+    """
+    def _count_types(node_list, exclude_id=None):
+        counts: dict[str, int] = {}
+        text_encode_count = 0
+        for node in node_list:
+            nid = str(node.get('id', ''))
+            if exclude_id is not None and nid == exclude_id:
+                continue
+            ntype = node.get('type', '')
+            if ntype in _PIPELINE_TYPES:
+                counts[ntype] = counts.get(ntype, 0) + 1
+            # TextEncode 变体统一计数（不同模型有不同的 TextEncode 节点名）
+            if 'TextEncode' in ntype:
+                text_encode_count += 1
+        if text_encode_count > 0:
+            counts['__TextEncode__'] = text_encode_count
+        return counts
+
+    inner_counts = _count_types(inner_nodes)
+    if not inner_counts:
+        return False
+    outer_counts = _count_types(outer_nodes, exclude_id=uuid_nid)
+
+    # 每种内层节点类型，外层都需要至少有同数量
+    for ntype, count in inner_counts.items():
+        if outer_counts.get(ntype, 0) < count:
+            return False
+    return True
+
+
+def _build_full_redundant_map(
+    outer_nodes, inner_nodes, uuid_nid, graph: dict | None = None
+) -> dict[str, str] | None:
+    """构建完整的内部节点→外部节点映射
+
+    仅当 UUID 完全冗余时返回映射表，否则返回 None。
+    映射表包含模型加载器和流水线节点的对应关系。
+    """
+    if not _is_uuid_fully_redundant(outer_nodes, inner_nodes, uuid_nid):
+        return None
+
+    outer_by_type: dict[str, list[str]] = {}
+    for node in outer_nodes:
+        nid = str(node.get('id', ''))
+        if nid == uuid_nid:
+            continue
+        ntype = node.get('type', '')
+        key = ntype if ntype in _PIPELINE_TYPES else ('__TextEncode__' if 'TextEncode' in ntype else None)
+        if key:
+            outer_by_type.setdefault(key, []).append(nid)
+
+    # 也需要处理 graph 中已有的节点（已展开的其他 UUID 可能提供了等效节点）
+    if graph:
+        for nid, nd in graph.items():
+            if nid == uuid_nid:
+                continue
+            ctype = nd.get('class_type', '')
+            key = ctype if ctype in _PIPELINE_TYPES else ('__TextEncode__' if 'TextEncode' in ctype else None)
+            if key and nid not in outer_by_type.get(key, []):
+                outer_by_type.setdefault(key, []).append(nid)
+
+    inner_by_type: dict[str, list[str]] = {}
+    for node in inner_nodes:
+        nid = str(node.get('id', ''))
+        ntype = node.get('type', '')
+        key = ntype if ntype in _PIPELINE_TYPES else ('__TextEncode__' if 'TextEncode' in ntype else None)
+        if key:
+            inner_by_type.setdefault(key, []).append(nid)
+
+    result: dict[str, str] = {}
+    for ntype, inner_ids in inner_by_type.items():
+        outer_ids = outer_by_type.get(ntype, [])
+        if len(outer_ids) < len(inner_ids):
+            return None  # 外层不够，不能完全映射
+        # 按出现顺序一一对应
+        for i, inner_id in enumerate(inner_ids):
+            if i < len(outer_ids):
+                result[inner_id] = outer_ids[i]
+
+    return result
+
+
 def _build_redundant_loader_map(
     outer_nodes, inner_nodes, uuid_nid
 ) -> dict[str, str]:
@@ -948,6 +1051,10 @@ def convert_native_to_api(native_data, definitions=None):
                 redundant_loader_map = _build_redundant_loader_map(
                     nodes, subgraph_data['nodes'], nid
                 )
+                # 构建完整的内部→外部节点映射（流水线+加载器）
+                full_redundant_map = _build_full_redundant_map(
+                    nodes, subgraph_data['nodes'], nid
+                )
 
                 node_api[nid] = {
                     'class_type': ntype,
@@ -960,6 +1067,7 @@ def convert_native_to_api(native_data, definitions=None):
                         'links': subgraph_data.get('links', []),
                         'wrapper_input_names': [inp.get('name', '') for inp in node_inputs],
                         'redundant_loader_map': redundant_loader_map,
+                        'full_redundant_map': full_redundant_map,
                     },
                 }
 
@@ -1484,6 +1592,66 @@ def _inline_uuid_wrappers(
             else:
                 new_minus20[slot] = (new_origin_id or origin_id, origin_slot)
         wd['minus20_outputs'] = new_minus20
+
+    # ===== Phase 3.5: 处理完全冗余的 UUID 包装器（跳过展开，直接重映射） =====
+    fully_redundant_ids: set[str] = set()
+    for wrapper_id in list(wrapper_ids):
+        wd = wrapper_data[wrapper_id]
+        full_redundant_map: dict[str, str] | None = wd['comfy_def'].get('full_redundant_map')
+        if not full_redundant_map:
+            continue
+
+        # 构建输出重映射：(wrapper_id, slot) → (outer_nid, outer_slot)
+        output_rewire: dict[tuple[str, str], tuple[str, int]] = {}
+        # Phase 3 已将 minus20 的 origin_id 从原始内部 ID 改写为 id_remap 形式
+        # （如 '453' → '466__453'），需要反转回原始 ID 以匹配 full_redundant_map
+        id_remap = wd['id_remap']
+        reverse_remap: dict[str, str] = {v: k for k, v in id_remap.items()}
+        minus20 = wd['minus20_outputs']
+
+        for slot, (origin_id, origin_slot) in minus20.items():
+            # 尝试用原始 ID 或反转后的 ID 查找
+            outer_id = full_redundant_map.get(origin_id)
+            if not outer_id:
+                raw_origin = reverse_remap.get(origin_id, origin_id)
+                outer_id = full_redundant_map.get(raw_origin)
+            if outer_id:
+                output_rewire[(wrapper_id, str(slot))] = (outer_id, origin_slot)
+
+        if not output_rewire:
+            continue  # 无法构建输出映射，退回到正常展开
+
+        # 重映射所有节点中引用此 wrapper 输出的地方
+        for nid, nd in graph.items():
+            if nid == wrapper_id:
+                continue
+            for inp_key, inp_val in nd.get('inputs', {}).items():
+                if isinstance(inp_val, list) and len(inp_val) == 2:
+                    ref_key = (str(inp_val[0]), str(inp_val[1]))
+                    if ref_key in output_rewire:
+                        nd['inputs'][inp_key] = list(output_rewire[ref_key])
+
+        # 从图中删除完全冗余的 wrapper
+        del graph[wrapper_id]
+        fully_redundant_ids.add(wrapper_id)
+
+        # 更新 field_mapping：指向此 wrapper 的映射需要重定向
+        for fname, target in list(new_mapping.items()):
+            parts = target.split('.')
+            if len(parts) >= 2 and parts[0] == wrapper_id:
+                inner_old_id = parts[1] if len(parts) > 1 else ''
+                outer_id = full_redundant_map.get(inner_old_id)
+                if outer_id:
+                    new_target = f'{outer_id}.' + '.'.join(parts[2:])
+                    new_mapping[fname] = new_target
+
+    # 从后续处理中移除已处理的冗余 wrapper
+    wrapper_ids = [w for w in wrapper_ids if w not in fully_redundant_ids]
+    for fid in fully_redundant_ids:
+        wrapper_data.pop(fid, None)
+
+    if not wrapper_ids:
+        return new_mapping
 
     # ===== Phase 4: 推广内部节点到主图（解析 -10 引用 + GetNode 引用 + 冗余加载器去重） =====
     for wrapper_id in wrapper_ids:

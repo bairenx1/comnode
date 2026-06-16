@@ -554,6 +554,36 @@ def _is_seed_name(inp_name: str, label: str = '') -> bool:
     return name_lower in ('noise_seed', 'seed') or 'seed' in label_lower
 
 
+def _is_uuid_redundant(outer_nodes, inner_nodes, uuid_nid):
+    """检查 UUID Group Node 内部的模型加载器是否已在外部存在（冗余模板）"""
+    primary_loaders = {'CLIPLoader', 'UNETLoader', 'VAELoader',
+                       'CheckpointLoaderSimple', 'CheckpointLoader', 'DualCLIPLoader'}
+
+    def _get_sigs(node_list, exclude_id=None):
+        sigs = set()
+        for node in node_list:
+            if exclude_id is not None and node.get('id') == exclude_id:
+                continue
+            ntype = node.get('type', '')
+            if ntype not in primary_loaders:
+                continue
+            wv = node.get('widgets_values', [])
+            model_name = None
+            if isinstance(wv, list) and len(wv) > 0:
+                model_name = wv[0]
+            elif isinstance(wv, dict):
+                model_name = list(wv.values())[0] if wv else None
+            if model_name and isinstance(model_name, str) and model_name.strip():
+                sigs.add((ntype, model_name))
+        return sigs
+
+    inner_sigs = _get_sigs(inner_nodes)
+    if not inner_sigs:
+        return False
+    outer_sigs = _get_sigs(outer_nodes, exclude_id=uuid_nid)
+    return inner_sigs.issubset(outer_sigs)
+
+
 def convert_native_to_api(native_data, definitions=None):
     nodes = native_data.get('nodes', [])
     links = native_data.get('links', [])
@@ -624,6 +654,10 @@ def convert_native_to_api(native_data, definitions=None):
         # 如果是子图引用（无嵌入子节点）→ 保留它，ComfyUI 运行时解析
         if UUID_TYPE_RE.match(ntype):
             if subgraph_data and isinstance(subgraph_data, dict) and subgraph_data.get('nodes'):
+                # 检查 UUID 模板是否与外部手动搭建的节点重复
+                # 如果内部模型加载器在外部已存在（同类型+同模型），则跳过此冗余模板
+                if _is_uuid_redundant(nodes, subgraph_data['nodes'], nid):
+                    continue
                 # 有嵌入子图：展开内部节点，跳过 UUID 包装器
                 sub_api, sub_mapping, sub_fields = convert_native_to_api(
                     {'nodes': subgraph_data['nodes'], 'links': subgraph_data.get('links', [])},

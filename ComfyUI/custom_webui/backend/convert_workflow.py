@@ -594,7 +594,8 @@ def _build_redundant_loader_map(
     _inline_uuid_wrappers 使用此映射跳过内部加载器并重映射引用到外部节点。
     """
     primary_loaders = {'CLIPLoader', 'UNETLoader', 'VAELoader',
-                       'CheckpointLoaderSimple', 'CheckpointLoader', 'DualCLIPLoader'}
+                       'CheckpointLoaderSimple', 'CheckpointLoader', 'DualCLIPLoader',
+                       'LoraLoaderModelOnly'}
 
     # 外部加载器：(type, model_name) → node_id
     outer_by_sig: dict[tuple[str, str], str] = {}

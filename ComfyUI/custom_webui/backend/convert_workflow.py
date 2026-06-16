@@ -584,6 +584,53 @@ def _is_uuid_redundant(outer_nodes, inner_nodes, uuid_nid):
     return inner_sigs.issubset(outer_sigs)
 
 
+def _build_redundant_loader_map(
+    outer_nodes, inner_nodes, uuid_nid
+) -> dict[str, str]:
+    """构建内部模型加载器 ID → 外部等效节点 ID 的映射表
+
+    当 UUID Group Node 内部的模型加载器与外部重复时，
+    _inline_uuid_wrappers 使用此映射跳过内部加载器并重映射引用到外部节点。
+    """
+    primary_loaders = {'CLIPLoader', 'UNETLoader', 'VAELoader',
+                       'CheckpointLoaderSimple', 'CheckpointLoader', 'DualCLIPLoader'}
+
+    # 外部加载器：(type, model_name) → node_id
+    outer_by_sig: dict[tuple[str, str], str] = {}
+    for node in outer_nodes:
+        if node.get('id') == uuid_nid:
+            continue
+        ntype = node.get('type', '')
+        if ntype not in primary_loaders:
+            continue
+        wv = node.get('widgets_values', [])
+        model_name = None
+        if isinstance(wv, list) and len(wv) > 0:
+            model_name = wv[0]
+        elif isinstance(wv, dict):
+            model_name = list(wv.values())[0] if wv else None
+        if model_name and isinstance(model_name, str) and model_name.strip():
+            outer_by_sig[(ntype, model_name)] = str(node['id'])
+
+    result: dict[str, str] = {}
+    for node in inner_nodes:
+        ntype = node.get('type', '')
+        if ntype not in primary_loaders:
+            continue
+        wv = node.get('widgets_values', [])
+        model_name = None
+        if isinstance(wv, list) and len(wv) > 0:
+            model_name = wv[0]
+        elif isinstance(wv, dict):
+            model_name = list(wv.values())[0] if wv else None
+        if model_name and isinstance(model_name, str) and model_name.strip():
+            sig = (ntype, model_name)
+            if sig in outer_by_sig:
+                result[str(node['id'])] = outer_by_sig[sig]
+
+    return result
+
+
 def convert_native_to_api(native_data, definitions=None):
     nodes = native_data.get('nodes', [])
     links = native_data.get('links', [])
@@ -605,7 +652,7 @@ def convert_native_to_api(native_data, definitions=None):
     for node in nodes:
         ntype = node.get('type', '')
         if UUID_TYPE_RE.match(ntype) and ntype in subgraph_defs:
-            if not node.get('subgraph'):
+            if not node.get('subgraph') or not node['subgraph'].get('nodes'):
                 node['subgraph'] = subgraph_defs[ntype]
 
     link_map, reverse_map = _build_link_maps(nodes, links)
@@ -654,11 +701,8 @@ def convert_native_to_api(native_data, definitions=None):
         # 如果是子图引用（无嵌入子节点）→ 保留它，ComfyUI 运行时解析
         if UUID_TYPE_RE.match(ntype):
             if subgraph_data and isinstance(subgraph_data, dict) and subgraph_data.get('nodes'):
-                # 检查 UUID 模板是否与外部手动搭建的节点重复
-                # 如果内部模型加载器在外部已存在（同类型+同模型），则跳过此冗余模板
-                if _is_uuid_redundant(nodes, subgraph_data['nodes'], nid):
-                    continue
                 # 有嵌入子图：展开内部节点，跳过 UUID 包装器
+                # 如果内部模型加载器在外部已存在，标记为冗余供 _inline_uuid_wrappers 去重
                 sub_api, sub_mapping, sub_fields = convert_native_to_api(
                     {'nodes': subgraph_data['nodes'], 'links': subgraph_data.get('links', [])},
                     definitions=definitions,
@@ -828,6 +872,11 @@ def convert_native_to_api(native_data, definitions=None):
                 # UUID Group Node 的内部子图字段不暴露到 UI
                 # proxyWidgets 已将必要参数映射到包装器输入，子图内部字段为实现细节
 
+                # 构建内部→外部模型加载器映射（供 _inline_uuid_wrappers 去重）
+                redundant_loader_map = _build_redundant_loader_map(
+                    nodes, subgraph_data['nodes'], nid
+                )
+
                 node_api[nid] = {
                     'class_type': ntype,
                     'inputs': inputs,
@@ -838,6 +887,7 @@ def convert_native_to_api(native_data, definitions=None):
                         'nodes': subgraph_data['nodes'],
                         'links': subgraph_data.get('links', []),
                         'wrapper_input_names': [inp.get('name', '') for inp in node_inputs],
+                        'redundant_loader_map': redundant_loader_map,
                     },
                 }
 
@@ -1310,6 +1360,7 @@ def _inline_uuid_wrappers(
             'slot_to_external': slot_to_external,
             'subgraph': subgraph,
             'comfy_def': comfy_def,
+            'redundant_loader_map': comfy_def.get('redundant_loader_map', {}),
         }
 
     # ===== Phase 2: 将 setnode_map 中的 UUID wrapper 输出引用解析为内部节点 =====
@@ -1362,15 +1413,35 @@ def _inline_uuid_wrappers(
                 new_minus20[slot] = (new_origin_id or origin_id, origin_slot)
         wd['minus20_outputs'] = new_minus20
 
-    # ===== Phase 4: 推广内部节点到主图（解析 -10 引用 + GetNode 引用） =====
+    # ===== Phase 4: 推广内部节点到主图（解析 -10 引用 + GetNode 引用 + 冗余加载器去重） =====
     for wrapper_id in wrapper_ids:
         wd = wrapper_data[wrapper_id]
         id_remap = wd['id_remap']
         slot_to_external = wd['slot_to_external']
         node_defaults = wd['node_defaults']
         subgraph = wd['subgraph']
+        redundant_loader_map: dict[str, str] = wd.get('redundant_loader_map', {})
+
+        # 构建冗余加载器重映射：内部 old_id → 外部 node_id（外部节点已在主图中，无需加前缀）
+        redundant_remap: dict[str, str] = {}
+        for inner_old_id, outer_nid in redundant_loader_map.items():
+            # 外部节点已在 graph 中，直接使用其 ID
+            if outer_nid in graph:
+                redundant_remap[inner_old_id] = outer_nid
+
+        # 修复 minus20_outputs 中指向冗余加载器的引用
+        new_minus20: dict[int, tuple[str, int]] = {}
+        for slot, (origin_id, origin_slot) in list(wd['minus20_outputs'].items()):
+            if origin_id in redundant_remap:
+                # 输出来自冗余加载器 → 重映射到外部加载器
+                new_minus20[slot] = (redundant_remap[origin_id], origin_slot)
+        wd['minus20_outputs'].update(new_minus20)
 
         for old_id, node_data in subgraph.items():
+            # 跳过冗余加载器节点（不推广到主图）
+            if old_id in redundant_remap:
+                continue
+
             new_id = id_remap[str(old_id)]
             new_node = copy.deepcopy(node_data)
 
@@ -1386,10 +1457,13 @@ def _inline_uuid_wrappers(
                             new_node['inputs'][inp_key] = defaults[inp_key]
                         else:
                             new_node['inputs'][inp_key] = None
-                # 重映射内部节点引用（含 GetNode 解析）
+                # 重映射内部节点引用（含冗余加载器 + GetNode 解析）
                 elif isinstance(inp_val, list) and len(inp_val) == 2 and isinstance(inp_val[0], str):
                     ref_old_id = inp_val[0]
-                    if ref_old_id in id_remap:
+                    # 优先检查是否引用冗余加载器 → 重映射到外部等效节点
+                    if ref_old_id in redundant_remap:
+                        new_node['inputs'][inp_key] = [redundant_remap[ref_old_id], inp_val[1]]
+                    elif ref_old_id in id_remap:
                         ref_new_id = id_remap[ref_old_id]
                         if ref_new_id in getnode_resolve:
                             resolved = getnode_resolve[ref_new_id]
@@ -1411,13 +1485,16 @@ def _inline_uuid_wrappers(
 
         processed_ids = set(id_remap.values()) | all_wrapper_ids
         for wrapper_slot, (internal_id, internal_slot) in minus20_outputs.items():
+            # 解析 internal_id：如果已在 id_remap 中（原始内部节点），取映射后的新 ID；
+            # 否则可能是已解析的外部节点 ID（冗余加载器）或 GetNode 结果，直接使用
+            resolved_id = id_remap.get(internal_id, internal_id)
             for nid, nd in graph.items():
                 if nid in processed_ids:
                     continue
                 for inp_key, inp_val in nd.get('inputs', {}).items():
                     if (isinstance(inp_val, list) and len(inp_val) == 2
                             and inp_val[0] == wrapper_id and inp_val[1] == wrapper_slot):
-                        nd['inputs'][inp_key] = [internal_id, internal_slot]
+                        nd['inputs'][inp_key] = [resolved_id, internal_slot]
 
         # 更新 field_mapping
         for fname, target in list(new_mapping.items()):

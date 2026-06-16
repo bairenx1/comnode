@@ -1183,22 +1183,51 @@ def convert_native_to_api(native_data, definitions=None):
         if inputs or is_uuid_ref:
             node_api[nid] = {'class_type': ntype, 'inputs': inputs}
 
+    # 构建 SetNode → 源节点 映射表（用于解析 UUID 子图中的 GetNode 引用）
+    # SetNode/GetNode 是 KJNodes 的前端虚拟连接系统：
+    #   SetNode（具名锚点）← 源节点输出
+    #   GetNode（同名查找）→ 下游节点，运行时透明代理到 SetNode 的输入值
+    # 在 UUID 子图展开时，需将 GetNode 引用解析为实际源节点
+    setnode_map: dict[str, tuple[str, int]] = {}
+    for node in nodes:
+        if node.get('type') == 'SetNode':
+            wv = node.get('widgets_values', [])
+            name = wv[0] if isinstance(wv, list) and wv else ''
+            if not name:
+                continue
+            for inp in node.get('inputs', []):
+                link_id = inp.get('link')
+                if link_id is not None and link_id in link_map:
+                    src_nid, src_slot, _, _ = link_map[link_id]
+                    setnode_map[name] = (src_nid, src_slot)
+                    break
+
     # 后处理：展开 UUID Group Node 包装器，使输出 API 格式不再包含 UUID class_type
-    field_mapping = _inline_uuid_wrappers(node_api, field_mapping)
+    field_mapping = _inline_uuid_wrappers(node_api, field_mapping, setnode_map)
 
     return node_api, field_mapping, ui_fields
 
 
-def _inline_uuid_wrappers(graph: dict[str, Any], field_mapping: dict[str, str]) -> dict[str, str]:
+def _inline_uuid_wrappers(
+    graph: dict[str, Any],
+    field_mapping: dict[str, str],
+    setnode_map: dict[str, tuple[str, int]] | None = None,
+) -> dict[str, str]:
     """展开所有 UUID Group Node 包装器，将其 _subgraph 中的内部节点提升到主图
 
     在 convert_native_to_api 完成后调用，一次性完成子图展开。
     返回更新后的 field_mapping（两段式路径 "wrapper.internal.inputs.key" 已更新为 "wrapper__internal.inputs.key"）。
 
-    分两趟处理：
-    1. 第一趟：收集所有 wrapper 数据，将所有内部节点推广到主图（先不删 wrapper）
-    2. 第二趟：解析所有 -20 引用（此时所有推广节点已就位，跨 wrapper 引用可正确解析）
+    处理流程（五阶段）：
+    1. 收集所有 wrapper 数据（id_remap、-20 输出、节点默认值等）
+    2. 将 setnode_map 中的 UUID wrapper 输出引用解析为内部节点
+    3. 为每个 wrapper 构建 GetNode → 实际源节点 的解析表
+    4. 推广内部节点到主图（解析 -10 引用 + GetNode 引用）
+    5. 解析 -20 引用 + 删除 wrapper + 更新 field_mapping
     """
+    if setnode_map is None:
+        setnode_map = {}
+
     wrapper_ids = [
         nid for nid, nd in graph.items()
         if isinstance(nd, dict) and UUID_TYPE_RE.match(nd.get('class_type', ''))
@@ -1208,11 +1237,9 @@ def _inline_uuid_wrappers(graph: dict[str, Any], field_mapping: dict[str, str]) 
         return field_mapping
 
     new_mapping = dict(field_mapping)
-
-    # 每个 wrapper 的中间数据
     wrapper_data: dict[str, dict[str, Any]] = {}
 
-    # ========== 第一趟：推广所有内部节点 ==========
+    # ===== Phase 1: 收集所有 wrapper 数据 =====
     for wrapper_id in wrapper_ids:
         wrapper = graph[wrapper_id]
         subgraph = wrapper.get('_subgraph', {})
@@ -1220,18 +1247,18 @@ def _inline_uuid_wrappers(graph: dict[str, Any], field_mapping: dict[str, str]) 
         wrapper_inputs = wrapper.get('inputs', {})
         wrapper_input_names = comfy_def.get('wrapper_input_names', [])
 
-        # 构建 slot → 外部连接 映射
+        # slot → 外部连接映射
         slot_to_external: dict[int, list] = {}
         for slot_idx, name in enumerate(wrapper_input_names):
             if name in wrapper_inputs:
                 slot_to_external[slot_idx] = wrapper_inputs[name]
 
-        # 构建 ID 重映射表
+        # ID 重映射表
         prefix = f'{wrapper_id}__'
         id_remap: dict[str, str] = {}
         for old_id in subgraph:
             id_remap[str(old_id)] = f'{prefix}{old_id}'
-        # 补充透传节点（GetNode 无 inputs，不在 subgraph 中）
+        # 补充 GetNode 透传节点
         subgraph_native_ids = set()
         for native_node in comfy_def.get('nodes', []):
             nn_id = str(native_node.get('id', ''))
@@ -1244,7 +1271,7 @@ def _inline_uuid_wrappers(graph: dict[str, Any], field_mapping: dict[str, str]) 
                 if ntype == 'GetNode':
                     id_remap[nn_id] = f'{prefix}{nn_id}'
 
-        # 构建内部节点默认值映射
+        # 内部节点默认值
         node_defaults: dict[str, dict[str, Any]] = {}
         for native_node in comfy_def.get('nodes', []):
             nn_id = str(native_node.get('id', ''))
@@ -1264,7 +1291,7 @@ def _inline_uuid_wrappers(graph: dict[str, Any], field_mapping: dict[str, str]) 
                         node_defaults[nn_id][inp['name']] = val
                     widget_idx += 1
 
-        # 解析 -20 引用
+        # -20 输出引用
         minus20_outputs: dict[int, tuple[str, int]] = {}
         for link in comfy_def.get('links', []):
             if isinstance(link, dict):
@@ -1276,13 +1303,73 @@ def _inline_uuid_wrappers(graph: dict[str, Any], field_mapping: dict[str, str]) 
                 if str(link[3]) == '-20':
                     minus20_outputs[link[4]] = (str(link[1]), link[2])
 
-        # 保存 wrapper 数据供第二趟使用
         wrapper_data[wrapper_id] = {
             'id_remap': id_remap,
             'minus20_outputs': minus20_outputs,
+            'node_defaults': node_defaults,
+            'slot_to_external': slot_to_external,
+            'subgraph': subgraph,
+            'comfy_def': comfy_def,
         }
 
-        # 复制内部节点到主图
+    # ===== Phase 2: 将 setnode_map 中的 UUID wrapper 输出引用解析为内部节点 =====
+    resolved_setnode: dict[str, list] = {}
+    for name, (src_nid, src_slot) in setnode_map.items():
+        if src_nid in wrapper_data:
+            wd = wrapper_data[src_nid]
+            if src_slot in wd['minus20_outputs']:
+                internal_id, internal_slot = wd['minus20_outputs'][src_slot]
+                new_internal_id = wd['id_remap'].get(internal_id)
+                if new_internal_id:
+                    resolved_setnode[name] = [new_internal_id, internal_slot]
+                    continue
+        # 非 UUID 源或无法解析：保持原始引用
+        resolved_setnode[name] = [src_nid, src_slot]
+
+    # ===== Phase 3: 构建 GetNode 解析表 + 修复 minus20_outputs =====
+    # getnode_resolve: GetNode new_id -> [src_nid, src_slot] 或 None（无法解析）
+    getnode_resolve: dict[str, list | None] = {}
+    for wrapper_id in wrapper_ids:
+        wd = wrapper_data[wrapper_id]
+        for native_node in wd['comfy_def'].get('nodes', []):
+            if native_node.get('type') != 'GetNode':
+                continue
+            old_id = str(native_node.get('id', ''))
+            if not old_id:
+                continue
+            new_id = wd['id_remap'].get(old_id)
+            if not new_id:
+                continue
+            wv = native_node.get('widgets_values', [])
+            key = wv[0] if isinstance(wv, list) and wv else ''
+            if key and key in resolved_setnode:
+                getnode_resolve[new_id] = list(resolved_setnode[key])
+            else:
+                getnode_resolve[new_id] = None
+
+    # 修复 minus20_outputs 中指向 GetNode 的引用
+    for wrapper_id in wrapper_ids:
+        wd = wrapper_data[wrapper_id]
+        new_minus20: dict[int, tuple[str, int]] = {}
+        for slot, (origin_id, origin_slot) in wd['minus20_outputs'].items():
+            new_origin_id = wd['id_remap'].get(origin_id)
+            if new_origin_id and new_origin_id in getnode_resolve:
+                resolved = getnode_resolve[new_origin_id]
+                if resolved is not None:
+                    new_minus20[slot] = (resolved[0], resolved[1])
+                # resolved 为 None 时跳过此输出槽位
+            else:
+                new_minus20[slot] = (new_origin_id or origin_id, origin_slot)
+        wd['minus20_outputs'] = new_minus20
+
+    # ===== Phase 4: 推广内部节点到主图（解析 -10 引用 + GetNode 引用） =====
+    for wrapper_id in wrapper_ids:
+        wd = wrapper_data[wrapper_id]
+        id_remap = wd['id_remap']
+        slot_to_external = wd['slot_to_external']
+        node_defaults = wd['node_defaults']
+        subgraph = wd['subgraph']
+
         for old_id, node_data in subgraph.items():
             new_id = id_remap[str(old_id)]
             new_node = copy.deepcopy(node_data)
@@ -1299,45 +1386,38 @@ def _inline_uuid_wrappers(graph: dict[str, Any], field_mapping: dict[str, str]) 
                             new_node['inputs'][inp_key] = defaults[inp_key]
                         else:
                             new_node['inputs'][inp_key] = None
-                # 重映射内部节点引用
+                # 重映射内部节点引用（含 GetNode 解析）
                 elif isinstance(inp_val, list) and len(inp_val) == 2 and isinstance(inp_val[0], str):
-                    if inp_val[0] in id_remap:
-                        new_node['inputs'][inp_key] = [id_remap[inp_val[0]], inp_val[1]]
+                    ref_old_id = inp_val[0]
+                    if ref_old_id in id_remap:
+                        ref_new_id = id_remap[ref_old_id]
+                        if ref_new_id in getnode_resolve:
+                            resolved = getnode_resolve[ref_new_id]
+                            if resolved is not None:
+                                new_node['inputs'][inp_key] = list(resolved)
+                            else:
+                                del new_node['inputs'][inp_key]
+                        else:
+                            new_node['inputs'][inp_key] = [ref_new_id, inp_val[1]]
 
             graph[new_id] = new_node
 
-        # 为透传节点（GetNode）创建占位条目
-        for native_node in comfy_def.get('nodes', []):
-            old_id = str(native_node.get('id', ''))
-            if not old_id or old_id in subgraph:
-                continue
-            ntype = native_node.get('type', '')
-            if ntype == 'GetNode':
-                new_id = id_remap[old_id]
-                if new_id not in graph:
-                    graph[new_id] = {'class_type': ntype, 'inputs': {}}
-
-    # ========== 第二趟：解析所有 -20 引用 + 删除 wrapper + 更新 field_mapping ==========
+    # ===== Phase 5: 解析 -20 引用 + 删除 wrapper + 更新 field_mapping =====
     all_wrapper_ids = set(wrapper_ids)
     for wrapper_id in wrapper_ids:
         wd = wrapper_data[wrapper_id]
         id_remap = wd['id_remap']
         minus20_outputs = wd['minus20_outputs']
 
-        # 重路由外部消费者：将指向包装器输出的连接改为指向内部输出节点
-        # 跳过所有 wrapper 节点（它们在第二趟后才删除）和当前 wrapper 的内部节点
         processed_ids = set(id_remap.values()) | all_wrapper_ids
         for wrapper_slot, (internal_id, internal_slot) in minus20_outputs.items():
-            internal_new_id = id_remap.get(internal_id)
-            if not internal_new_id:
-                continue
             for nid, nd in graph.items():
                 if nid in processed_ids:
                     continue
                 for inp_key, inp_val in nd.get('inputs', {}).items():
                     if (isinstance(inp_val, list) and len(inp_val) == 2
                             and inp_val[0] == wrapper_id and inp_val[1] == wrapper_slot):
-                        nd['inputs'][inp_key] = [internal_new_id, internal_slot]
+                        nd['inputs'][inp_key] = [internal_id, internal_slot]
 
         # 更新 field_mapping
         for fname, target in list(new_mapping.items()):
@@ -1347,7 +1427,6 @@ def _inline_uuid_wrappers(graph: dict[str, Any], field_mapping: dict[str, str]) 
                     new_target = f"{id_remap[parts[1]]}." + ".".join(parts[2:])
                     new_mapping[fname] = new_target
 
-        # 删除 UUID 包装器节点
         del graph[wrapper_id]
 
     return new_mapping

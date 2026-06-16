@@ -373,14 +373,17 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
           if (f.default !== undefined && f.default !== null) fieldDefaults[f.name] = f.default;
         }
       }
+      const randomSeed = Math.floor(Math.random() * 2**32);
       const jobParams: JobParams = {
         ...fieldDefaults,
         prompt: params.prompt || prompt || fieldDefaults.prompt || "masterpiece, best quality",
         negative_prompt: params.negative_prompt || negativePrompt || fieldDefaults.negative_prompt || undefined,
-        seed: seedFixed ? (params.seed ?? fieldDefaults.seed ?? 0) : Math.floor(Math.random() * 2**32),
         ...params,
         ...imageHashes,
+        seed: seedFixed ? (params.seed ?? fieldDefaults.seed ?? 0) : randomSeed,
       };
+      // 更新 UI 种子输入框为实际使用的值
+      if (!seedFixed) setVal("seed", randomSeed);
       if (imageFields.length > 0 && mode === "i2v") jobParams.frame_count = 16;
       setStatusText("提交任务...");
       const batchResult = await api.queueBatch(workflowId, [{ params: jobParams }], clientId);
@@ -480,9 +483,9 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
           ...fieldDefaults,
           prompt: params.prompt || prompt || fieldDefaults.prompt || "masterpiece, best quality",
           negative_prompt: params.negative_prompt || negativePrompt || fieldDefaults.negative_prompt || undefined,
-          seed: seedFixed ? (baseSeed + i) : Math.floor(Math.random() * 2**32),
           ...params,
           ...imageHashes,
+          seed: seedFixed ? (baseSeed + i) : Math.floor(Math.random() * 2**32),
         } as JobParams,
       }));
       const batchResult = await api.queueBatch(workflowId, jobs, clientId);
@@ -1228,9 +1231,15 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                 <p className="text-[11px] mt-2 font-mono opacity-70 max-w-xs">{error}</p>
               </div>
             ) : generating ? (
-              <div className="text-center">
-                <RefreshCw className="w-16 h-16 mb-4 animate-spin text-accent opacity-40" />
+              <div className="text-center flex flex-col items-center gap-4">
+                <RefreshCw className="w-16 h-16 animate-spin text-accent opacity-40" />
                 <span className="font-mono text-xs tracking-widest opacity-40 uppercase">生成中..</span>
+                <button onClick={handleInterrupt}
+                  className="flex items-center gap-2 bg-danger/20 hover:bg-danger/40 text-danger border border-danger/30 font-bold py-2.5 px-5 rounded-md transition-all active:scale-[0.98] text-sm"
+                >
+                  <XCircle className="w-4 h-4" />
+                  中断生成
+                </button>
               </div>
             ) : (
               <>

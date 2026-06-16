@@ -557,7 +557,8 @@ def _is_seed_name(inp_name: str, label: str = '') -> bool:
 def _is_uuid_redundant(outer_nodes, inner_nodes, uuid_nid):
     """检查 UUID Group Node 内部的模型加载器是否已在外部存在（冗余模板）"""
     primary_loaders = {'CLIPLoader', 'UNETLoader', 'VAELoader',
-                       'CheckpointLoaderSimple', 'CheckpointLoader', 'DualCLIPLoader'}
+                       'CheckpointLoaderSimple', 'CheckpointLoader', 'DualCLIPLoader',
+                       'LoraLoaderModelOnly'}
 
     def _get_sigs(node_list, exclude_id=None):
         sigs = set()

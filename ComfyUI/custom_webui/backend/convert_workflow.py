@@ -54,6 +54,24 @@ def _is_hidden_field_name(name: str) -> bool:
         return True
     return False
 
+
+def _title_to_field_name(title: str) -> str | None:
+    """将用户设置的标题转换为安全的字段名，如 "FPS" → "fps", "Duration (seconds)" → "duration_seconds"
+
+    返回 None 表示标题不可用（空或太短）。
+    """
+    if not title or not isinstance(title, str):
+        return None
+    # 移除括号及其内容，保留主体部分
+    clean = re.sub(r'\([^)]*\)', '', title)
+    # 替换非字母数字为下划线，转小写
+    safe = re.sub(r'[^a-zA-Z0-9一-鿿]+', '_', clean).strip('_').lower()
+    if not safe or len(safe) < 2:
+        return None
+    # 限制长度避免字段名过长
+    return safe[:40]
+
+
 # UUID 格式的 class_type 表示 ComfyUI Group Node（包装器节点），其内部子节点已在图中独立存在
 UUID_TYPE_RE = re.compile(
     r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
@@ -870,6 +888,58 @@ def convert_native_to_api(native_data, definitions=None):
                                 'min': 0,
                                 'max': 0xffffffffffffffff,
                             })
+
+                    # 通用 widget 处理：FLOAT、BOOLEAN、COMBO、非 seed 的 INT 等
+                    else:
+                        # 如果内部节点是模型加载器类型 → 跳过（不暴露到前端）
+                        if internal_nid:
+                            pn = sg_nodes.get(internal_nid)
+                            if pn and pn.get('type', '') in HIDDEN_UI_TYPES:
+                                continue
+                        # 优先用内部节点的标题作为字段名，否则用输入名/label
+                        internal_title = ''
+                        if internal_nid:
+                            pn = sg_nodes.get(internal_nid)
+                            if pn:
+                                internal_title = pn.get('title', '') or ''
+                        field_name = _title_to_field_name(internal_title)
+                        if not field_name:
+                            # 回退到 label 或内部输入名
+                            field_name = _title_to_field_name(label) or _title_to_field_name(internal_inp) or internal_inp
+                        # 若回退名字在隐藏列表中 → 用 wrapper 输入名再试
+                        if _is_hidden_field_name(field_name):
+                            field_name = _title_to_field_name(inp_name) or inp_name
+                        # 内部输入名是模型/VAE/CLIP 选择器且无标题覆盖 → 不暴露
+                        if _is_hidden_field_name(internal_inp) and not internal_title:
+                            continue
+                        if not field_name or field_name in seen_ui_field_names or _is_hidden_field_name(field_name):
+                            continue
+                        # 确定类型
+                        if inp_type == 'BOOLEAN':
+                            field_type = 'boolean'
+                            default_val = bool(proxy_val) if proxy_val is not None else False
+                        elif inp_type in ('INT', 'FLOAT'):
+                            field_type = 'number'
+                            default_val = proxy_val if isinstance(proxy_val, (int, float)) else (0 if inp_type == 'INT' else 0.0)
+                        elif inp_type == 'COMBO':
+                            field_type = 'combo'
+                            default_val = str(proxy_val) if proxy_val is not None else ''
+                        else:
+                            field_type = 'string'
+                            default_val = str(proxy_val) if proxy_val is not None else ''
+                        seen_ui_field_names.add(field_name)
+                        field_mapping[field_name] = inner_target
+                        entry = {'name': field_name, 'type': field_type, 'default': default_val}
+                        if label:
+                            entry['label'] = label
+                        if inp_type == 'COMBO':
+                            pn = sg_nodes.get(internal_nid) if internal_nid else None
+                            pn_inputs = pn.get('inputs', []) if pn else []
+                            for pi in pn_inputs:
+                                if pi.get('name') == internal_inp and isinstance(pi.get('options'), list):
+                                    entry['options'] = pi['options']
+                                    break
+                        ui_fields.append(entry)
 
                 # UUID Group Node 的内部子图字段不暴露到 UI
                 # proxyWidgets 已将必要参数映射到包装器输入，子图内部字段为实现细节

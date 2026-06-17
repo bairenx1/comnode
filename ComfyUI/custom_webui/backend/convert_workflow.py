@@ -1331,7 +1331,8 @@ def _expand_uuid_wrappers(graph: dict[str, Any]) -> dict[str, Any]:
             for link in raw_links:
                 if isinstance(link, dict) and link.get('target_id') == -20:
                     origin_id = str(link['origin_id'])
-                    output_map[link['target_slot']] = (origin_id, link['origin_slot'])
+                    if origin_id in sub_nodes:  # PrimitiveNode 等被跳过，不在 sub_nodes 中
+                        output_map[link['target_slot']] = (origin_id, link['origin_slot'])
 
             # ---- 3. 从 raw_nodes 构建 widget 默认值查找表 ----
             # {internal_nid: {input_name: default_value}}

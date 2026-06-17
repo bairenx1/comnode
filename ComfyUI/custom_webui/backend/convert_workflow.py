@@ -89,8 +89,6 @@ CONNECTOR_TYPES = {
     'TrimVideoLatent', 'VHS_VideoCombine', 'VHS_LoadVideo', 'VHS_LoadVideoPath',
     'SaveAnimatedWEBP', 'SaveAnimatedPNG', 'VideoCombine',
     'EmptyHunyuanLatentVideo', 'EmptySD3LatentVideo',
-    # KJNodes 虚拟连接器：无输入但有输出，被其他节点通过 link 引用，必须保留在图中
-    'GetNode',
 }
 
 # 字段名别名映射 — 统一不同节点类型的同义参数
@@ -651,7 +649,7 @@ def convert_native_to_api(native_data, definitions=None):
         if UUID_TYPE_RE.match(ntype):
             if subgraph_data and isinstance(subgraph_data, dict) and subgraph_data.get('nodes'):
                 # 有嵌入子图：递归转换子图，保持 UUID 折叠状态
-                sub_api, sub_mapping, sub_fields = convert_native_to_api(
+                sub_api, sub_mapping, sub_fields, _ = convert_native_to_api(
                     {'nodes': subgraph_data['nodes'], 'links': subgraph_data.get('links', [])},
                     definitions=definitions,
                 )
@@ -929,7 +927,7 @@ def convert_native_to_api(native_data, definitions=None):
         if subgraph_data and isinstance(subgraph_data, dict):
             sub_nodes = subgraph_data.get('nodes')
             if sub_nodes and not UUID_TYPE_RE.match(ntype):
-                sub_api, sub_mapping, sub_fields = convert_native_to_api(
+                sub_api, sub_mapping, sub_fields, _ = convert_native_to_api(
                     {'nodes': sub_nodes, 'links': subgraph_data.get('links', [])},
                     definitions=definitions,
                 )
@@ -1284,7 +1282,7 @@ def convert_native_to_api(native_data, definitions=None):
                     break
 
     # UUID Group Node 保持折叠状态，在 build_prompt_graph 阶段展开
-    return node_api, field_mapping, ui_fields
+    return node_api, field_mapping, ui_fields, setnode_map
 
 
 def _expand_uuid_wrappers(graph: dict[str, Any]) -> dict[str, Any]:
@@ -1295,6 +1293,16 @@ def _expand_uuid_wrappers(graph: dict[str, Any]) -> dict[str, Any]:
     """
     import copy as _copy
     graph = _copy.deepcopy(graph)
+
+    # 提取全局 SetNode→源节点 映射（由 convert_native_to_api 在转换时构建）
+    setnode_map: dict[str, tuple[str, int]] = {}
+    for k, v in graph.pop('_setnode_map', {}).items():
+        if isinstance(v, list) and len(v) == 2:
+            setnode_map[k] = (str(v[0]), int(v[1]))
+
+    # 记录所有已展开 wrapper 的输出映射，用于后处理修复顺序问题
+    # {wrapper_nid: {output_slot: (internal_nid, internal_slot)}}
+    _wrapper_out_maps: dict[str, dict[int, tuple[str, int]]] = {}
 
     # 收集 UUID 包装器（可能有嵌套，循环处理直到没有）
     while True:
@@ -1328,18 +1336,36 @@ def _expand_uuid_wrappers(graph: dict[str, Any]) -> dict[str, Any]:
                 else:
                     slot_to_external[slot_idx] = None
 
+            # ---- 从 raw_nodes 构建查找表 + 解析 GetNode 引用 ----
+            raw_nodes_map = {str(n['id']): n for n in sg.get('raw_nodes', [])}
+            # GetNode 解析：通过 SetNode 虚拟名称找到实际源节点
+            getnode_resolved: dict[str, list] = {}
+            for in_nid, raw_node in raw_nodes_map.items():
+                if raw_node.get('type') == 'GetNode':
+                    wv = raw_node.get('widgets_values', [])
+                    set_name = wv[0] if isinstance(wv, list) and wv else ''
+                    if set_name and set_name in setnode_map:
+                        src_nid, src_slot = setnode_map[set_name]
+                        getnode_resolved[in_nid] = [src_nid, src_slot]
+
             # ### 2b. 构建 -20 输出映射
-            # {wrapper_output_slot: (internal_nid, internal_slot)}
+            # output_map: {wrapper_output_slot: (internal_nid, internal_slot)}
+            # getnode_output_map: {wrapper_output_slot: [resolved_src_nid, resolved_src_slot]}
             output_map: dict[int, tuple[str, int]] = {}
+            getnode_output_map: dict[int, list] = {}
             for link in raw_links:
                 if isinstance(link, dict) and link.get('target_id') == -20:
                     origin_id = str(link['origin_id'])
-                    if origin_id in sub_nodes:  # PrimitiveNode 等被跳过，不在 sub_nodes 中
+                    if origin_id in sub_nodes:
                         output_map[link['target_slot']] = (origin_id, link['origin_slot'])
+                    elif origin_id in getnode_resolved:
+                        # GetNode 输出 → 用 SetNode 源替换，绕过 GetNode
+                        getnode_output_map[link['target_slot']] = getnode_resolved[origin_id]
 
-            # ---- 3. 从 raw_nodes 构建 widget 默认值查找表 ----
-            # {internal_nid: {input_name: default_value}}
-            raw_nodes_map = {str(n['id']): n for n in sg.get('raw_nodes', [])}
+            # 记录输出映射，供后处理修复顺序问题
+            _wrapper_out_maps[wrapper_nid] = output_map.copy()
+
+            # ---- 3. 构建 widget 默认值查找表 ----
             widget_defaults: dict[str, dict[str, Any]] = {}
 
             def _get_widget_default(raw_node: dict, input_name: str) -> Any | None:
@@ -1380,6 +1406,9 @@ def _expand_uuid_wrappers(graph: dict[str, Any]) -> dict[str, Any]:
                         if out_slot in output_map:
                             in_nid, in_slot = output_map[out_slot]
                             ext_node['inputs'][inp_name] = [id_remap[in_nid], in_slot]
+                        elif out_slot in getnode_output_map:
+                            # GetNode 的 -20 输出：用解析后的 SetNode 源替换
+                            ext_node['inputs'][inp_name] = list(getnode_output_map[out_slot])
 
             # ---- 5. 处理内部节点：更新引用 + 解决 -10 ----
             promoted: dict[str, Any] = {}
@@ -1407,12 +1436,35 @@ def _expand_uuid_wrappers(graph: dict[str, Any]) -> dict[str, Any]:
                                 del new_node['inputs'][inp_name]
                     elif ref_nid in id_remap:
                         new_node['inputs'][inp_name] = [id_remap[ref_nid], ref_slot]
+                    elif ref_nid in getnode_resolved:
+                        # GetNode 引用 → 用 SetNode 源替换
+                        new_node['inputs'][inp_name] = list(getnode_resolved[ref_nid])
 
                 promoted[new_id] = new_node
 
             # ---- 6. 提升内部节点，删除包装器 ----
             graph.update(promoted)
             del graph[wrapper_nid]
+
+    # ---- 7. 后处理：修复因展开顺序导致的死引用 ----
+    # 某些 GetNode 通过 setnode_map 解析为 wrapper ID（如 ["236", 2]），
+    # 但该 wrapper 可能已被先展开并删除。通过 _wrapper_out_maps 二次解析。
+    if _wrapper_out_maps:
+        changed = True
+        while changed:
+            changed = False
+            for node_data in graph.values():
+                for inp_name, inp_val in list(node_data.get('inputs', {}).items()):
+                    if not isinstance(inp_val, list) or len(inp_val) != 2:
+                        continue
+                    ref_nid = str(inp_val[0])
+                    if ref_nid in _wrapper_out_maps:
+                        out_map = _wrapper_out_maps[ref_nid]
+                        ref_slot = inp_val[1]
+                        if ref_slot in out_map:
+                            in_nid, in_slot = out_map[ref_slot]
+                            node_data['inputs'][inp_name] = [f'{ref_nid}__{in_nid}', in_slot]
+                            changed = True
 
     return graph
 
@@ -1439,9 +1491,11 @@ def _convert_workflow_files(source_dir: Path, converted: int, force: bool = Fals
             native = json.loads(fpath.read_text(encoding='utf-8'))
             if 'nodes' not in native:
                 continue
-            api_data, field_mapping, ui_fields = convert_native_to_api(native)
+            api_data, field_mapping, ui_fields, setnode_map = convert_native_to_api(native)
             if not api_data:
                 continue
+            # 存储 SetNode→源节点 映射，供 _expand_uuid_wrappers 解析 GetNode 引用
+            api_data['_setnode_map'] = {k: list(v) for k, v in setnode_map.items()}
             api_path.write_text(json.dumps(api_data, indent=2, ensure_ascii=False), encoding='utf-8')
             name = native.get('extra', {}).get('workflow_name', fpath.stem)
             mapping = {

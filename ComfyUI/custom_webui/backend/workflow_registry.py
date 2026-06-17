@@ -81,6 +81,9 @@ class WorkflowRegistry:
             normalized_wid = wid.strip().replace(' ', '_').replace('-', '_')
             if normalized_wid == normalized_req or normalized_wid in normalized_req or normalized_req in normalized_wid:
                 candidates.append(wid)
+        if len(candidates) == 1:
+            logging.info(f"模糊匹配工作流: '{workflow_id}' → '{candidates[0]}'")
+            return self._definitions[candidates[0]]
         hint = ""
         if candidates:
             hint = f"，是否想用: {', '.join(candidates[:3])}"

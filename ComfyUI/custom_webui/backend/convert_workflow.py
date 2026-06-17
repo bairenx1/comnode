@@ -89,6 +89,8 @@ CONNECTOR_TYPES = {
     'TrimVideoLatent', 'VHS_VideoCombine', 'VHS_LoadVideo', 'VHS_LoadVideoPath',
     'SaveAnimatedWEBP', 'SaveAnimatedPNG', 'VideoCombine',
     'EmptyHunyuanLatentVideo', 'EmptySD3LatentVideo',
+    # KJNodes 虚拟连接器：无输入但有输出，被其他节点通过 link 引用，必须保留在图中
+    'GetNode',
 }
 
 # 字段名别名映射 — 统一不同节点类型的同义参数
@@ -1258,7 +1260,8 @@ def convert_native_to_api(native_data, definitions=None):
                     inputs[inp_name] = [from_node, from_slot]
 
         # UUID 子图引用节点必须保留（ComfyUI 运行时解析），即使 inputs 为空
-        if inputs or is_uuid_ref:
+        # CONNECTOR_TYPES 节点（如 GetNode）也必须保留，因为其他节点通过 link 引用其输出
+        if inputs or is_uuid_ref or ntype in CONNECTOR_TYPES:
             node_api[nid] = {'class_type': ntype, 'inputs': inputs}
 
     # 构建 SetNode → 源节点 映射表（用于解析 UUID 子图中的 GetNode 引用）

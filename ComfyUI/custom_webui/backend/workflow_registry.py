@@ -58,7 +58,10 @@ class WorkflowRegistry:
                 ui_schema=data.get("ui_schema", {}),
                 field_mapping=data.get("field_mapping", {}),
             )
-        logging.info(f"已加载 {len(self._definitions)} 个工作流: {list(self._definitions.keys())}")
+        ids = sorted(self._definitions.keys())
+        logging.info(f"已加载 {len(self._definitions)} 个工作流:")
+        for wid in ids:
+            logging.info(f"  - {wid}")
 
     def list_workflows(self) -> list[dict[str, Any]]:
         return [
@@ -89,8 +92,8 @@ class WorkflowRegistry:
         hint = ""
         if candidates:
             hint = f"，是否想用: {', '.join(candidates[:3])}"
-        all_ids = list(self._definitions.keys())
-        raise KeyError(f"Unknown workflow: '{workflow_id}'{hint}。可用工作流: {all_ids}")
+        all_ids = sorted(self._definitions.keys())
+        raise KeyError(f"Unknown workflow: '{workflow_id}'{hint}。可用工作流({len(all_ids)}): {json.dumps(all_ids, ensure_ascii=False)}")
 
     def build_prompt_graph(
         self,

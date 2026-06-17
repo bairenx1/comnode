@@ -57,8 +57,9 @@ def run_startup_diagnostics() -> None:
             lines.append(f"  PYTORCH_MPS_HIGH_WATERMARK_RATIO = {hw_ratio}")
             if hw_ratio == "未设置(默认0.5)":
                 lines.append("  [!] 建议: export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0 解除MPS内存限制")
-            # MPS 回退风险提示
-            lines.append("  [!] 部分 attention / conv op 可能静默回退到CPU, 注意观察CPU占用")
+            # MPS 说明
+            lines.append("  [i] Apple Silicon 上 MPS GPU 运算的部分开销（Metal shader 编译、数据调度）会体现在 CPU 占用中")
+            lines.append("  [i] 活动监视器中 50-70% CPU 属于正常范围，不代表 MPS 回退到 CPU")
         else:
             lines.append("[后端] CPU 模式 (无加速)")
             lines.append("  [!] 生成将非常缓慢, 建议安装支持MPS/CUDA的PyTorch版本")
@@ -79,10 +80,10 @@ def run_startup_diagnostics() -> None:
 
         # Apple Silicon 专属建议
         if is_apple_silicon and mps_available:
-            lines.append("[Apple Silicon 优化建议]")
-            lines.append("  1. 确认 ComfyUI 使用 --use-pytorch-cross-attention (避免 xformers)")
-            lines.append("  2. 生成时打开活动监视器观察 CPU 占用, 若持续>50% 说明 MPS op 回退到了 CPU")
-            lines.append("  3. Qwen VL 7B 编码是主要耗时点, 可考虑 MLX 版本替代")
+            lines.append("[Apple Silicon 说明]")
+            lines.append("  1. 活动监视器 CPU 50-70% 是 MPS 正常开销（Metal shader 编译+数据调度），非 CPU 回退")
+            lines.append("  2. 真正 CPU 回退的特征是生成极慢 + CPU 持续 90%+")
+            lines.append("  3. 可通过 ComfyUI 日志中 'MPS' 关键字确认实际使用的后端")
             lines.append("  4. M5 Pro 64GB 内存充足, 可同时加载多个模型避免重复加载")
 
     except ImportError:

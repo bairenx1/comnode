@@ -102,6 +102,35 @@ def create_app() -> web.Application:
             "workflows_dir": str(registry.workflows_dir),
         })
 
+    @routes.get("/api/debug/workflows/{workflow_id}")
+    async def debug_workflow_detail(request: web.Request) -> web.Response:
+        """返回指定工作流的 field_mapping 和 JSON 节点结构，用于排查节点映射问题"""
+        registry.reload()
+        workflow_id = request.match_info["workflow_id"]
+        try:
+            wf_def = registry.get(workflow_id)
+        except KeyError:
+            return web.json_response({"error": "not_found"}, status=404)
+        graph = json.loads(wf_def.workflow_file.read_text(encoding="utf-8"))
+        # 提取顶层节点及其子图节点 ID
+        top_nodes: dict[str, list[str]] = {}
+        for nid, nd in graph.items():
+            if '_subgraph' in nd:
+                sg = nd['_subgraph']
+                internal_nodes = sg['nodes'] if isinstance(sg, dict) and 'nodes' in sg else sg
+                top_nodes[nid] = sorted(internal_nodes.keys())
+            else:
+                top_nodes[nid] = []
+        # 从 field_mapping 提取所有引用的节点路径
+        mapping_targets = list(wf_def.field_mapping.items())
+        return web.json_response({
+            "workflow_id": workflow_id,
+            "field_mapping": dict(mapping_targets),
+            "graph_node_ids": sorted(graph.keys()),
+            "uuid_wrappers": {k: v for k, v in top_nodes.items() if v},
+            "regular_nodes": [k for k, v in top_nodes.items() if not v],
+        })
+
     @routes.post("/api/queue/batch")
     async def queue_batch(request: web.Request) -> web.Response:
         try:

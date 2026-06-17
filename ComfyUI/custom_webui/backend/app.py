@@ -12,9 +12,23 @@ from .comfy_client import ComfyClient
 from .config import SETTINGS
 from .workflow_registry import WorkflowRegistry, register_asset_file
 from .convert_workflow import auto_convert_all
+from .startup_diagnostics import run_startup_diagnostics
+
+_diag_has_run = False
 
 
 def create_app() -> web.Application:
+    global _diag_has_run
+    if not _diag_has_run:
+        _diag_has_run = True
+        import logging
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+            datefmt="%H:%M:%S",
+        )
+        run_startup_diagnostics()
+
     app = web.Application(client_max_size=1024 * 1024 * 200)
     routes = web.RouteTableDef()
 

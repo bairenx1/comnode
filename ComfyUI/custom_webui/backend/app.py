@@ -90,6 +90,17 @@ def create_app() -> web.Application:
         registry.reload()
         return web.json_response({"converted": count, "workflows": registry.list_workflows()})
 
+    @routes.get("/api/debug/workflows")
+    async def debug_workflows(_: web.Request) -> web.Response:
+        """返回所有已注册工作流 ID 的纯 JSON，方便终端 curl 查看"""
+        registry.reload()
+        ids = sorted(registry._definitions.keys())
+        return web.json_response({
+            "count": len(ids),
+            "workflow_ids": ids,
+            "workflows_dir": str(registry.workflows_dir),
+        })
+
     @routes.post("/api/queue/batch")
     async def queue_batch(request: web.Request) -> web.Response:
         try:

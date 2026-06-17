@@ -140,7 +140,6 @@ def run_startup_diagnostics() -> None:
     # 输出到日志
     for line in lines:
         logger.info(line)
-        print(line)
 
 
 def _check_key_models(models_base: Path | None, lines: list[str]) -> None:

@@ -75,6 +75,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   const progressRef = useRef(0);  // 最新进度值，供 setInterval 闭包内读取
   const expectedJobCountRef = useRef(0);
   const receivedJobCountRef = useRef(0);
+  const generatingRef = useRef(false);  // 消抖锁：防止双击重复提交
   const activeWorkflowId = customBindings[mode] || modeToWorkflowId[mode] || null;
   const dynamicFields = activeWorkflowId && workflowSchemas[activeWorkflowId] ? workflowSchemas[activeWorkflowId].ui_schema.fields : null;
   const isGenMode = !["assets", "prompts", "settings"].includes(mode);
@@ -210,6 +211,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
             setStatusText("生成完成 (" + done + "/" + total + ")");
             if (done >= total) {
               setGenerating(false);
+              generatingRef.current = false;
               receivedJobCountRef.current = 0;
               expectedJobCountRef.current = 0;
             }
@@ -329,6 +331,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
     try {
       await api.interrupt();
       setGenerating(false);
+      generatingRef.current = false;
       setStatusText("已中断");
       setProgress(0);
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
@@ -338,6 +341,8 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   };
 
   const handleGenerate = async () => {
+    if (generatingRef.current) return;
+    generatingRef.current = true;
     setError(null);
     setResult(null);
     setBatchResults([]);
@@ -436,6 +441,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                 });
               }
               setGenerating(false);
+              generatingRef.current = false;
               expectedJobCountRef.current = 0;
               receivedJobCountRef.current = 0;
               setAssetSaved(false);
@@ -449,6 +455,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
           if (staleCount > 60) {
             if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
             setGenerating(false);
+            generatingRef.current = false;
             setStatusText("任务超时: 进度停滞超过10分钟");
           }
         }, 10000);
@@ -456,10 +463,13 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setGenerating(false);
+      generatingRef.current = false;
       setStatusText("生成失败");
     }
   };
   const handleBatchGenerate = async () => {
+    if (generatingRef.current) return;
+    generatingRef.current = true;
     setError(null); setResult(null); setBatchResults([]); setSelectedBatchIndex(0);
     setProgress(0); setQueuedJobs([]);
     progressRef.current = 0;
@@ -556,6 +566,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
           }
           if (completedIds.size >= promptIds.length) {
             setGenerating(false);
+            generatingRef.current = false;
             expectedJobCountRef.current = 0;
             receivedJobCountRef.current = 0;
             setProgress(100);
@@ -566,12 +577,14 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
         if (batchStaleCount > 60) {
           if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
           setGenerating(false);
+          generatingRef.current = false;
           setStatusText("部分任务超时 (" + completedIds.size + "/" + promptIds.length + ")");
         }
       }, 10000);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setGenerating(false);
+      generatingRef.current = false;
       expectedJobCountRef.current = 0;
       receivedJobCountRef.current = 0;
       setStatusText("提交失败");
@@ -1159,8 +1172,8 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
               中断生成
             </button>
           ) : (
-            <button onClick={handleGenerate}
-              className="w-full flex items-center justify-center gap-2 bg-accent hover:opacity-90 text-accent-text font-bold py-3.5 px-4 rounded-md transition-all glow-accent active:scale-[0.98]"
+            <button onClick={handleGenerate} disabled={generating}
+              className="w-full flex items-center justify-center gap-2 bg-accent hover:opacity-90 text-accent-text font-bold py-3.5 px-4 rounded-md transition-all glow-accent active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Play className="w-5 h-5 fill-current" />
               开始生成

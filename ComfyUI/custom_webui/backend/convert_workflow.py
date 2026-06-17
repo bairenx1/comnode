@@ -790,10 +790,17 @@ def convert_native_to_api(native_data, definitions=None):
 
                     # 未链接的 widget 输入：获取对应 proxyWidget 和内部节点值
                     internal_nid, internal_inp, proxy_val = _get_proxy_info()
-                    # proxyWidget 引用的内部节点必须在子图中存在（某些工作流 link id 与 node id 重叠会导致无效引用）
+                    # proxyWidget 引用的内部节点必须在子图中存在且不在 SKIP_TYPES 中
+                    # PrimitiveNode 等会被跳过不写入 node_api，导致运行时找不到节点
                     if internal_nid and internal_nid not in sg_nodes:
                         print(f'WARN [UUID:{nid}] proxyWidget 引用不存在的内部节点 {internal_nid}，跳过')
                         continue
+                    if internal_nid and internal_nid in sg_nodes:
+                        internal_ntype = sg_nodes[internal_nid].get('type', '')
+                        if internal_ntype in SKIP_TYPES:
+                            # PrimitiveNode 的值已写入 wrapper widgets_values，不需要 field_mapping
+                            print(f'WARN [UUID:{nid}] proxyWidget 引用 {internal_ntype}#{internal_nid}，值已烘焙，跳过映射')
+                            continue
                     # 生成正确的嵌套路径：wrapperId.内部节点ID.inputs.内部输入名
                     inner_target = f'{nid}.{internal_nid}.inputs.{internal_inp}' if internal_nid else f'{nid}.inputs.{inp_name}'
 

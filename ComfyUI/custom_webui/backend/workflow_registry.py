@@ -135,7 +135,10 @@ class WorkflowRegistry:
                     continue
             # 根据 ui_schema 类型转换参数值，确保 ComfyUI 验证通过
             value = self._coerce_param_type(value, field_types.get(ui_field, "string"))
-            self._set_graph_value(graph, target, value)
+            try:
+                self._set_graph_value(graph, target, value)
+            except KeyError as e:
+                logging.warning(f"跳过字段 '{ui_field}' (target={target}): {e}")
 
         # 展开 UUID Group Node，将 _subgraph 内部节点提升到主图
         graph = _expand_uuid_wrappers(graph)

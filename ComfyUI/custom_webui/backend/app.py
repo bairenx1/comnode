@@ -85,10 +85,11 @@ def create_app() -> web.Application:
         return web.json_response({"workflows": registry.list_workflows()})
 
     @routes.post("/api/workflows/refresh")
-    async def refresh_workflows(_: web.Request) -> web.Response:
-        count = auto_convert_all()
+    async def refresh_workflows(request: web.Request) -> web.Response:
+        force = request.query.get("force", "").lower() in ("1", "true", "yes")
+        count = auto_convert_all(force=force)
         registry.reload()
-        return web.json_response({"converted": count, "workflows": registry.list_workflows()})
+        return web.json_response({"converted": count, "force": force, "workflows": registry.list_workflows()})
 
     @routes.get("/api/debug/workflows")
     async def debug_workflows(_: web.Request) -> web.Response:

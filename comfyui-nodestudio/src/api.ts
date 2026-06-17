@@ -94,8 +94,9 @@ class ComfyApiClient {
 
   async workflows() { return this.request<{workflows: WorkflowInfo[]}>("/api/workflows"); }
 
-  async refreshWorkflows() {
-    return this.request<{converted: number; workflows: WorkflowInfo[]}>("/api/workflows/refresh", { method: "POST" });
+  async refreshWorkflows(force?: boolean) {
+    const qs = force ? "?force=1" : "";
+    return this.request<{converted: number; force?: boolean; workflows: WorkflowInfo[]}>("/api/workflows/refresh" + qs, { method: "POST" });
   }
 
   async queueBatch(workflowId: string, jobs: QueueJob[], clientId?: string) {

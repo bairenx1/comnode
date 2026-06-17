@@ -89,7 +89,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const r = await api.refreshWorkflows();
+      const r = await api.refreshWorkflows(true);
       setWorkflowList(r.workflows.map(w => ({workflow_id: w.workflow_id, name: w.name})));
       const sm: Record<string, any> = {};
       r.workflows.forEach(w => { sm[w.workflow_id] = {ui_schema: w.ui_schema}; });

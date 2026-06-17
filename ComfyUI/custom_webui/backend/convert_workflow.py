@@ -1402,8 +1402,8 @@ def _expand_uuid_wrappers(graph: dict[str, Any]) -> dict[str, Any]:
     return graph
 
 
-def _convert_workflow_files(source_dir: Path, converted: int) -> int:
-    """扫描目录中的 JSON 工作流文件并转换（跳过未修改的）"""
+def _convert_workflow_files(source_dir: Path, converted: int, force: bool = False) -> int:
+    """扫描目录中的 JSON 工作流文件并转换（跳过未修改的，force=True 强制重新转换）"""
     if not source_dir.exists():
         return converted
     for fpath in sorted(source_dir.glob('*.json')):
@@ -1414,11 +1414,12 @@ def _convert_workflow_files(source_dir: Path, converted: int) -> int:
                 workflow_id = f'workflow_{converted}'
             api_path = WORKFLOWS_DIR / f'{workflow_id}.json'
             mapping_path = WORKFLOWS_DIR / f'{workflow_id}.mapping.json'
-            src_mtime = fpath.stat().st_mtime
-            if api_path.exists() and mapping_path.exists():
-                if api_path.stat().st_mtime >= src_mtime:
-                    converted += 1
-                    continue
+            if not force:
+                src_mtime = fpath.stat().st_mtime
+                if api_path.exists() and mapping_path.exists():
+                    if api_path.stat().st_mtime >= src_mtime:
+                        converted += 1
+                        continue
 
             native = json.loads(fpath.read_text(encoding='utf-8'))
             if 'nodes' not in native:
@@ -1445,10 +1446,10 @@ def _convert_workflow_files(source_dir: Path, converted: int) -> int:
     return converted
 
 
-def auto_convert_all():
+def auto_convert_all(force: bool = False):
     converted = 0
     for src_dir in USER_WORKFLOW_DIRS:
-        converted = _convert_workflow_files(src_dir, converted)
+        converted = _convert_workflow_files(src_dir, converted, force=force)
     print(f'Converted {converted} workflows')
     return converted
 

@@ -1346,7 +1346,7 @@ def _expand_uuid_wrappers(graph: dict[str, Any]) -> dict[str, Any]:
                     set_name = wv[0] if isinstance(wv, list) and wv else ''
                     if set_name and set_name in setnode_map:
                         src_nid, src_slot = setnode_map[set_name]
-                        getnode_resolved[in_nid] = [src_nid, src_slot]
+                        getnode_resolved[str(in_nid)] = [str(src_nid), int(src_slot)]
 
             # ### 2b. 构建 -20 输出映射
             # output_map: {wrapper_output_slot: (internal_nid, internal_slot)}
@@ -1419,12 +1419,12 @@ def _expand_uuid_wrappers(graph: dict[str, Any]) -> dict[str, Any]:
                 for inp_name, inp_val in list(new_node.get('inputs', {}).items()):
                     if not isinstance(inp_val, list) or len(inp_val) != 2:
                         continue
-                    ref_nid, ref_slot = inp_val[0], inp_val[1]
+                    ref_nid, ref_slot = str(inp_val[0]), inp_val[1]
 
                     if ref_nid == '-10':
                         ext_ref = slot_to_external.get(ref_slot)
                         if ext_ref is not None:
-                            new_node['inputs'][inp_name] = list(ext_ref)
+                            new_node['inputs'][inp_name] = [str(ext_ref[0]), ext_ref[1]] if isinstance(ext_ref, list) else ext_ref
                         else:
                             # 未链接 widget：_set_graph_value 可能已设置用户值
                             # 如果仍为 -10，使用原始默认值
@@ -1438,7 +1438,8 @@ def _expand_uuid_wrappers(graph: dict[str, Any]) -> dict[str, Any]:
                         new_node['inputs'][inp_name] = [id_remap[ref_nid], ref_slot]
                     elif ref_nid in getnode_resolved:
                         # GetNode 引用 → 用 SetNode 源替换
-                        new_node['inputs'][inp_name] = list(getnode_resolved[ref_nid])
+                        resolved_target = getnode_resolved[ref_nid]
+                        new_node['inputs'][inp_name] = [str(resolved_target[0]), resolved_target[1]]
 
                 promoted[new_id] = new_node
 

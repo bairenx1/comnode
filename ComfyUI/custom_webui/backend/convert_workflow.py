@@ -868,12 +868,18 @@ def convert_native_to_api(native_data, definitions=None):
                         ui_fields.append(entry)
 
                 # UUID Group Node 保持折叠状态，不展开子图
-                # 存储子图供 ComfyUI 服务端展开，前端只暴露包装器输入参数
+                # 存储子图供 build_prompt_graph 阶段展开，前端只暴露包装器输入参数
+                # raw_nodes/raw_links 用于 -10/-20 引用解析
 
                 node_api[nid] = {
                     'class_type': ntype,
                     'inputs': inputs,
-                    '_subgraph': sub_api,
+                    '_subgraph': {
+                        'nodes': sub_api,
+                        'raw_nodes': subgraph_data['nodes'],
+                        'raw_links': subgraph_data.get('links', []),
+                        'wrapper_input_defs': node_inputs,
+                    },
                 }
 
                 continue
@@ -1237,9 +1243,137 @@ def convert_native_to_api(native_data, definitions=None):
                     setnode_map[name] = (src_nid, src_slot)
                     break
 
-    # UUID Group Node 保持折叠状态，不再展开（ComfyUI 服务端负责子图展开）
+    # UUID Group Node 保持折叠状态，在 build_prompt_graph 阶段展开
     return node_api, field_mapping, ui_fields
 
+
+def _expand_uuid_wrappers(graph: dict[str, Any]) -> dict[str, Any]:
+    """展开所有 UUID Group Node，将 _subgraph 内部节点提升到主图。
+
+    调用时机：build_prompt_graph 中 _set_graph_value 之后、提交 ComfyUI 之前。
+    用户参数已设置完毕，展开只做结构转换（-10/-20 解析 + ID 重映射）。
+    """
+    import copy as _copy
+    graph = _copy.deepcopy(graph)
+
+    # 收集 UUID 包装器（可能有嵌套，循环处理直到没有）
+    while True:
+        wrapper_nids = [
+            nid for nid, nd in graph.items()
+            if isinstance(nd.get('_subgraph'), dict)
+        ]
+        if not wrapper_nids:
+            break
+
+        for wrapper_nid in wrapper_nids:
+            wrapper = graph.get(wrapper_nid)
+            if not wrapper:
+                continue
+            sg = wrapper['_subgraph']
+            sub_nodes = sg['nodes']
+            raw_links = sg['raw_links']
+            wrapper_input_defs = sg.get('wrapper_input_defs', [])
+
+            # ---- 1. ID 重映射 ----
+            id_remap = {str(in_nid): f'{wrapper_nid}__{in_nid}' for in_nid in sub_nodes}
+
+            # ---- 2. 构建槽位映射 ----
+            # wrapper 输入定义（按槽位顺序） → 外部链接或 None
+            slot_to_external: dict[int, list | None] = {}
+            for slot_idx, inp_def in enumerate(wrapper_input_defs):
+                name = inp_def.get('name', '')
+                ext_ref = wrapper.get('inputs', {}).get(name)
+                if isinstance(ext_ref, list) and len(ext_ref) == 2 and not (len(ext_ref) == 2 and ext_ref[0] == '-10'):
+                    slot_to_external[slot_idx] = ext_ref
+                else:
+                    slot_to_external[slot_idx] = None
+
+            # ### 2b. 构建 -20 输出映射
+            # {wrapper_output_slot: (internal_nid, internal_slot)}
+            output_map: dict[int, tuple[str, int]] = {}
+            for link in raw_links:
+                if isinstance(link, dict) and link.get('target_id') == -20:
+                    origin_id = str(link['origin_id'])
+                    output_map[link['target_slot']] = (origin_id, link['origin_slot'])
+
+            # ---- 3. 从 raw_nodes 构建 widget 默认值查找表 ----
+            # {internal_nid: {input_name: default_value}}
+            raw_nodes_map = {str(n['id']): n for n in sg.get('raw_nodes', [])}
+            widget_defaults: dict[str, dict[str, Any]] = {}
+
+            def _get_widget_default(raw_node: dict, input_name: str) -> Any | None:
+                """从原始节点获取指定 widget 输入的默认值"""
+                wv = raw_node.get('widgets_values', [])
+                if not isinstance(wv, list):
+                    return wv.get(input_name) if isinstance(wv, dict) else None
+                # widget 输入通过 inputs 中 'widget' 字段标识（Group Node 内部通过 -10 链接的 widget 仍会保留 link）
+                wi = 0
+                for inp in raw_node.get('inputs', []):
+                    iname = inp.get('name', '')
+                    is_widget = 'widget' in inp
+                    if not is_widget:
+                        continue
+                    if iname == input_name:
+                        if wi < len(wv):
+                            return wv[wi]
+                        return None
+                    wi += 1
+                return None
+
+            for in_nid, raw_node in raw_nodes_map.items():
+                defaults: dict[str, Any] = {}
+                for inp in raw_node.get('inputs', []):
+                    if 'widget' in inp:
+                        val = _get_widget_default(raw_node, inp['name'])
+                        if val is not None:
+                            defaults[inp['name']] = val
+                widget_defaults[in_nid] = defaults
+
+            # ---- 4. 更新外部节点对 wrapper 输出的引用 ----
+            for ext_nid, ext_node in graph.items():
+                if ext_nid == wrapper_nid:
+                    continue
+                for inp_name, inp_val in list(ext_node.get('inputs', {}).items()):
+                    if isinstance(inp_val, list) and len(inp_val) == 2 and inp_val[0] == wrapper_nid:
+                        out_slot = inp_val[1]
+                        if out_slot in output_map:
+                            in_nid, in_slot = output_map[out_slot]
+                            ext_node['inputs'][inp_name] = [id_remap[in_nid], in_slot]
+
+            # ---- 5. 处理内部节点：更新引用 + 解决 -10 ----
+            promoted: dict[str, Any] = {}
+            for in_nid, in_node in sub_nodes.items():
+                new_id = id_remap[in_nid]
+                new_node = _copy.deepcopy(in_node)
+
+                for inp_name, inp_val in list(new_node.get('inputs', {}).items()):
+                    if not isinstance(inp_val, list) or len(inp_val) != 2:
+                        continue
+                    ref_nid, ref_slot = inp_val[0], inp_val[1]
+
+                    if ref_nid == '-10':
+                        ext_ref = slot_to_external.get(ref_slot)
+                        if ext_ref is not None:
+                            new_node['inputs'][inp_name] = list(ext_ref)
+                        else:
+                            # 未链接 widget：_set_graph_value 可能已设置用户值
+                            # 如果仍为 -10，使用原始默认值
+                            defaults = widget_defaults.get(in_nid, {})
+                            if inp_name in defaults:
+                                new_node['inputs'][inp_name] = defaults[inp_name]
+                            else:
+                                # 无默认值可用，移除 -10 引用（ComfyUI 会使用节点自身默认）
+                                del new_node['inputs'][inp_name]
+                    elif ref_nid in id_remap:
+                        new_node['inputs'][inp_name] = [id_remap[ref_nid], ref_slot]
+
+                promoted[new_id] = new_node
+
+            # ---- 6. 提升内部节点，删除包装器 ----
+            graph.update(promoted)
+            del graph[wrapper_nid]
+
+    return graph
 
 
 def _convert_workflow_files(source_dir: Path, converted: int) -> int:

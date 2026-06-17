@@ -6,7 +6,7 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from .convert_workflow import auto_convert_all
+from .convert_workflow import auto_convert_all, _expand_uuid_wrappers
 
 # 上传资产时建立的 blake3 哈希 → 文件名 映射表
 # 前端提交 blake3 哈希但不会带 asset_hashes 映射，由后端在上传时记录
@@ -82,46 +82,44 @@ class WorkflowRegistry:
         params: dict[str, Any],
         asset_hashes: dict[str, str] | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any] | None]:
-        """加载工作流 JSON，设置用户参数，返回可直接提交到 ComfyUI 的 prompt graph。
-
-        UUID Group Node 已在 convert_native_to_api 阶段展开，此处无需再处理。
-        """
+        """加载工作流 JSON，设置用户参数，展开 UUID 折叠节点后返回 prompt graph。"""
         definition = self.get(workflow_id)
         graph = json.loads(definition.workflow_file.read_text(encoding="utf-8"))
         graph = copy.deepcopy(graph)
 
-        # 构建字段类型查找表，用于类型转换
+        # 构建字段类型查找表 + 默认值查找表
         field_types: dict[str, str] = {}
+        field_defaults: dict[str, Any] = {}
         for f in definition.ui_schema.get("fields", []):
             field_types[f["name"]] = f.get("type", "string")
+            if "default" in f:
+                field_defaults[f["name"]] = f["default"]
 
         merged_params = dict(params)
         if asset_hashes:
             merged_params.update(asset_hashes)
 
         for ui_field, target in definition.field_mapping.items():
-            if ui_field not in merged_params or merged_params.get(ui_field) in (None, "", [], {}):
-                continue
-            value = merged_params[ui_field]
+            value = merged_params.get(ui_field)
+            # 用户未提供 → 使用 ui_schema 默认值（确保 -10 widget ref 被解析）
+            if value in (None, "", [], {}):
+                value = field_defaults.get(ui_field)
+                if value in (None, "", [], {}):
+                    continue
             # 解析 blake3 哈希为实际文件名（LoadImage 等节点需要真实文件路径）
             if isinstance(value, str) and value.startswith("blake3:"):
-                # 优先从请求中的 asset_hashes 查，次选从上传时记录的后备映射查
                 resolved = (asset_hashes or {}).get(value) or resolve_asset_hash(value)
                 if resolved:
                     value = resolved
                 else:
-                    # 无法解析哈希，跳过此字段（保留工作流中的默认值）
                     logging.warning(f"无法解析 blake3 哈希 {value[:50]}...（字段 {ui_field}），保留默认值")
                     continue
             # 根据 ui_schema 类型转换参数值，确保 ComfyUI 验证通过
             value = self._coerce_param_type(value, field_types.get(ui_field, "string"))
             self._set_graph_value(graph, target, value)
 
-        # 调试：打印提交前 CLIPLoader/UNETLoader 的实际值
-        for check_nid in ["473", "466__447", "474", "466__448"]:
-            node = graph.get(check_nid)
-            if node:
-                logging.info(f"提交前 {check_nid} ({node.get('class_type','?')}): {json.dumps(node.get('inputs',{}), ensure_ascii=False)}")
+        # 展开 UUID Group Node，将 _subgraph 内部节点提升到主图
+        graph = _expand_uuid_wrappers(graph)
 
         return graph, None
 
@@ -174,8 +172,10 @@ class WorkflowRegistry:
                 # 路径终点：在此节点设置输入值
                 node_data["inputs"][key] = value
             elif '_subgraph' in node_data:
-                # 中间节点：进入子图继续遍历（兼容旧格式）
-                current_graph = node_data['_subgraph']
+                # 中间节点：进入子图继续遍历
+                sg = node_data['_subgraph']
+                # 兼容新旧格式：新格式 {'nodes': {...}, ...}，旧格式直接是节点 dict
+                current_graph = sg['nodes'] if isinstance(sg, dict) and 'nodes' in sg else sg
             else:
                 raise KeyError(
                     f"Node {nid} has no subgraph, cannot traverse to {'.'.join(node_path[i+1:])}"

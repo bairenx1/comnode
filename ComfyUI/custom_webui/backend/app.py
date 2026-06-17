@@ -104,6 +104,7 @@ def create_app() -> web.Application:
                 try:
                     prompt_graph, comfy_extra = registry.build_prompt_graph(workflow_id, params, assets)
                 except KeyError as e:
+                    logging.warning(f"工作流查找失败: 收到 '{workflow_id}', 可用: {list(registry._definitions.keys())}")
                     return web.json_response(
                         {"error": "unknown_workflow", "message": f"工作流 '{workflow_id}' 不存在: {e}"},
                         status=400,

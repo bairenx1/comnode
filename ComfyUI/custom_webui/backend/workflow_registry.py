@@ -47,6 +47,7 @@ class WorkflowRegistry:
             workflow_id = data["workflow_id"]
             workflow_file = self.workflows_dir / data["workflow_file"]
             if not workflow_file.exists():
+                logging.warning(f"工作流 JSON 文件缺失，跳过: {workflow_file.name} (mapping: {mapping_file.name})")
                 continue
             self._definitions[workflow_id] = WorkflowDefinition(
                 workflow_id=workflow_id,
@@ -57,6 +58,7 @@ class WorkflowRegistry:
                 ui_schema=data.get("ui_schema", {}),
                 field_mapping=data.get("field_mapping", {}),
             )
+        logging.info(f"已加载 {len(self._definitions)} 个工作流: {list(self._definitions.keys())}")
 
     def list_workflows(self) -> list[dict[str, Any]]:
         return [
@@ -87,7 +89,8 @@ class WorkflowRegistry:
         hint = ""
         if candidates:
             hint = f"，是否想用: {', '.join(candidates[:3])}"
-        raise KeyError(f"Unknown workflow: {workflow_id}{hint}")
+        all_ids = list(self._definitions.keys())
+        raise KeyError(f"Unknown workflow: '{workflow_id}'{hint}。可用工作流: {all_ids}")
 
     def build_prompt_graph(
         self,

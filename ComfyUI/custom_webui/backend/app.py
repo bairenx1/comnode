@@ -115,14 +115,24 @@ def create_app() -> web.Application:
                 try:
                     prompt_graph, comfy_extra = registry.build_prompt_graph(workflow_id, params, assets)
                 except KeyError as e:
-                    logging.warning(f"工作流查找失败: 收到 '{workflow_id}'")
-                    logging.warning(f"可用工作流 ({len(registry._definitions)}):")
-                    for wid in sorted(registry._definitions.keys()):
-                        logging.warning(f"  - {wid}")
-                    return web.json_response(
-                        {"error": "unknown_workflow", "message": f"工作流 '{workflow_id}' 不存在: {e}"},
-                        status=400,
-                    )
+                    err_msg = str(e)
+                    if err_msg.startswith("Unknown workflow:"):
+                        # 工作流 ID 未注册
+                        logging.warning(f"工作流查找失败: 收到 '{workflow_id}'")
+                        logging.warning(f"可用工作流 ({len(registry._definitions)}):")
+                        for wid in sorted(registry._definitions.keys()):
+                            logging.warning(f"  - {wid}")
+                        return web.json_response(
+                            {"error": "unknown_workflow", "message": f"工作流 '{workflow_id}' 不存在: {e}"},
+                            status=400,
+                        )
+                    else:
+                        # 节点引用错误（field_mapping 中的 nodeId 在工作流 JSON 中找不到）
+                        logging.error(f"工作流节点映射失败 [{workflow_id}]: {e}")
+                        return web.json_response(
+                            {"error": "workflow_node_mismatch", "message": f"工作流节点映射失败: {e}"},
+                            status=400,
+                        )
                 extra = {"source": "custom_webui", "workflow_id": workflow_id}
                 if comfy_extra:
                     extra.update(comfy_extra)

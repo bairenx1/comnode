@@ -72,9 +72,19 @@ class WorkflowRegistry:
         ]
 
     def get(self, workflow_id: str) -> WorkflowDefinition:
-        if workflow_id not in self._definitions:
-            raise KeyError(f"Unknown workflow: {workflow_id}")
-        return self._definitions[workflow_id]
+        if workflow_id in self._definitions:
+            return self._definitions[workflow_id]
+        # 模糊匹配：规范化后比较（去空格、统一分隔符等）
+        normalized_req = workflow_id.strip().replace(' ', '_').replace('-', '_')
+        candidates = []
+        for wid in self._definitions:
+            normalized_wid = wid.strip().replace(' ', '_').replace('-', '_')
+            if normalized_wid == normalized_req or normalized_wid in normalized_req or normalized_req in normalized_wid:
+                candidates.append(wid)
+        hint = ""
+        if candidates:
+            hint = f"，是否想用: {', '.join(candidates[:3])}"
+        raise KeyError(f"Unknown workflow: {workflow_id}{hint}")
 
     def build_prompt_graph(
         self,

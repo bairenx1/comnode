@@ -528,6 +528,8 @@ class PromptServer():
                     if output_dir is None:
                         type = request.rel_url.query.get("type", "output")
                         output_dir = folder_paths.get_directory_by_type(type)
+                        if output_dir is None:
+                            output_dir = folder_paths.get_directory_by_type("output")
 
                     if output_dir is None:
                         return web.Response(status=400)

@@ -659,6 +659,21 @@ def convert_native_to_api(native_data, definitions=None):
                 proxy_list = node.get('properties', {}).get('proxyWidgets', [])
                 proxy_idx = 0  # 按位置匹配未链接的 widget 输入
 
+                # 预计算内部节点的完整 widget 列表（含隐藏 widget）
+                # 部分节点有不在 inputs 中的隐藏 widget（如 KSampler 的 control_after_generate）
+                _node_visible_widgets: dict[str, list[str]] = {}
+                _node_hidden_widget_pos: dict[str, dict[int, str]] = {}
+                for _sn_id, _sn in sg_nodes.items():
+                    _ntype = _sn.get('type', '')
+                    _visible = [inp['name'] for inp in _sn.get('inputs', []) if 'widget' in inp]
+                    _node_visible_widgets[_sn_id] = _visible
+                    _hidden: dict[int, str] = {}
+                    # KSampler 系列：control_after_generate 在 seed (索引0) 之后
+                    if _ntype in ('KSampler', 'KSamplerAdvanced'):
+                        _hidden[1] = 'control_after_generate'
+                    if _hidden:
+                        _node_hidden_widget_pos[_sn_id] = _hidden
+
                 def _get_proxy_info():
                     """从当前 proxyWidget 对应的内部节点提取 (internal_nid, internal_inp, value)"""
                     nonlocal proxy_idx
@@ -672,7 +687,18 @@ def convert_native_to_api(native_data, definitions=None):
                         if pn:
                             wv = pn.get('widgets_values', [])
                             if isinstance(wv, list) and wv:
-                                val = wv[0]
+                                # 构建完整 widget 顺序表（可见 + 已知隐藏）
+                                visible = _node_visible_widgets.get(internal_nid, [])
+                                hidden = _node_hidden_widget_pos.get(internal_nid, {})
+                                all_widgets = list(visible)
+                                for pos in sorted(hidden.keys(), reverse=True):
+                                    all_widgets.insert(pos, hidden[pos])
+                                try:
+                                    idx = all_widgets.index(internal_inp)
+                                    if idx < len(wv):
+                                        val = wv[idx]
+                                except ValueError:
+                                    pass
                             elif isinstance(wv, dict):
                                 val = wv.get(internal_inp)
                         return internal_nid, internal_inp, val
@@ -1302,22 +1328,22 @@ def _expand_uuid_wrappers(graph: dict[str, Any]) -> dict[str, Any]:
             widget_defaults: dict[str, dict[str, Any]] = {}
 
             def _get_widget_default(raw_node: dict, input_name: str) -> Any | None:
-                """从原始节点获取指定 widget 输入的默认值"""
+                """从原始节点获取指定 widget 输入的默认值（含隐藏 widget 偏移）"""
                 wv = raw_node.get('widgets_values', [])
                 if not isinstance(wv, list):
                     return wv.get(input_name) if isinstance(wv, dict) else None
-                # widget 输入通过 inputs 中 'widget' 字段标识（Group Node 内部通过 -10 链接的 widget 仍会保留 link）
-                wi = 0
-                for inp in raw_node.get('inputs', []):
-                    iname = inp.get('name', '')
-                    is_widget = 'widget' in inp
-                    if not is_widget:
-                        continue
-                    if iname == input_name:
-                        if wi < len(wv):
-                            return wv[wi]
-                        return None
-                    wi += 1
+                # 构建完整 widget 顺序表（可见 + 已知隐藏）
+                ntype = raw_node.get('type', '')
+                visible = [inp['name'] for inp in raw_node.get('inputs', []) if 'widget' in inp]
+                all_widgets = list(visible)
+                if ntype in ('KSampler', 'KSamplerAdvanced'):
+                    all_widgets.insert(1, 'control_after_generate')
+                try:
+                    idx = all_widgets.index(input_name)
+                    if idx < len(wv):
+                        return wv[idx]
+                except ValueError:
+                    pass
                 return None
 
             for in_nid, raw_node in raw_nodes_map.items():

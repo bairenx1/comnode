@@ -72,6 +72,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   const promptCollectionRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressRef = useRef(0);  // 最新进度值，供 setInterval 闭包内读取
   const expectedJobCountRef = useRef(0);
   const receivedJobCountRef = useRef(0);
   const activeWorkflowId = customBindings[mode] || modeToWorkflowId[mode] || null;
@@ -128,6 +129,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
           setProgress(pct);
           setProgressStep(msg.data.value);
           setProgressTotal(msg.data.max);
+          progressRef.current = msg.data.value;  // 同步 ref 供轮询闭包读取
           if (msg.data.node) setExecutingNode(msg.data.node);
           const nodeLabel = (executingNode || msg.data.node) ? `[${executingNode || msg.data.node}] ` : "";
           setStatusText(`${nodeLabel}迭代 ${msg.data.value}/${msg.data.max}`);
@@ -343,6 +345,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
     setProgress(0);
     setProgressStep(0);
     setProgressTotal(0);
+    progressRef.current = 0;
     setQueuedJobs([]);
     setNodeProgress({});
     setExecutingNode("");
@@ -394,8 +397,17 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
         // 清除之前的轮询
         if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
         let attempts = 0;
+        let lastProgressVal = progressRef.current;
+        let staleCount = 0;
         pollRef.current = setInterval(async () => {
           attempts++;
+          // 如果 WebSocket 进度在更新，重置停滞计数
+          if (progressRef.current !== lastProgressVal) {
+            lastProgressVal = progressRef.current;
+            staleCount = 0;
+          } else {
+            staleCount++;
+          }
           try {
             const jobResult = await api.job(promptId);
             if (jobResult.history?.status?.completed || jobResult.history?.outputs) {
@@ -432,12 +444,14 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
               if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
             }
           } catch (e) { /* ignore */ }
-          if (attempts > 60) {
+          // 连续 60 次轮询（10 分钟）进度无变化才判定超时
+          // 只要进度在走就说明 ComfyUI 还在计算，不应中断
+          if (staleCount > 60) {
             if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
             setGenerating(false);
-            setStatusText("任务超时");
+            setStatusText("任务超时: 进度停滞超过10分钟");
           }
-        }, 5000);
+        }, 10000);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -448,6 +462,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   const handleBatchGenerate = async () => {
     setError(null); setResult(null); setBatchResults([]); setSelectedBatchIndex(0);
     setProgress(0); setQueuedJobs([]);
+    progressRef.current = 0;
     setNodeProgress({});
     setExecutingNode("");
     setGenerating(true);
@@ -497,8 +512,17 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
       const completedIds = new Set<string>();
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
       let pollAttempts = 0;
+      let batchLastProgress = progressRef.current;
+      let batchStaleCount = 0;
       pollRef.current = setInterval(async () => {
         pollAttempts++;
+        // 进度在更新则重置停滞计数
+        if (progressRef.current !== batchLastProgress) {
+          batchLastProgress = progressRef.current;
+          batchStaleCount = 0;
+        } else {
+          batchStaleCount++;
+        }
         try {
           for (const pid of promptIds) {
             if (completedIds.has(pid)) continue;
@@ -539,12 +563,12 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
             if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
           }
         } catch (_) { /* ignore poll errors */ }
-        if (pollAttempts > 120) {
+        if (batchStaleCount > 60) {
           if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
           setGenerating(false);
           setStatusText("部分任务超时 (" + completedIds.size + "/" + promptIds.length + ")");
         }
-      }, 5000);
+      }, 10000);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setGenerating(false);

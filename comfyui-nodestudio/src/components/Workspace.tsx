@@ -124,12 +124,13 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
       try {
         const msg = JSON.parse(evt.data);
         if (msg.type === "progress") {
-          const pct = (msg.data.step / msg.data.max_step) * 100;
+          const pct = (msg.data.value / msg.data.max) * 100;
           setProgress(pct);
-          setProgressStep(msg.data.step);
-          setProgressTotal(msg.data.max_step);
-          const nodeLabel = executingNode ? `[${executingNode}] ` : "";
-          setStatusText(`${nodeLabel}采样迭代 ${msg.data.step}/${msg.data.max_step}`);
+          setProgressStep(msg.data.value);
+          setProgressTotal(msg.data.max);
+          if (msg.data.node) setExecutingNode(msg.data.node);
+          const nodeLabel = (executingNode || msg.data.node) ? `[${executingNode || msg.data.node}] ` : "";
+          setStatusText(`${nodeLabel}迭代 ${msg.data.value}/${msg.data.max}`);
         } else if (msg.type === "progress_state") {
           // 各节点独立进度
           const nodesData = msg.data?.nodes || {};
@@ -968,22 +969,31 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                           );
                         })()
                       ) : field.name === 'height' ? null : (
-                        /* 普通数字 — Range 滑块 */
+                        /* 普通数字 — Range 滑块 + 手动输入 */
                         (() => {
                           const v = val ?? field.default ?? field.min ?? 0;
                           const fmin = field.min ?? 0;
                           const fmax = field.max ?? 100;
+                          const step = field.step ?? 1;
+                          const isFloat = !Number.isInteger(step);
                           return (
                             <div>
                               <div className="flex items-center justify-between mb-1.5">
                                 <label className="text-[11px] font-mono text-text-secondary tracking-wide">{label}</label>
-                                <span className="text-[11px] font-mono font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full tabular-nums">
-                                  {v}
-                                </span>
+                                <input
+                                  type="number"
+                                  min={fmin} max={fmax} step={step}
+                                  value={v}
+                                  onChange={(e) => {
+                                    const n = isFloat ? parseFloat(e.target.value) : parseInt(e.target.value);
+                                    if (!isNaN(n)) setVal(n);
+                                  }}
+                                  className="w-20 text-right bg-bg-input border border-border-main focus:border-accent/50 rounded-md px-2 py-1 text-xs font-mono font-bold text-accent outline-none transition-colors tabular-nums"
+                                />
                               </div>
                               <input
                                 type="range"
-                                min={fmin} max={fmax} step={field.step ?? 1}
+                                min={fmin} max={fmax} step={step}
                                 value={v}
                                 onChange={(e) => setVal(Number(e.target.value))}
                                 className="w-full accent-accent cursor-pointer"

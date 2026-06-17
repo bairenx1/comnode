@@ -1458,13 +1458,20 @@ def _inline_uuid_wrappers(
     if setnode_map is None:
         setnode_map = {}
 
-    wrapper_ids = [
+    wrapper_ids_unsorted = [
         nid for nid, nd in graph.items()
         if isinstance(nd, dict) and UUID_TYPE_RE.match(nd.get('class_type', ''))
         and '_subgraph' in nd
     ]
-    if not wrapper_ids:
+    if not wrapper_ids_unsorted:
         return field_mapping
+
+    # 按子图节点数升序排列：纯加载器 UUID 先处理，含管线的后处理
+    # 这样后续 UUID 的加载器去重可以找到先处理 UUID 中已加入 graph 的等效加载器
+    wrapper_ids = sorted(
+        wrapper_ids_unsorted,
+        key=lambda wid: len(graph[wid].get('_subgraph', {})),
+    )
 
     new_mapping = dict(field_mapping)
     wrapper_data: dict[str, dict[str, Any]] = {}
@@ -1668,6 +1675,42 @@ def _inline_uuid_wrappers(
             # 外部节点已在 graph 中，直接使用其 ID
             if outer_nid in graph:
                 redundant_remap[inner_old_id] = outer_nid
+
+        # 跨 UUID 加载器去重：检查内部加载器是否与图中已有节点（来自其他已展开的 UUID）等效
+        _LOADER_TYPES = {'VAELoader', 'CLIPLoader', 'UNETLoader',
+                         'CheckpointLoaderSimple', 'CheckpointLoader', 'DualCLIPLoader'}
+        for old_id, node_data in subgraph.items():
+            if old_id in redundant_remap:
+                continue
+            ctype = node_data.get('class_type', '')
+            if ctype not in _LOADER_TYPES:
+                continue
+            inner_inputs = node_data.get('inputs', {})
+            # 解析 inner_inputs 中的 -10 引用后再比较
+            # -10 引用可能指向 slot_to_external（外部连接）或 node_defaults（组件默认值）
+            ndef_for_node = node_defaults.get(str(old_id), {})
+            resolved_inputs: dict[str, Any] = {}
+            for k, v in inner_inputs.items():
+                if isinstance(v, list) and len(v) == 2 and v[0] == '-10':
+                    slot = v[1]
+                    if slot in slot_to_external:
+                        resolved_inputs[k] = slot_to_external[slot]
+                    elif k in ndef_for_node:
+                        resolved_inputs[k] = ndef_for_node[k]
+                    else:
+                        resolved_inputs[k] = v
+                else:
+                    resolved_inputs[k] = v
+            # 在 graph 中查找相同类型且相同配置的已有节点
+            for existing_id, existing_node in graph.items():
+                if existing_id in wrapper_ids:
+                    continue
+                if existing_node.get('class_type', '') != ctype:
+                    continue
+                if existing_node.get('inputs', {}) == resolved_inputs:
+                    redundant_remap[old_id] = existing_id
+                    break
+            # 同时处理内部节点引用冗余加载器的情况（后续 Phase 在重映射时会自动处理）
 
         # 修复 minus20_outputs 中指向冗余加载器的引用
         new_minus20: dict[int, tuple[str, int]] = {}

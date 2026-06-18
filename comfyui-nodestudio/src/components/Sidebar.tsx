@@ -21,7 +21,7 @@ export function Sidebar({ currentMode, onSelectMode, currentTheme, onChangeTheme
 
   const bottomItems: { id: AppMode; label: string; icon: React.ElementType }[] = [
     { id: 'assets', label: '资产库', icon: Library },
-    { id: 'prompts', label: '提示词库', icon: BookOpen },
+    { id: 'prompts', label: '操作手册', icon: BookOpen },
     { id: 'settings', label: '设置', icon: Settings },
   ];
 

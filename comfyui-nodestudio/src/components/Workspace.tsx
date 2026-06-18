@@ -6,7 +6,7 @@ import {
   UploadCloud, Play, Settings2, Image as ImageIcon, Cpu, Download,
   Layers, Sparkles, RefreshCw, Dna, Maximize2, Share2, CheckCircle2,
   XCircle, Trash2, History, Plus, Minus, Library, ChevronLeft, ChevronRight,
-  Eye, Bookmark, Star, Lock, LockOpen, Shuffle
+  Eye, Bookmark, Star, Lock, LockOpen, Shuffle, Video, BookOpen
 } from "lucide-react";
 interface Props {
   mode: AppMode;
@@ -747,6 +747,112 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
       </div>
     );
   }
+  if (mode === "prompts") {
+    return (
+      <div className="flex-1 flex flex-col min-h-0 bg-bg-base">
+        <div className="h-14 border-b border-border-main flex items-center px-5 shrink-0 bg-bg-panel/80">
+          <h2 className="text-sm font-semibold text-text-primary flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-accent" />
+            操作手册
+          </h2>
+        </div>
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+          <div className="max-w-2xl mx-auto space-y-8 text-sm leading-relaxed">
+            {/* 快速上手 */}
+            <section>
+              <h3 className="text-base font-semibold text-text-primary mb-3 flex items-center gap-2">
+                <Play className="w-4 h-4 text-accent" /> 快速上手
+              </h3>
+              <div className="bg-bg-panel border border-border-main/60 rounded-lg p-4 space-y-2 text-text-secondary">
+                <p>1. 确保 ComfyUI 已启动（默认 <code className="text-xs bg-bg-input px-1.5 py-0.5 rounded text-accent font-mono">http://127.0.0.1:8188</code>）</p>
+                <p>2. 从左侧边栏选择工作模式（文生图 / 图生图 / 图生视频 ...）</p>
+                <p>3. 填写提示词和参数，如需上传图片则拖拽或点击上传区</p>
+                <p>4. 点击 <span className="text-accent font-semibold">"开始生成"</span>，等待结果</p>
+                <p>5. 生成结果可放大预览、下载、或发送到其他工作流继续处理</p>
+              </div>
+            </section>
+
+            {/* 工作流绑定 */}
+            <section>
+              <h3 className="text-base font-semibold text-text-primary mb-3 flex items-center gap-2">
+                <Settings2 className="w-4 h-4 text-accent" /> 工作流绑定
+              </h3>
+              <div className="bg-bg-panel border border-border-main/60 rounded-lg p-4 space-y-2 text-text-secondary">
+                <p>每个工作模式默认绑定一个对应的工作流，也可以手动切换：</p>
+                <p>1. 点击参数面板顶部的 <span className="text-accent font-mono text-xs">"绑定工作流"</span> 按钮</p>
+                <p>2. 下拉菜单列出所有可用工作流，选择即可切换</p>
+                <p>3. 选择 <span className="text-accent font-mono text-xs">"默认(自动选择)"</span> 恢复默认</p>
+                <p className="text-xs text-text-secondary/60 mt-2">注意：不同工作流暴露的参数不同，切换后参数面板会自动更新。点击刷新按钮可强制重新扫描工作流。</p>
+              </div>
+            </section>
+
+            {/* 批量生成 */}
+            <section>
+              <h3 className="text-base font-semibold text-text-primary mb-3 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-accent" /> 批量生成
+              </h3>
+              <div className="bg-bg-panel border border-border-main/60 rounded-lg p-4 space-y-2 text-text-secondary">
+                <p>1. 点击批量生成按钮旁的齿轮图标，设置批量数量（1-50）</p>
+                <p>2. 点击 <span className="text-accent font-mono text-xs">"批量生成"</span></p>
+                <p>3. 结果下方显示缩略图条，点击切换查看</p>
+                <p className="text-xs text-text-secondary/60 mt-2">种子锁定时批量种子为 baseSeed + 0, +1, +2...；种子随机则每个独立随机。</p>
+              </div>
+            </section>
+
+            {/* 图片上传 */}
+            <section>
+              <h3 className="text-base font-semibold text-text-primary mb-3 flex items-center gap-2">
+                <UploadCloud className="w-4 h-4 text-accent" /> 图片 / 视频上传
+              </h3>
+              <div className="bg-bg-panel border border-border-main/60 rounded-lg p-4 space-y-2 text-text-secondary">
+                <p>工作流包含图片或视频输入时，参数面板自动显示上传区（紧接提示词下方）。</p>
+                <p>• 点击上传区域选择文件，或直接拖拽文件到上传区</p>
+                <p>• 已上传的图片显示缩略图预览，点击垃圾桶图标可移除</p>
+                <p>• 支持 PNG、JPG、MP4 等格式，采用 blake3 哈希去重</p>
+              </div>
+            </section>
+
+            {/* 发送到其他工作流 */}
+            <section>
+              <h3 className="text-base font-semibold text-text-primary mb-3 flex items-center gap-2">
+                <Share2 className="w-4 h-4 text-accent" /> 发送结果到其他工作流
+              </h3>
+              <div className="bg-bg-panel border border-border-main/60 rounded-lg p-4 space-y-2 text-text-secondary">
+                <p>1. 生成结果后，鼠标悬停在图片上</p>
+                <p>2. 点击分享图标，选择目标工作流</p>
+                <p>3. 界面自动跳转，图片自动填入上传区</p>
+              </div>
+            </section>
+
+            {/* 常见问题 */}
+            <section>
+              <h3 className="text-base font-semibold text-text-primary mb-3 flex items-center gap-2">
+                <XCircle className="w-4 h-4 text-accent" /> 常见问题
+              </h3>
+              <div className="bg-bg-panel border border-border-main/60 rounded-lg p-4 space-y-3 text-text-secondary">
+                <div>
+                  <p className="font-semibold text-text-primary text-xs">Q: 点击生成后报错 "无法连接 ComfyUI 后端"</p>
+                  <p className="text-xs mt-0.5">A: 确认 ComfyUI 已启动，检查地址是否正确。</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-text-primary text-xs">Q: 生成报错 "unknown_workflow"</p>
+                  <p className="text-xs mt-0.5">A: 工作流未注册，点击刷新按钮重新扫描。</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-text-primary text-xs">Q: 图片上传后不显示</p>
+                  <p className="text-xs mt-0.5">A: 检查文件格式和大小（上限 200MB）。</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-text-primary text-xs">Q: WebSocket 一直显示"连接中..."</p>
+                  <p className="text-xs mt-0.5">A: 检查 ComfyUI 是否正常运行，系统会自动重试连接。</p>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (!isGenMode) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-bg-base/50 text-text-secondary">
@@ -825,21 +931,27 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
         <div className="p-5 space-y-6 flex-1">
           <div className="space-y-5">
             {dynamicFields && (() => {
-              // 字段排序优先级 — 提示词 > LoRA > 采样 > 控制 > 尺寸 > 模型 > 其他
+              // 字段排序优先级 — 提示词 > 视频/尺寸 > 采样 > 控制 > LoRA > 模型 > 其他
               const order: Record<string, number> = {
                 prompt: 1, positive_prompt: 1, text: 1,
                 negative_prompt: 2, negative_text: 2,
-                lora_name: 8, lora_weight: 9, strength_model: 10, strength_clip: 11,
+                // 视频核心参数 — 紧接提示词
+                frame_count: 5, num_frames: 5, fps: 6, frame_rate: 6, duration: 7,
+                // 尺寸 — 视频/图片通用
+                width: 8, height: 9, batch_size: 10, image_width: 8, image_height: 9,
+                // 采样参数
                 seed: 15, noise_seed: 15, steps: 16, cfg: 17, guidance: 17,
                 sampler_name: 18, scheduler: 19, denoise: 20, denoising_strength: 20,
+                // 控制参数
                 control_net_name: 23, cn_strength: 24, control_strength: 24,
                 start_percent: 25, end_percent: 26,
-                width: 30, height: 31, batch_size: 32, image_width: 30, image_height: 31,
-                upscale_method: 35, upscale_factor: 36,
+                // LoRA
+                lora_name: 28, lora_weight: 29, strength_model: 30, strength_clip: 31,
+                // 模型选择
                 ckpt_name: 40, checkpoint: 40, model_name: 40,
                 vae_name: 42, clip_name: 43,
-                // 视频参数
-                frame_count: 50, num_frames: 50, fps: 51, frame_rate: 51,
+                upscale_method: 45, upscale_factor: 46,
+                // 其他视频参数
                 motion_bucket_id: 52, augmentation_level: 53, min_cfg: 54,
                 motion_frame_count: 55, continue_motion_max_frames: 56,
                 audio_scale: 60,
@@ -865,7 +977,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                 batch_size: '批次数量', upscale_method: '放大算法', upscale_factor: '放大倍数',
                 ckpt_name: '底模', checkpoint: '底模', model_name: '底模',
                 vae_name: 'VAE', clip_name: 'CLIP 模型',
-                frame_count: '视频帧数', num_frames: '视频帧数',
+                frame_count: '视频帧数', num_frames: '视频帧数', duration: '时长 (秒)',
                 // 视频专用参数
                 fps: '帧率 (FPS)', frame_rate: '帧率 (FPS)',
                 motion_bucket_id: '运动幅度',
@@ -885,7 +997,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
               const controlSet = new Set(['control_net_name', 'cn_strength', 'control_strength', 'start_percent', 'end_percent']);
               const dimsSet = new Set(['width', 'height', 'batch_size', 'image_width', 'image_height', 'upscale_method', 'upscale_factor']);
               const modelSet = new Set(['ckpt_name', 'checkpoint', 'model_name', 'vae_name', 'clip_name']);
-              const videoSet = new Set(['frame_count', 'num_frames', 'fps', 'frame_rate', 'motion_bucket_id', 'augmentation_level', 'min_cfg', 'motion_frame_count', 'continue_motion_max_frames', 'audio_scale', 'pose_strength', 'pose_start', 'pose_end', 'vace_strength', 'track_temperature', 'track_topk']);
+              const videoSet = new Set(['frame_count', 'num_frames', 'fps', 'frame_rate', 'duration', 'motion_bucket_id', 'augmentation_level', 'min_cfg', 'motion_frame_count', 'continue_motion_max_frames', 'audio_scale', 'pose_strength', 'pose_start', 'pose_end', 'vace_strength', 'track_temperature', 'track_topk']);
               const catOf = (name: string) => {
                 if (name === 'prompt' || name === 'positive_prompt' || name === 'text' || name === 'negative_prompt' || name === 'negative_text') return 'prompt';
                 if (loraSet.has(name)) return 'lora';
@@ -897,36 +1009,47 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                 return 'other';
               };
 
-              let lastCat = '';
+              // 拆分为提示词区域和非提示词区域，图片上传插在中间
+              const promptFields = sorted.filter(f => {
+                const c = catOf(f.name);
+                return c === 'prompt';
+              });
+              const nonPromptFields = sorted.filter(f => {
+                const c = catOf(f.name);
+                return c !== 'prompt';
+              });
 
-              return sorted.map((field) => {
-                const cat = catOf(field.name);
-                const showHeader = cat !== 'prompt' && cat !== lastCat;
-                lastCat = cat;
+              const renderFieldList = (fields: typeof sorted) => {
+                let lastCat = '';
+                return fields.map((field) => {
+                  const cat = catOf(field.name);
+                  const showHeader = cat !== 'prompt' && cat !== lastCat;
+                  lastCat = cat;
 
-                const val = (params as any)[field.name];
-                const setVal = (v: any) => setParams((prev: any) => ({ ...prev, [field.name]: v }));
-                const label = labels[field.name] || field.name;
+                  const val = (params as any)[field.name];
+                  const setVal = (v: any) => setParams((prev: any) => ({ ...prev, [field.name]: v }));
+                  const label = labels[field.name] || field.name;
 
-                return (
-                  <React.Fragment key={field.name}>
-                    {/* 分段头 */}
-                    {showHeader && (
-                      <div className="flex items-center gap-2 pt-2 pb-2 border-b border-border-main/30">
-                        {cat === 'lora' && <Sparkles className="w-3 h-3 text-accent/50" />}
-                        {cat === 'sampling' && <Dna className="w-3 h-3 text-accent/50" />}
-                        {cat === 'control' && <Maximize2 className="w-3 h-3 text-accent/50" />}
-                        {cat === 'dimensions' && <Maximize2 className="w-3 h-3 text-accent/50" />}
-                        {cat === 'model' && <Layers className="w-3 h-3 text-accent/50" />}
-                        {cat === 'other' && <Settings2 className="w-3 h-3 text-accent/50" />}
-                        <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-accent/60 font-semibold">
-                          {cat === 'lora' ? 'LoRA 增效' : cat === 'sampling' ? '采样参数' : cat === 'control' ? '条件控制' : cat === 'dimensions' ? '尺寸设置' : cat === 'model' ? '模型' : cat === 'video' ? '视频参数' : '其他参数'}
-                        </span>
-                      </div>
-                    )}
+                  return (
+                    <React.Fragment key={field.name}>
+                      {/* 分段头 */}
+                      {showHeader && (
+                        <div className="flex items-center gap-2 pt-2 pb-2 border-b border-border-main/30">
+                          {cat === 'video' && <Video className="w-3 h-3 text-accent/50" />}
+                          {cat === 'sampling' && <Dna className="w-3 h-3 text-accent/50" />}
+                          {cat === 'control' && <Maximize2 className="w-3 h-3 text-accent/50" />}
+                          {cat === 'dimensions' && <Maximize2 className="w-3 h-3 text-accent/50" />}
+                          {cat === 'lora' && <Sparkles className="w-3 h-3 text-accent/50" />}
+                          {cat === 'model' && <Layers className="w-3 h-3 text-accent/50" />}
+                          {cat === 'other' && <Settings2 className="w-3 h-3 text-accent/50" />}
+                          <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-accent/60 font-semibold">
+                            {cat === 'video' ? '视频参数' : cat === 'sampling' ? '采样参数' : cat === 'control' ? '条件控制' : cat === 'dimensions' ? '尺寸设置' : cat === 'lora' ? 'LoRA 增效' : cat === 'model' ? '模型' : '其他参数'}
+                          </span>
+                        </div>
+                      )}
 
-                    {/* ---- Combo 下拉 ---- */}
-                    {field.type === 'combo' && field.options ? (
+                      {/* ---- Combo 下拉 ---- */}
+                      {field.type === 'combo' && field.options ? (
                       <div>
                         <label className="block text-[11px] font-mono text-text-secondary mb-1.5 tracking-wide">{label}</label>
                         <select
@@ -1119,49 +1242,60 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                   </React.Fragment>
                 );
               });
+              }; // close renderFieldList
+
+              return (
+                <>
+                  {renderFieldList(promptFields)}
+                  {showImageUpload && (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 pt-2 pb-2 border-b border-border-main/30">
+                        <UploadCloud className="w-3 h-3 text-accent/50" />
+                        <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-accent/60 font-semibold">媒体源</span>
+                      </div>
+                      <div className={`grid gap-3 ${imageFields.length <= 2 ? 'grid-cols-2' : imageFields.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                        {imageFields.map((field, idx) => {
+                          const upload = imageUploads[field.name];
+                          const preview = upload?.preview;
+                          const uploadSlotLabel = field.label || (idx === 0 ? '上传参考图' : idx === 1 ? '上传目标素材' : `上传图片 ${idx + 1}`);
+                          return (
+                            <div key={field.name}
+                              className="flex-1 border-2 border-dashed border-border-main hover:border-accent/50 rounded-lg bg-bg-input/50 p-4 flex flex-col items-center text-center justify-center text-text-secondary hover:text-text-primary transition-colors cursor-pointer group will-change-transform"
+                              onClick={() => uploadInputRefs.current[field.name]?.click()}
+                              onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f?.type.startsWith("image/") || f?.type.startsWith("video/")) handleImageUpload(field.name, f); }}
+                              onDragOver={(e) => e.preventDefault()}
+                            >
+                              {preview ? (
+                                <div className="relative w-full">
+                                  <img src={preview} alt="" className="w-full h-24 object-cover rounded-md mb-2" />
+                                  <button className="absolute top-1 right-1 p-1 bg-black/60 rounded text-white hover:text-danger transition-colors"
+                                    onClick={(e) => { e.stopPropagation(); handleImageRemove(field.name); }}>
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                  <span className="text-[10px] font-mono tracking-widest uppercase opacity-70">PNG / JPG</span>
+                                </div>
+                              ) : (<>
+                                <UploadCloud className="w-8 h-8 mb-2 group-hover:scale-110 transition-transform group-hover:text-accent" />
+                                <span className="text-[12px] font-medium leading-tight">{uploadSlotLabel}</span>
+                                <span className="text-[10px] mt-1 font-mono tracking-widest uppercase">PNG / JPG</span>
+                              </>)}
+                              <input
+                                ref={el => { uploadInputRefs.current[field.name] = el; }}
+                                type="file" accept="image/*,video/*"
+                                className="hidden"
+                                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(field.name, f); }}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {renderFieldList(nonPromptFields)}
+                </>
+              );
             })()}
           </div>
-          {showImageUpload && (
-            <div className="space-y-4">
-              <label className="block text-[11px] font-mono uppercase text-text-secondary mb-2 font-semibold">媒体源节点</label>
-              <div className={`grid gap-3 ${imageFields.length <= 2 ? 'grid-cols-2' : imageFields.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                {imageFields.map((field, idx) => {
-                  const upload = imageUploads[field.name];
-                  const preview = upload?.preview;
-                  const uploadSlotLabel = field.label || (idx === 0 ? '上传基础媒体' : idx === 1 ? '上传目标素材' : `上传图片 ${idx + 1}`);
-                  return (
-                    <div key={field.name}
-                      className="flex-1 border-2 border-dashed border-border-main hover:border-accent/50 rounded-lg bg-bg-input/50 p-4 flex flex-col items-center text-center justify-center text-text-secondary hover:text-text-primary transition-colors cursor-pointer group will-change-transform"
-                      onClick={() => uploadInputRefs.current[field.name]?.click()}
-                      onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f?.type.startsWith("image/") || f?.type.startsWith("video/")) handleImageUpload(field.name, f); }}
-                      onDragOver={(e) => e.preventDefault()}
-                    >
-                      {preview ? (
-                        <div className="relative w-full">
-                          <img src={preview} alt="" className="w-full h-24 object-cover rounded-md mb-2" />
-                          <button className="absolute top-1 right-1 p-1 bg-black/60 rounded text-white hover:text-danger transition-colors"
-                            onClick={(e) => { e.stopPropagation(); handleImageRemove(field.name); }}>
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                          <span className="text-[10px] font-mono tracking-widest uppercase opacity-70">PNG / JPG</span>
-                        </div>
-                      ) : (<>
-                        <UploadCloud className="w-8 h-8 mb-2 group-hover:scale-110 transition-transform group-hover:text-accent" />
-                        <span className="text-[12px] font-medium leading-tight">{uploadSlotLabel}</span>
-                        <span className="text-[10px] mt-1 font-mono tracking-widest uppercase">PNG / JPG</span>
-                      </>)}
-                      <input
-                        ref={el => { uploadInputRefs.current[field.name] = el; }}
-                        type="file" accept="image/*,video/*"
-                        className="hidden"
-                        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(field.name, f); }}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
         <div className="p-5 border-t border-border-main/80 bg-bg-base/30 space-y-3 sticky bottom-0 backdrop-blur-md">
           {generating ? (

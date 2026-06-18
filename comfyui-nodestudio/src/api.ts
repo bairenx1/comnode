@@ -3,6 +3,7 @@
 export const modeToWorkflowId: Record<string, string> = {
   t2i: "txt2img",
   i2i: "img2img",
+  t2v: "video_wan2_2_5b_ti2v",
   i2v: "unsloth_flowers",
   face: "img2img",
   clothes: "img2img",
@@ -12,6 +13,7 @@ export const modeToWorkflowId: Record<string, string> = {
 export const modeNameMap: Record<string, string> = {
   t2i: "文生图",
   i2i: "图生图",
+  t2v: "文生视频",
   i2v: "图生视频",
   face: "模型换脸",
   clothes: "电商换衣",

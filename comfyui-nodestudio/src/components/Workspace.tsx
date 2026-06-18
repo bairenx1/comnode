@@ -393,7 +393,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
       };
       // 更新 UI 种子输入框为实际使用的值
       if (!seedFixed) setParams((prev: any) => ({ ...prev, seed: randomSeed }));
-      if (imageFields.length > 0 && mode === "i2v") jobParams.frame_count = 16;
+      if (imageFields.length > 0 && (mode === "i2v" || mode === "t2v")) jobParams.frame_count = 16;
       setStatusText("提交任务...");
       const batchResult = await api.queueBatch(workflowId, [{ params: jobParams }], clientId);
       setQueuedJobs(batchResult.queued);

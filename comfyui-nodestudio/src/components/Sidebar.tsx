@@ -13,6 +13,7 @@ export function Sidebar({ currentMode, onSelectMode, currentTheme, onChangeTheme
   const topItems: { id: AppMode; label: string; icon: React.ElementType }[] = [
     { id: 't2i', label: '文生图', icon: ImageIcon },
     { id: 'i2i', label: '图生图', icon: ImagePlus },
+    { id: 't2v', label: '文生视频', icon: Video },
     { id: 'i2v', label: '图生视频', icon: Video },
     { id: 'face', label: '模特换脸', icon: Users },
     { id: 'clothes', label: '电商换衣', icon: Shirt },

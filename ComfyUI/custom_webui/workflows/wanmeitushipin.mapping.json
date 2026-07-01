@@ -1,0 +1,73 @@
+{
+  "workflow_id": "wanmeitushipin",
+  "name": "万美图视频 (LTX-2.3 图生视频)",
+  "category": "converted",
+  "workflow_file": "wanmeitushipin.json",
+  "mapping_file": "wanmeitushipin.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "target_asset_hash",
+        "type": "string",
+        "default": "",
+        "label": "参考图片",
+        "role": "image_upload"
+      },
+      {
+        "name": "prompt",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "negative_prompt",
+        "type": "string",
+        "default": "blurry, oversaturated, pixelated, low resolution, grainy, distorted, noise, compression artifacts, jpeg artifacts, glitches, watermark, text, logo, signature, copyright, subtitles, distorted sound, saturated sound, loud"
+      },
+      {
+        "name": "width",
+        "type": "number",
+        "default": 1280,
+        "label": "宽度",
+        "min": 32,
+        "max": 4096,
+        "step": 32
+      },
+      {
+        "name": "height",
+        "type": "number",
+        "default": 736,
+        "label": "高度",
+        "min": 32,
+        "max": 4096,
+        "step": 32
+      },
+      {
+        "name": "length",
+        "type": "number",
+        "default": 3,
+        "label": "时长 (秒)",
+        "min": 1,
+        "max": 60,
+        "step": 1
+      },
+      {
+        "name": "fps",
+        "type": "number",
+        "default": 24,
+        "label": "帧率 (FPS)",
+        "min": 1,
+        "max": 60,
+        "step": 1
+      }
+    ]
+  },
+  "field_mapping": {
+    "target_asset_hash": "167.inputs.image",
+    "prompt": "121.inputs.text",
+    "negative_prompt": "110.inputs.text",
+    "width": "292.inputs.value",
+    "height": "293.inputs.value",
+    "length": "291.inputs.value",
+    "fps": "285.inputs.value"
+  }
+}

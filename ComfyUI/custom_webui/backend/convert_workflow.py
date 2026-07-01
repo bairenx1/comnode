@@ -16,6 +16,12 @@ SKIP_TYPES = {'MarkdownNote', 'Note', 'PrimitiveNode', 'Reroute', 'SetNode'}
 # 持有可编辑文本值的 Primitive 节点类型（其值通过 UUID Group Node 的 link 暴露）
 PRIMITIVE_VALUE_TYPES = {'PrimitiveStringMultiline'}
 
+# 有标题的 Primitive 节点类型：当 'value' 字段被 HIDDEN_FIELD_NAMES 过滤时，
+# 使用节点标题（如 "WIDTH"、"FPS"）作为字段名暴露给前端
+_TITLED_PRIMITIVE_TYPES = {
+    'INTConstant', 'PrimitiveInt', 'PrimitiveFloat', 'PrimitiveBoolean',
+}
+
 # 不暴露 UI 参数的节点类型（模型加载器等，用户不需要在工作流中切换）
 HIDDEN_UI_TYPES = {
     'CheckpointLoaderSimple', 'CheckpointLoader',
@@ -391,7 +397,8 @@ def _resolve_reroute_links(link_map, nodes_by_id):
 def _trace_clip_polarity(nodes, reverse_map):
     """通过链接追踪 CLIPTextEncode 节点是正向还是负向提示词
 
-    遍历所有 KSampler 节点，找到其 positive/negative 输入连接到的 CLIPTextEncode
+    遍历所有 KSampler 节点，找到其 positive/negative 输入连接到的 CLIPTextEncode。
+    支持穿透 GetNode/SetNode 虚拟连接和 LTXVConditioning 等中间节点。
     """
     clip_polarity: dict[str, str] = {}
     nodes_by_id = {str(n['id']): n for n in nodes}
@@ -401,6 +408,16 @@ def _trace_clip_polarity(nodes, reverse_map):
     neg_inputs = ('negative', 'negative_cond', 'negative_conditioning')
     all_inputs = pos_inputs + neg_inputs
 
+    # 构建 SetNode 名称→源节点 映射（用于穿透 GetNode→SetNode 虚拟连接）
+    _setname_to_source: dict[str, list[tuple[str, str]]] = {}  # set_name -> [(source_node_id, polarity_hint)]
+    _setname_to_setnode: dict[str, str] = {}  # set_name -> set_node_id
+    for node in nodes:
+        if node.get('type') == 'SetNode':
+            wv = node.get('widgets_values', [])
+            set_name = wv[0] if isinstance(wv, list) and wv else ''
+            if set_name:
+                _setname_to_setnode[set_name] = str(node['id'])
+
     def _trace_back(node_id: str, polarity: str, visited: set) -> None:
         if node_id in visited:
             return
@@ -408,10 +425,27 @@ def _trace_clip_polarity(nodes, reverse_map):
         node = nodes_by_id.get(node_id)
         if not node:
             return
-        if 'CLIPTextEncode' in node.get('type', ''):
+        ntype = node.get('type', '')
+        if 'CLIPTextEncode' in ntype:
             clip_polarity[node_id] = polarity
             return
-        # 穿透中间节点，继续向上一层追踪
+
+        # GetNode 穿透：通过虚拟名称找到对应 SetNode，再追踪 SetNode 的输入
+        if ntype == 'GetNode':
+            wv = node.get('widgets_values', [])
+            get_name = wv[0] if isinstance(wv, list) and wv else ''
+            set_nid = _setname_to_setnode.get(get_name)
+            if set_nid:
+                set_node = nodes_by_id.get(set_nid)
+                if set_node:
+                    for inp in set_node.get('inputs', []):
+                        key = (set_nid, inp['name'])
+                        if key in reverse_map:
+                            for from_node_id, _ in reverse_map[key]:
+                                _trace_back(from_node_id, polarity, visited)
+            return
+
+        # 穿透中间节点（含 LTXVConditioning 等有 positive/negative 透传的节点）
         for inp_name in all_inputs:
             key = (node_id, inp_name)
             if key in reverse_map:
@@ -419,6 +453,9 @@ def _trace_clip_polarity(nodes, reverse_map):
                     is_pos = 'positive' in inp_name
                     child_polarity = 'prompt' if is_pos else 'negative_prompt'
                     _trace_back(from_node_id, child_polarity, visited)
+
+        # 通用穿透：遍历所有输入连接，对非标准中间节点也继续追踪
+        # （如 LTXVConditioning 的 positive/negative 输入已在上面处理）
 
     for node in nodes:
         nid = str(node['id'])
@@ -1199,6 +1236,12 @@ def convert_native_to_api(native_data, definitions=None):
                         inputs[inp_name] = str(inp.get('default', ''))
                 # 为所有 widget 输入生成 UI 字段（跳过模型相关字段）
                 safe_name = FIELD_ALIASES.get(inp_name, inp_name)
+                # 有标题的 Primitive 节点（INTConstant/PrimitiveFloat/PrimitiveBoolean/PrimitiveInt）：
+                # 使用节点标题作为字段名，避免 'value' 被 HIDDEN_FIELD_NAMES 过滤
+                if _is_hidden_field_name(safe_name) and ntype in _TITLED_PRIMITIVE_TYPES:
+                    title_name = _title_to_field_name(node.get('title', ''))
+                    if title_name:
+                        safe_name = title_name
                 if safe_name not in seen_ui_field_names and not _is_hidden_field_name(safe_name):
                     seen_ui_field_names.add(safe_name)
                     inp_type = _get_input_type(inp)
@@ -1206,6 +1249,10 @@ def convert_native_to_api(native_data, definitions=None):
                     if inp_type == 'COMBO' and isinstance(inp.get('options'), list):
                         field_type = 'combo'
                     entry = {'name': safe_name, 'type': field_type, 'default': inputs.get(inp_name, inp.get('default', ''))}
+                    # 使用节点标题作为 label（如 "WIDTH" → label="WIDTH"）
+                    node_title = (node.get('title', '') or '').strip()
+                    if node_title and ntype in _TITLED_PRIMITIVE_TYPES:
+                        entry['label'] = node_title
                     if inp.get('min') is not None:
                         entry['min'] = inp['min']
                     if inp.get('max') is not None:

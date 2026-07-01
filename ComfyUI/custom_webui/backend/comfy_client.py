@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import re
@@ -94,7 +94,12 @@ class ComfyClient:
         params = {"delete_content": "1" if delete_content else "0"}
         async with session.delete(f"{self.base_url}/api/assets/{asset_id}", params=params) as resp:
             resp.raise_for_status()
-            return await resp.json()
+            if resp.status == 204:
+                return {"ok": True}
+            try:
+                return await resp.json()
+            except Exception:
+                return {"ok": True}
 
     async def get_asset_content(self, asset_id: str) -> tuple[bytes, str, str]:
         """返回 (文件内容, content_type, filename)"""

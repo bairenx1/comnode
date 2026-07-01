@@ -254,8 +254,10 @@ def create_app() -> web.Application:
     async def delete_asset(request: web.Request) -> web.Response:
         try:
             asset_id = request.match_info["asset_id"]
-            delete_content = request.query.get("delete_content", "0")
-            result = await comfy.delete_asset(asset_id, delete_content=delete_content == "1")
+            # 默认删除资产实际的内容文件(delete_content=True)
+            delete_content_query = request.query.get("delete_content", "1")
+            delete_content = delete_content_query != "0"
+            result = await comfy.delete_asset(asset_id, delete_content=delete_content)
             return web.json_response(result)
         except aiohttp.ClientError as e:
             return comfy_down_response(e)
@@ -297,7 +299,7 @@ def create_app() -> web.Application:
                 chunk_size = 64 * 1024
                 async for chunk in upstream.content.iter_chunked(chunk_size):
                     await resp.write(chunk)
-                await resp.write_eof()
+                # 不再手动调用 write_eof()，避免数据传输提前被异常截断损坏视频文件
                 return resp
         except aiohttp.ClientError as e:
             return comfy_down_response(e)

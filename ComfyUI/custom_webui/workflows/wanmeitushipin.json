@@ -7,7 +7,7 @@
         0
       ],
       "vae": [
-        "220",
+        "184",
         0
       ],
       "tile_size": 512,
@@ -33,7 +33,7 @@
     "class_type": "SimpleCalculatorKJ",
     "inputs": {
       "variables.a": [
-        "310",
+        "285",
         0
       ],
       "expression": "a"
@@ -43,11 +43,11 @@
     "class_type": "LTXVImgToVideoInplace",
     "inputs": {
       "vae": [
-        "219",
+        "184",
         0
       ],
       "image": [
-        "212",
+        "246",
         0
       ],
       "latent": [
@@ -56,7 +56,7 @@
       ],
       "strength": 1,
       "bypass": [
-        "309",
+        "290",
         0
       ]
     }
@@ -69,11 +69,11 @@
         0
       ],
       "upscale_model": [
-        "242",
+        "189",
         0
       ],
       "vae": [
-        "219",
+        "184",
         0
       ]
     }
@@ -128,7 +128,7 @@
     "class_type": "LTXVImgToVideoInplace",
     "inputs": {
       "vae": [
-        "218",
+        "184",
         0
       ],
       "image": [
@@ -141,7 +141,7 @@
       ],
       "strength": 1,
       "bypass": [
-        "308",
+        "290",
         0
       ]
     }
@@ -150,12 +150,12 @@
     "class_type": "LTXVEmptyLatentAudio",
     "inputs": {
       "audio_vae": [
-        "217",
+        "196",
         0
       ],
       "frames_number": [
-        "205",
-        0
+        "287",
+        1
       ],
       "frame_rate": [
         "311",
@@ -178,7 +178,7 @@
         1
       ],
       "audio_vae": [
-        "221",
+        "196",
         0
       ]
     }
@@ -207,16 +207,16 @@
     "class_type": "CFGGuider",
     "inputs": {
       "model": [
-        "341",
+        "342",
         0
       ],
       "positive": [
-        "228",
+        "107",
         0
       ],
       "negative": [
-        "229",
-        0
+        "107",
+        1
       ],
       "cfg": 1
     }
@@ -282,12 +282,12 @@
         0
       ],
       "nag_cond_video": [
-        "343",
-        0
+        "107",
+        1
       ],
       "nag_cond_audio": [
-        "343",
-        0
+        "107",
+        1
       ],
       "nag_scale": 11,
       "nag_alpha": 0.25,
@@ -299,16 +299,16 @@
     "class_type": "EmptyLTXVLatentVideo",
     "inputs": {
       "width": [
-        "236",
+        "163",
         0
       ],
       "height": [
-        "237",
-        0
+        "163",
+        1
       ],
       "length": [
-        "205",
-        0
+        "287",
+        1
       ],
       "batch_size": 1
     }
@@ -326,7 +326,7 @@
     "class_type": "LTXVPreprocess",
     "inputs": {
       "image": [
-        "210",
+        "246",
         0
       ],
       "img_compression": 33
@@ -361,7 +361,7 @@
     "class_type": "LTXVScheduler",
     "inputs": {
       "latent": [
-        "239",
+        "109",
         0
       ],
       "steps": 8,
@@ -375,16 +375,16 @@
     "class_type": "CFGGuider",
     "inputs": {
       "model": [
-        "344",
+        "342",
         0
       ],
       "positive": [
-        "230",
+        "107",
         0
       ],
       "negative": [
-        "231",
-        0
+        "107",
+        1
       ],
       "cfg": 1
     }
@@ -399,11 +399,11 @@
     "class_type": "LTX2SamplingPreviewOverride",
     "inputs": {
       "model": [
-        "339",
+        "301",
         0
       ],
       "vae": [
-        "338",
+        "330",
         0
       ],
       "preview_rate": 8
@@ -450,7 +450,7 @@
         0
       ],
       "frame_rate": [
-        "307",
+        "285",
         0
       ],
       "loop_count": 0,
@@ -498,11 +498,11 @@
         0
       ],
       "width": [
-        "243",
+        "292",
         0
       ],
       "height": [
-        "244",
+        "293",
         0
       ],
       "upscale_method": "nearest-exact",
@@ -542,7 +542,7 @@
     "class_type": "CLIPTextEncode",
     "inputs": {
       "clip": [
-        "214",
+        "346",
         0
       ],
       "text": "blurry, oversaturated, pixelated, low resolution, grainy, distorted, noise, compression artifacts, jpeg artifacts, glitches, watermark, text, logo, signature, copyright, subtitles, distorted sound, saturated sound, loud"
@@ -560,7 +560,7 @@
         0
       ],
       "frame_rate": [
-        "322",
+        "285",
         0
       ]
     }
@@ -585,7 +585,7 @@
         0
       ],
       "latent_image": [
-        "239",
+        "109",
         0
       ]
     }
@@ -594,7 +594,7 @@
     "class_type": "CLIPTextEncode",
     "inputs": {
       "clip": [
-        "214",
+        "346",
         0
       ],
       "text": "This is a girl with curly hair, who suddenly starts singing, and the background begins to be sunny,a plane pass"

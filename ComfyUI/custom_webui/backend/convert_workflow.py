@@ -11,7 +11,7 @@ USER_WORKFLOW_DIRS = [
     _USER_DEFAULT_DIR / "workflow",   # 单数：兼容旧路径
 ]
 
-SKIP_TYPES = {'MarkdownNote', 'Note', 'PrimitiveNode', 'Reroute', 'SetNode'}
+SKIP_TYPES = {'MarkdownNote', 'Note', 'PrimitiveNode', 'Reroute', 'SetNode', 'GetNode'}
 
 # 持有可编辑文本值的 Primitive 节点类型（其值通过 UUID Group Node 的 link 暴露）
 PRIMITIVE_VALUE_TYPES = {'PrimitiveStringMultiline'}
@@ -319,7 +319,7 @@ SPECIAL_NODE_CONFIGS = {
 }
 
 
-def _build_link_maps(nodes, links):
+def _build_link_maps(nodes, links, getnode_map=None):
     """解析链接关系，构建正向和反向映射（兼容 list 和 dict 两种链接格式）"""
     link_map = {}         # link_id -> (from_node, from_slot, to_node, to_slot)
     reverse_map = {}      # (to_node_id, input_name) -> [(from_node_id, from_slot)]
@@ -342,6 +342,9 @@ def _build_link_maps(nodes, links):
         from_slot = link[2]
         to_node = str(link[3])
         to_slot = link[4]
+        # 如果来源节点是 GetNode，直接将其重定向为 SetNode 所连的真实物理源
+        if getnode_map and from_node in getnode_map:
+            from_node, from_slot = getnode_map[from_node]
         link_map[link_id] = (from_node, from_slot, to_node, to_slot)
 
     # 构建反向映射：找到每个目标节点输入端对应的源节点
@@ -349,7 +352,10 @@ def _build_link_maps(nodes, links):
         link_id, from_node, from_slot, to_node, to_slot, *_ = link
         to_node_s = str(to_node)
         from_node_s = str(from_node)
-        # 在目标节点的 inputs 中查找匹配的 link_id 对应的 input name
+        # 如果来源节点是 GetNode，重定向到真实源
+        if getnode_map and from_node_s in getnode_map:
+            from_node_s, from_slot = getnode_map[from_node_s]
+        # 在目标节点的 inputs 中查找匹配 of link_id 对应的 input name
         for node in nodes:
             if str(node['id']) == to_node_s:
                 for inp in node.get('inputs', []):
@@ -639,7 +645,38 @@ def convert_native_to_api(native_data, definitions=None):
             if not node.get('subgraph') or not node['subgraph'].get('nodes'):
                 node['subgraph'] = subgraph_defs[ntype]
 
-    link_map, reverse_map = _build_link_maps(nodes, links)
+    # 构建临时的物理连线映射，用于解析 SetNode
+    temp_link_map = {}
+    for link in links:
+        if isinstance(link, dict):
+            temp_link_map[link['id']] = (str(link['origin_id']), link['origin_slot'])
+        elif isinstance(link, list) and len(link) >= 5:
+            temp_link_map[link[0]] = (str(link[1]), link[2])
+
+    setnode_map = {}
+    for node in nodes:
+        if node.get('type') == 'SetNode':
+            wv = node.get('widgets_values', [])
+            set_name = wv[0] if isinstance(wv, list) and wv else ''
+            if not set_name:
+                continue
+            for inp in node.get('inputs', []):
+                link_id = inp.get('link')
+                if link_id is not None and link_id in temp_link_map:
+                    src_nid, src_slot = temp_link_map[link_id]
+                    setnode_map[set_name] = (str(src_nid), src_slot)
+                    break
+
+    getnode_map = {}
+    for node in nodes:
+        if node.get('type') == 'GetNode':
+            nid = str(node['id'])
+            wv = node.get('widgets_values', [])
+            set_name = wv[0] if isinstance(wv, list) and wv else ''
+            if set_name in setnode_map:
+                getnode_map[nid] = setnode_map[set_name]
+
+    link_map, reverse_map = _build_link_maps(nodes, links, getnode_map)
     clip_polarity = _trace_clip_polarity(nodes, reverse_map)
 
     # 构建节点 ID 查找表（用于 UUID ref 追踪 PrimitiveNode 值）

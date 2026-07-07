@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import copy
 import json
@@ -8,14 +8,30 @@ from pathlib import Path
 from typing import Any
 from .convert_workflow import auto_convert_all, _expand_uuid_wrappers
 
-# 上传资产时建立的 blake3 哈希 → 文件名 映射表
-# 前端提交 blake3 哈希但不会带 asset_hashes 映射，由后端在上传时记录
 _asset_file_map: dict[str, str] = {}
+_map_file_path: Path | None = None
+
+def init_asset_file_map(workflows_dir: Path) -> None:
+    """初始化并加载持久化的资产哈希文件映射表"""
+    global _map_file_path
+    _map_file_path = workflows_dir / ".asset_file_map.json"
+    if _map_file_path.exists():
+        try:
+            data = json.loads(_map_file_path.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                _asset_file_map.update(data)
+        except Exception as e:
+            logging.warning(f"Failed to load asset file map: {e}")
 
 def register_asset_file(asset_hash: str, filename: str) -> None:
     """注册 blake3 哈希到文件名的映射（上传资产时调用）"""
     if asset_hash and filename:
         _asset_file_map[asset_hash] = filename
+        if _map_file_path:
+            try:
+                _map_file_path.write_text(json.dumps(_asset_file_map, indent=2, ensure_ascii=False), encoding="utf-8")
+            except Exception as e:
+                logging.warning(f"Failed to save asset file map: {e}")
 
 def resolve_asset_hash(asset_hash: str) -> str | None:
     """根据 blake3 哈希查找对应的文件名"""
@@ -37,6 +53,7 @@ class WorkflowRegistry:
     def __init__(self, workflows_dir: Path) -> None:
         self.workflows_dir = workflows_dir
         self._definitions: dict[str, WorkflowDefinition] = {}
+        init_asset_file_map(workflows_dir)
         self.reload()
 
     def reload(self) -> None:
@@ -119,12 +136,15 @@ class WorkflowRegistry:
             merged_params.update(asset_hashes)
 
         for ui_field, target in definition.field_mapping.items():
-            value = merged_params.get(ui_field)
-            # 用户未提供 → 使用 ui_schema 默认值（确保 -10 widget ref 被解析）
-            if value in (None, "", [], {}):
+            # 只有当 merged_params 中根本没有提供这个参数时，才使用 ui_schema 默认值（确保 -10 widget ref 被解析）
+            if ui_field not in merged_params:
                 value = field_defaults.get(ui_field)
-                if value in (None, "", [], {}):
-                    continue
+            else:
+                value = merged_params[ui_field]
+
+            if value is None:
+                continue
+
             # 解析 blake3 哈希为实际文件名（LoadImage 等节点需要真实文件路径）
             if isinstance(value, str) and value.startswith("blake3:"):
                 resolved = (asset_hashes or {}).get(value) or resolve_asset_hash(value)

@@ -385,8 +385,8 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
       const randomSeed = Math.floor(Math.random() * 2**32);
       const jobParams: JobParams = {
         ...fieldDefaults,
-        prompt: params.prompt || prompt || fieldDefaults.prompt || "masterpiece, best quality",
-        negative_prompt: params.negative_prompt || negativePrompt || fieldDefaults.negative_prompt || undefined,
+        prompt: params.prompt !== undefined ? params.prompt : (prompt || (fieldDefaults.prompt as string) || "masterpiece, best quality"),
+        negative_prompt: params.negative_prompt !== undefined ? params.negative_prompt : (negativePrompt || (fieldDefaults.negative_prompt as string) || undefined),
         ...params,
         ...imageHashes,
         seed: seedFixed ? (params.seed ?? fieldDefaults.seed ?? 0) : randomSeed,
@@ -507,8 +507,8 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
       const jobs = Array.from({ length: batchCount }, (_, i) => ({
         params: {
           ...fieldDefaults,
-          prompt: params.prompt || prompt || fieldDefaults.prompt || "masterpiece, best quality",
-          negative_prompt: params.negative_prompt || negativePrompt || fieldDefaults.negative_prompt || undefined,
+          prompt: params.prompt !== undefined ? params.prompt : (prompt || (fieldDefaults.prompt as string) || "masterpiece, best quality"),
+          negative_prompt: params.negative_prompt !== undefined ? params.negative_prompt : (negativePrompt || (fieldDefaults.negative_prompt as string) || undefined),
           ...params,
           ...imageHashes,
           seed: seedFixed ? (baseSeed + i) : Math.floor(Math.random() * 2**32),

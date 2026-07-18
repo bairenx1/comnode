@@ -279,7 +279,7 @@ def install_base_deps(venv_python: str, root_dir: str):
     info("正在安装 ComfyUI 基础依赖...")
     ret, out = run(
         [venv_python, "-m", "pip", "install", "-r", req_path,
-         "--index-url", "https://pypi.org/simple/"],
+         "--index-url", "https://pypi.tuna.tsinghua.edu.cn/simple/"],
         desc="基础依赖安装"
     )
     if ret != 0:

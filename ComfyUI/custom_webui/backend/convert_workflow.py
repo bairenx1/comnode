@@ -1037,6 +1037,7 @@ def convert_native_to_api(native_data, definitions=None):
                     inputs[field_name] = val
                     field_mapping[field_name] = f'{nid}.inputs.{field_name}'
                     field_cfg = dict(cfg)
+                    field_cfg['default'] = val
                     if field_name == 'sampler_name':
                         field_cfg['options'] = SAMPLER_NAMES
                     elif field_name == 'scheduler':

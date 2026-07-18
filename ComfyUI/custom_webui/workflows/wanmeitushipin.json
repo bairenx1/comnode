@@ -479,7 +479,7 @@
   "346": {
     "class_type": "DualCLIPLoaderGGUF",
     "inputs": {
-      "clip_name1": "gemma-3-12b-it-qat-UD-Q4_K_XL.gguf",
+      "clip_name1": "gemma_3_12B_it_fp8_scaled.safetensors",
       "clip_name2": "ltx-2.3-22b-dev_embeddings_connectors.safetensors",
       "type": "ltxv"
     }

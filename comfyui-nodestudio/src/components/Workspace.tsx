@@ -30,13 +30,14 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   const [workflowList, setWorkflowList] = useState<{workflow_id: string; name: string}[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [negativePrompt, setNegativePrompt] = useState("");
-  const [params, setParams] = useState<Record<string, any>>({});
+  // 按工作流 ID 彻底隔离参数与图片上传
+  const [paramsByWorkflow, setParamsByWorkflow] = useState<Record<string, Record<string, any>>>({});
   const [seedFixed, setSeedFixed] = useState(false);
   const [batchCount, setBatchCount] = useState(4);
   const [batchSettingsOpen, setBatchSettingsOpen] = useState(false);
   const batchSettingsRef = useRef<HTMLDivElement>(null);
-  // 动态图片上传状态（按字段名索引，支持任意数量上传区）
-  const [imageUploads, setImageUploads] = useState<Record<string, {file: File | null; preview: string | null; hash: string | null}>>({});
+  // 动态图片上传状态（按工作流 ID 隔离）
+  const [imageUploadsByWorkflow, setImageUploadsByWorkflow] = useState<Record<string, Record<string, {file: File | null; preview: string | null; hash: string | null}>>>({});
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressStep, setProgressStep] = useState(0);
@@ -77,6 +78,26 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   const receivedJobCountRef = useRef(0);
   const generatingRef = useRef(false);  // 消抖锁：防止双击重复提交
   const activeWorkflowId = customBindings[mode] || modeToWorkflowId[mode] || null;
+  const currentWfId = activeWorkflowId || mode || "default";
+  const params = paramsByWorkflow[currentWfId] || {};
+  const imageUploads = imageUploadsByWorkflow[currentWfId] || {};
+
+  const setParams = useCallback((updater: any) => {
+    setParamsByWorkflow((prev) => {
+      const cur = prev[currentWfId] || {};
+      const next = typeof updater === "function" ? updater(cur) : updater;
+      return { ...prev, [currentWfId]: next };
+    });
+  }, [currentWfId]);
+
+  const setImageUploads = useCallback((updater: any) => {
+    setImageUploadsByWorkflow((prev) => {
+      const cur = prev[currentWfId] || {};
+      const next = typeof updater === "function" ? updater(cur) : updater;
+      return { ...prev, [currentWfId]: next };
+    });
+  }, [currentWfId]);
+
   const dynamicFields = activeWorkflowId && workflowSchemas[activeWorkflowId] ? workflowSchemas[activeWorkflowId].ui_schema.fields : null;
   const isGenMode = !["assets", "prompts", "settings"].includes(mode);
   // 基于工作流 schema 动态检测图片上传字段
@@ -258,10 +279,12 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   }, [clientId]);
   useEffect(() => {
     return () => {
-      // 清理所有图片预览 URL
-      Object.values(imageUploads).forEach((u: {preview: string | null}) => { if (u.preview) URL.revokeObjectURL(u.preview); });
+      // 清理所有工作流下的图片预览 URL
+      Object.values(imageUploadsByWorkflow).forEach(wfUploads => {
+        Object.values(wfUploads || {}).forEach((u: {preview: string | null}) => { if (u.preview) URL.revokeObjectURL(u.preview); });
+      });
     };
-  }, [imageUploads]);
+  }, [imageUploadsByWorkflow]);
   useEffect(() => { localStorage.setItem("ws_saved_prompts", JSON.stringify(savedPrompts)); }, [savedPrompts]);
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -385,8 +408,8 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
       const randomSeed = Math.floor(Math.random() * 2**32);
       const jobParams: JobParams = {
         ...fieldDefaults,
-        prompt: params.prompt !== undefined ? params.prompt : (prompt || (fieldDefaults.prompt as string) || "masterpiece, best quality"),
-        negative_prompt: params.negative_prompt !== undefined ? params.negative_prompt : (negativePrompt || (fieldDefaults.negative_prompt as string) || undefined),
+        prompt: params.prompt !== undefined ? params.prompt : ((fieldDefaults.prompt as string) || "masterpiece, best quality"),
+        negative_prompt: params.negative_prompt !== undefined ? params.negative_prompt : ((fieldDefaults.negative_prompt as string) || undefined),
         ...params,
         ...imageHashes,
         seed: seedFixed ? (params.seed ?? fieldDefaults.seed ?? 0) : randomSeed,
@@ -507,8 +530,8 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
       const jobs = Array.from({ length: batchCount }, (_, i) => ({
         params: {
           ...fieldDefaults,
-          prompt: params.prompt !== undefined ? params.prompt : (prompt || (fieldDefaults.prompt as string) || "masterpiece, best quality"),
-          negative_prompt: params.negative_prompt !== undefined ? params.negative_prompt : (negativePrompt || (fieldDefaults.negative_prompt as string) || undefined),
+          prompt: params.prompt !== undefined ? params.prompt : ((fieldDefaults.prompt as string) || "masterpiece, best quality"),
+          negative_prompt: params.negative_prompt !== undefined ? params.negative_prompt : ((fieldDefaults.negative_prompt as string) || undefined),
           ...params,
           ...imageHashes,
           seed: seedFixed ? (baseSeed + i) : Math.floor(Math.random() * 2**32),

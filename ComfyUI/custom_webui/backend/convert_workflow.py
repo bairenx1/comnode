@@ -121,6 +121,14 @@ KSAMPLER_WIDGET_MAP = {
     6: ('denoise', float, {'type': 'number', 'default': 1.0, 'min': 0, 'max': 1, 'step': 0.05}),
 }
 
+KSAMPLER_ADVANCED_WIDGET_MAP = {
+    1: ('noise_seed', lambda v: int(v) if v is not None else 1, {'type': 'number', 'default': 1, 'min': 0, 'max': 0xffffffffffffffff}),
+    3: ('steps', int, {'type': 'number', 'default': 20, 'min': 1, 'max': 10000}),
+    4: ('cfg', float, {'type': 'number', 'default': 7.5, 'min': 1, 'max': 30, 'step': 0.5}),
+    5: ('sampler_name', str, {'type': 'combo', 'default': 'euler'}),
+    6: ('scheduler', str, {'type': 'combo', 'default': 'normal'}),
+}
+
 SAMPLER_NAMES = ['euler', 'euler_ancestral', 'heun', 'heunpp2', 'dpm_2', 'dpm_2_ancestral',
     'lms', 'dpm_fast', 'dpm_adaptive', 'dpmpp_2s_ancestral', 'dpmpp_sde', 'dpmpp_sde_gpu',
     'dpmpp_2m', 'dpmpp_2m_sde', 'dpmpp_2m_sde_gpu', 'dpmpp_3m_sde', 'dpmpp_3m_sde_gpu',
@@ -1026,7 +1034,7 @@ def convert_native_to_api(native_data, definitions=None):
         is_ksampler = ntype in ('KSampler', 'KSamplerAdvanced')
 
         if is_ksampler:
-            widget_config = KSAMPLER_WIDGET_MAP
+            widget_config = KSAMPLER_WIDGET_MAP if ntype == 'KSampler' else KSAMPLER_ADVANCED_WIDGET_MAP
             for idx, (field_name, cast_fn, cfg) in widget_config.items():
                 if idx < len(widgets_values) and widgets_values[idx] is not None:
                     val = widgets_values[idx]
@@ -1035,7 +1043,7 @@ def convert_native_to_api(native_data, definitions=None):
                     except (ValueError, TypeError):
                         val = cfg.get('default', 0)
                     inputs[field_name] = val
-                    field_mapping[field_name] = f'{nid}.inputs.{field_name}'
+                    fname = 'seed' if field_name == 'noise_seed' else field_name
                     field_cfg = dict(cfg)
                     field_cfg['default'] = val
                     if field_name == 'sampler_name':
@@ -1044,8 +1052,8 @@ def convert_native_to_api(native_data, definitions=None):
                         field_cfg['options'] = SCHEDULERS
                     if field_cfg.pop('label', None):
                         pass
-                    fname = field_name
                     if fname not in seen_ui_field_names:
+                        field_mapping[fname] = f'{nid}.inputs.{field_name}'
                         seen_ui_field_names.add(fname)
                         ui_fields.append({'name': fname, **field_cfg})
 

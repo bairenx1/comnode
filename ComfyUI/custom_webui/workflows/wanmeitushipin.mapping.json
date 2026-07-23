@@ -287,6 +287,7 @@
     "text_to_video": "290.inputs.value",
     "b": "285.inputs.value",
     "noise_seed": "114.inputs.noise_seed",
+    "seed": "114.inputs.noise_seed",
     "cfg": "103.inputs.cfg",
     "nag_scale": "342.inputs.nag_scale",
     "nag_alpha": "342.inputs.nag_alpha",

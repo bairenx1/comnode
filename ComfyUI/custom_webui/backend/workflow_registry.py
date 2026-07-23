@@ -135,6 +135,12 @@ class WorkflowRegistry:
         if asset_hashes:
             merged_params.update(asset_hashes)
 
+        # 种子别名互通：确保前端批量传递的 seed 能自动同步给 noise_seed（以及反向）
+        if "seed" in merged_params and merged_params["seed"] is not None:
+            merged_params["noise_seed"] = merged_params["seed"]
+        elif "noise_seed" in merged_params and merged_params["noise_seed"] is not None:
+            merged_params["seed"] = merged_params["noise_seed"]
+
         for ui_field, target in definition.field_mapping.items():
             # 只有当 merged_params 中根本没有提供这个参数时，才使用 ui_schema 默认值（确保 -10 widget ref 被解析）
             if ui_field not in merged_params:
@@ -159,6 +165,18 @@ class WorkflowRegistry:
                 self._set_graph_value(graph, target, value)
             except KeyError as e:
                 logging.warning(f"跳过字段 '{ui_field}' (target={target}): {e}")
+
+        # 确保图里所有 RandomNoise 节点的 noise_seed 保持与传入的有效种子同步
+        effective_seed = merged_params.get("noise_seed")
+        if effective_seed is not None:
+            try:
+                seed_int = int(effective_seed)
+                for nid, node_data in graph.items():
+                    if isinstance(node_data, dict) and node_data.get("class_type") == "RandomNoise":
+                        if "inputs" in node_data and "noise_seed" in node_data["inputs"]:
+                            node_data["inputs"]["noise_seed"] = seed_int
+            except (ValueError, TypeError):
+                pass
 
         # 展开 UUID Group Node，将 _subgraph 内部节点提升到主图
         graph = _expand_uuid_wrappers(graph)

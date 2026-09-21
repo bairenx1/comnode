@@ -1280,7 +1280,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                         {imageFields.map((field, idx) => {
                           const upload = imageUploads[field.name];
                           const preview = upload?.preview;
-                          const uploadSlotLabel = field.label || (idx === 0 ? '上传参考图' : idx === 1 ? '上传目标素材' : `上传图片 ${idx + 1}`);
+                          const uploadSlotLabel = field.label || (imageFields.length > 1 ? `上传图片 ${idx + 1}` : '上传图片');
                           return (
                             <div key={field.name}
                               className="flex-1 border-2 border-dashed border-border-main hover:border-accent/50 rounded-lg bg-bg-input/50 p-4 flex flex-col items-center text-center justify-center text-text-secondary hover:text-text-primary transition-colors cursor-pointer group will-change-transform"

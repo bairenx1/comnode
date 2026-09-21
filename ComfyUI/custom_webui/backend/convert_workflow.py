@@ -491,17 +491,42 @@ def _trace_clip_polarity(nodes, reverse_map):
 
 
 def _infer_loadimage_role(node_id, link_map, nodes):
-    """追踪 LoadImage 节点的下游连接，判断其角色（主输入图/参考图）
+    """根据 LoadImage 的下游连接推断其字段名和显示标签"""
+    nodes_by_id = {str(n['id']): n for n in nodes}
+    cur_node = nodes_by_id.get(str(node_id))
+    user_title = (cur_node.get('title') or '').strip() if cur_node else ''
 
-    返回 (field_name, label)：主输入图用 'image_asset_hash'，参考图用 'target_asset_hash'
-    """
-    # 收集该 LoadImage 的所有输出连接
     downstream_nodes = []
     for (from_node, from_slot, to_node, to_slot) in link_map.values():
         if from_node == node_id:
             downstream_nodes.append((to_node, to_slot))
 
-    nodes_by_id = {str(n['id']): n for n in nodes}
+    # 优先检查下游是否有显式的槽位 label（例如子图的 reference_image1 / reference_image2）
+    target_slot_label = ''
+    for to_node, to_slot in downstream_nodes:
+        n = nodes_by_id.get(to_node)
+        if not n:
+            continue
+        inputs = n.get('inputs', [])
+        if isinstance(inputs, list) and to_slot < len(inputs):
+            slot_info = inputs[to_slot]
+            if isinstance(slot_info, dict):
+                target_slot_label = (slot_info.get('label') or slot_info.get('name') or '').strip()
+                if target_slot_label:
+                    break
+
+    # 友好格式化标签
+    display_label = ''
+    if user_title and user_title != 'LoadImage':
+        display_label = user_title
+    elif target_slot_label:
+        lbl_lower = target_slot_label.lower()
+        if 'reference_image1' in lbl_lower or lbl_lower in ('image_1', 'img1', 'image1'):
+            display_label = '图一 (目标模特/底图)'
+        elif 'reference_image2' in lbl_lower or lbl_lower in ('image_2', 'img2', 'image2'):
+            display_label = '图二 (参考人脸源)'
+        else:
+            display_label = target_slot_label
 
     # 查找下游节点类型
     for to_node, to_slot in downstream_nodes:
@@ -512,7 +537,7 @@ def _infer_loadimage_role(node_id, link_map, nodes):
 
         # 连接 VAEEncode → 进入采样流程 → 主输入图
         if 'VAEEncode' in ntype:
-            return 'image_asset_hash', '输入图片'
+            return 'image_asset_hash', display_label or '输入图片'
 
         # UUID Group Node：穿透查看内部连接
         if UUID_TYPE_RE.match(ntype):
@@ -536,19 +561,19 @@ def _infer_loadimage_role(node_id, link_map, nodes):
                             if str(sn['id']) == to_id:
                                 sntype = sn.get('type', '')
                                 if 'VAEEncode' in sntype:
-                                    return 'image_asset_hash', '输入图片'
+                                    return 'image_asset_hash', display_label or '输入图片'
                                 # 继续追踪（如 FluxKontextImageScale → VAEEncode）
                                 for _, (fid, fslot, tid, tslot) in sub_link_map.items():
                                     if fid == to_id:
                                         for sn2 in sub_nodes:
                                             if str(sn2['id']) == tid and 'VAEEncode' in sn2.get('type', ''):
-                                                return 'image_asset_hash', '输入图片'
+                                                return 'image_asset_hash', display_label or '输入图片'
 
     # 非 VAEEncode 连接 → 参考图
     if downstream_nodes:
-        return 'target_asset_hash', '参考图片'
+        return 'target_asset_hash', display_label or '参考图片'
 
-    return 'image_asset_hash', '输入图片'
+    return 'image_asset_hash', display_label or '输入图片'
 
 
 def _is_widget_input(inp):
@@ -718,6 +743,18 @@ def convert_native_to_api(native_data, definitions=None):
 
         if ntype in SKIP_TYPES:
             continue
+
+        # 孤立输出节点过滤：若 SaveImage / PreviewImage 缺少有效的 images 输入链接，直接跳过
+        if ntype in ('SaveImage', 'PreviewImage', 'SaveImageWebsocket'):
+            has_valid_image_input = False
+            for inp in node.get('inputs', []):
+                if inp.get('name') == 'images':
+                    link_id = inp.get('link')
+                    if link_id is not None and link_id in link_map:
+                        has_valid_image_input = True
+                    break
+            if not has_valid_image_input:
+                continue
 
         widgets_values = node.get('widgets_values', [])
         node_inputs = node.get('inputs', [])
@@ -1353,6 +1390,9 @@ def convert_native_to_api(native_data, definitions=None):
         # UUID 子图引用节点必须保留（ComfyUI 运行时解析），即使 inputs 为空
         # CONNECTOR_TYPES 节点（如 GetNode）也必须保留，因为其他节点通过 link 引用其输出
         if inputs or is_uuid_ref or ntype in CONNECTOR_TYPES:
+            # 图片输出节点若缺少 images 输入（上游被静音或断开），视为孤立节点跳过，避免 ComfyUI 校验报错
+            if ntype in ('SaveImage', 'PreviewImage', 'SaveImageWebsocket') and 'images' not in inputs:
+                continue
             node_api[nid] = {'class_type': ntype, 'inputs': inputs}
 
     # 构建 SetNode → 源节点 映射表（用于解析 UUID 子图中的 GetNode 引用）

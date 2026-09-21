@@ -1,0 +1,41 @@
+{
+  "workflow_id": "huan345",
+  "name": "换脸 (huan345)",
+  "category": "converted",
+  "workflow_file": "huan345.json",
+  "mapping_file": "huan345.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "string",
+        "default": "将图一中人物的脸替换为图二中人物的脸，其他发型衣着姿势表情等不变"
+      },
+      {
+        "name": "image_asset_hash",
+        "type": "string",
+        "default": "ComfyUI_00246_.png",
+        "label": "图一 (目标模特/底图)",
+        "role": "image_upload"
+      },
+      {
+        "name": "image_asset_hash_2",
+        "type": "string",
+        "default": "9ae4679981fd7157990114dafd975f3.jpg",
+        "label": "图二 (参考人脸源)",
+        "role": "image_upload"
+      },
+      {
+        "name": "filename_prefix",
+        "type": "string",
+        "default": "Flux2-Klein-4b-base"
+      }
+    ]
+  },
+  "field_mapping": {
+    "prompt": "92.113.inputs.text",
+    "image_asset_hash": "76.inputs.image",
+    "image_asset_hash_2": "81.inputs.image",
+    "filename_prefix": "94.inputs.filename_prefix"
+  }
+}

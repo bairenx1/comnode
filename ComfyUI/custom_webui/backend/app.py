@@ -237,13 +237,20 @@ def create_app() -> web.Application:
             # 提取 asset_hash（blake3 哈希）供前端使用
             asset = result.get("asset", {})
             asset_hash = asset.get("asset_hash") if isinstance(asset, dict) else None
-            if asset_hash:
+            name = result.get("name")
+            if not asset_hash and name:
+                # 原生 ComfyUI /upload/image 返回 {"name": "...", "subfolder": "", "type": "input"}
+                # 将 name 作为有效标识返回给前端，并注册映射
+                asset_hash = name
+                result["hash"] = name
+                result["asset_hash"] = name
+                register_asset_file(name, name)
+            elif asset_hash:
                 result["hash"] = asset_hash
                 # 同时保持原始字段名兼容
                 if "asset_hash" not in result:
                     result["asset_hash"] = asset_hash
                 # 记录 blake3 哈希 → input 文件名 映射，供 build_prompt_graph 解析
-                name = result.get("name")
                 if name:
                     register_asset_file(asset_hash, name)
             return web.json_response(result)

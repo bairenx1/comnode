@@ -159,6 +159,10 @@ class WorkflowRegistry:
                 else:
                     logging.warning(f"无法解析 blake3 哈希 {value[:50]}...（字段 {ui_field}），保留默认值")
                     continue
+            elif isinstance(value, str):
+                resolved = (asset_hashes or {}).get(value) or resolve_asset_hash(value)
+                if resolved:
+                    value = resolved
             # 根据 ui_schema 类型转换参数值，确保 ComfyUI 验证通过
             value = self._coerce_param_type(value, field_types.get(ui_field, "string"))
             try:

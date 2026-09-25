@@ -1614,15 +1614,59 @@ def _expand_uuid_wrappers(graph: dict[str, Any]) -> dict[str, Any]:
     return graph
 
 
+DIAGNOSTIC_REPORTS: list[dict[str, Any]] = []
+
+def get_user_workflow_dirs() -> list[Path]:
+    """获取所有候选的用户工作流目录（包括 default/workflows、workflows 以及所有子用户）"""
+    comfy_root = Path(__file__).resolve().parent.parent.parent
+    user_dir = comfy_root / "user"
+    dirs = [
+        user_dir / "default" / "workflows",
+        user_dir / "default" / "workflow",
+        user_dir / "workflows",
+        comfy_root / "workflows",
+    ]
+    if user_dir.exists():
+        try:
+            for sub in user_dir.iterdir():
+                if sub.is_dir() and sub.name not in ("default", "__pycache__"):
+                    dirs.append(sub / "workflows")
+                    dirs.append(sub / "workflow")
+        except Exception:
+            pass
+    # 去重
+    seen: set[str] = set()
+    result: list[Path] = []
+    for d in dirs:
+        rp = str(d.resolve())
+        if rp not in seen:
+            seen.add(rp)
+            result.append(d)
+    return result
+
+
 def _convert_workflow_files(source_dir: Path, converted: int, force: bool = False) -> int:
     """扫描目录中的 JSON 工作流文件并转换（跳过未修改的，force=True 强制重新转换）"""
     if not source_dir.exists():
+        DIAGNOSTIC_REPORTS.append({
+            "source_dir": str(source_dir),
+            "status": "dir_not_found"
+        })
         return converted
-    for fpath in sorted(source_dir.glob('*.json')):
+    
+    found_files = [f for f in sorted(source_dir.rglob('*.json')) if not f.name.startswith('.')]
+    if not found_files:
+        DIAGNOSTIC_REPORTS.append({
+            "source_dir": str(source_dir),
+            "status": "dir_empty"
+        })
+        return converted
+
+    for fpath in found_files:
         try:
-            # 检查是否需要重新转换：输出文件是否存在且比源文件新
-            workflow_id = re.sub(r'[^a-zA-Z0-9_]', '_', fpath.stem).lower()
-            if not workflow_id:
+            # 兼容中文和英文字符生成唯一 workflow_id
+            workflow_id = re.sub(r'[^a-zA-Z0-9_\u4e00-\u9fa5]', '_', fpath.stem).lower()
+            if not workflow_id.strip('_'):
                 workflow_id = f'workflow_{converted}'
             api_path = WORKFLOWS_DIR / f'{workflow_id}.json'
             mapping_path = WORKFLOWS_DIR / f'{workflow_id}.mapping.json'
@@ -1631,13 +1675,31 @@ def _convert_workflow_files(source_dir: Path, converted: int, force: bool = Fals
                 if api_path.exists() and mapping_path.exists():
                     if api_path.stat().st_mtime >= src_mtime:
                         converted += 1
+                        DIAGNOSTIC_REPORTS.append({
+                            "file": fpath.name,
+                            "path": str(fpath),
+                            "workflow_id": workflow_id,
+                            "status": "cached"
+                        })
                         continue
 
             native = json.loads(fpath.read_text(encoding='utf-8'))
             if 'nodes' not in native:
+                DIAGNOSTIC_REPORTS.append({
+                    "file": fpath.name,
+                    "path": str(fpath),
+                    "workflow_id": workflow_id,
+                    "status": "skipped_missing_nodes_field"
+                })
                 continue
             api_data, field_mapping, ui_fields, setnode_map = convert_native_to_api(native)
             if not api_data:
+                DIAGNOSTIC_REPORTS.append({
+                    "file": fpath.name,
+                    "path": str(fpath),
+                    "workflow_id": workflow_id,
+                    "status": "skipped_convert_native_empty"
+                })
                 continue
             # 存储 SetNode→源节点 映射，供 _expand_uuid_wrappers 解析 GetNode 引用
             api_data['_setnode_map'] = {k: list(v) for k, v in setnode_map.items()}
@@ -1654,15 +1716,29 @@ def _convert_workflow_files(source_dir: Path, converted: int, force: bool = Fals
             }
             mapping_path.write_text(json.dumps(mapping, indent=2, ensure_ascii=False), encoding='utf-8')
             print(f'OK {fpath.name} -> {workflow_id}')
+            DIAGNOSTIC_REPORTS.append({
+                "file": fpath.name,
+                "path": str(fpath),
+                "workflow_id": workflow_id,
+                "status": "ok"
+            })
             converted += 1
         except Exception as e:
             print(f'ERR {fpath.name}: {e}')
+            DIAGNOSTIC_REPORTS.append({
+                "file": fpath.name,
+                "path": str(fpath),
+                "workflow_id": fpath.stem,
+                "status": f"error: {type(e).__name__}: {str(e)}"
+            })
     return converted
 
 
 def auto_convert_all(force: bool = False):
+    global DIAGNOSTIC_REPORTS
+    DIAGNOSTIC_REPORTS.clear()
     converted = 0
-    for src_dir in USER_WORKFLOW_DIRS:
+    for src_dir in get_user_workflow_dirs():
         converted = _convert_workflow_files(src_dir, converted, force=force)
     print(f'Converted {converted} workflows')
     return converted

@@ -93,13 +93,16 @@ def create_app() -> web.Application:
 
     @routes.get("/api/debug/workflows")
     async def debug_workflows(_: web.Request) -> web.Response:
-        """返回所有已注册工作流 ID 的纯 JSON，方便终端 curl 查看"""
+        """返回所有已注册工作流 ID 及详细转换诊断信息，方便浏览器或终端直接排查"""
         registry.reload()
         ids = sorted(registry._definitions.keys())
+        from .convert_workflow import DIAGNOSTIC_REPORTS, get_user_workflow_dirs
         return web.json_response({
             "count": len(ids),
             "workflow_ids": ids,
             "workflows_dir": str(registry.workflows_dir),
+            "scanned_dirs": [str(d) for d in get_user_workflow_dirs()],
+            "diagnostics": DIAGNOSTIC_REPORTS,
         })
 
     @routes.get("/api/debug/workflows/{workflow_id}")

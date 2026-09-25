@@ -70,6 +70,7 @@ echo
     --enable-assets \
     --enable-cors-header \
     --enable-manager \
+    --use-pytorch-cross-attention \
     --cpu-vae &
 COMFY_PID=$!
 

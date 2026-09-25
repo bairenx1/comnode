@@ -465,7 +465,7 @@ if args.use_pytorch_cross_attention:
     XFORMERS_IS_AVAILABLE = False
 
 try:
-    if is_nvidia():
+    if is_nvidia() or (cpu_state == CPUState.MPS):
         if torch_version_numeric[0] >= 2:
             if ENABLE_PYTORCH_ATTENTION == False and args.use_split_cross_attention == False and args.use_quad_cross_attention == False:
                 ENABLE_PYTORCH_ATTENTION = True

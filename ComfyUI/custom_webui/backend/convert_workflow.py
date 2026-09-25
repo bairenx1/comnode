@@ -1171,7 +1171,7 @@ def convert_native_to_api(native_data, definitions=None):
                 if link is not None and link in link_map:
                     from_node, from_slot, _, _ = link_map[link]
                     inputs[inp_name] = [from_node, from_slot]
-                else:
+                elif inp_name in ('prompt', 'negative_prompt', 'resolution'):
                     val = node.get('widgets_values_named', {}).get(inp_name)
                     if val is None:
                         w_map = {'prompt': 0, 'negative_prompt': 1, 'resolution': 2}

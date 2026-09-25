@@ -1156,6 +1156,36 @@ def convert_native_to_api(native_data, definitions=None):
                 node_api[nid] = {'class_type': ntype, 'inputs': inputs}
             continue
 
+        # ---------- TextEncodeQwenImage21 (Qwen 图像编辑提示词) ----------
+        if ntype == 'TextEncodeQwenImage21':
+            for inp in node_inputs:
+                inp_name = inp['name']
+                link = inp.get('link')
+                if link is not None and link in link_map:
+                    from_node, from_slot, _, _ = link_map[link]
+                    inputs[inp_name] = [from_node, from_slot]
+                else:
+                    val = node.get('widgets_values_named', {}).get(inp_name)
+                    if val is None:
+                        w_map = {'prompt': 0, 'negative_prompt': 1, 'resolution': 2}
+                        if inp_name in w_map and isinstance(widgets_values, list) and w_map[inp_name] < len(widgets_values):
+                            val = widgets_values[w_map[inp_name]]
+                        else:
+                            val = inp.get('default', 1024 if inp_name == 'resolution' else '')
+                    inputs[inp_name] = val
+                    if inp_name in ('prompt', 'negative_prompt'):
+                        field_mapping[inp_name] = f'{nid}.inputs.{inp_name}'
+                        if inp_name not in seen_ui_field_names:
+                            seen_ui_field_names.add(inp_name)
+                            ui_fields.append({
+                                'name': inp_name,
+                                'type': 'string',
+                                'default': val,
+                                'label': '提示词' if inp_name == 'prompt' else '负向提示词',
+                            })
+            node_api[nid] = {'class_type': ntype, 'inputs': inputs}
+            continue
+
         # ---------- 特殊配置节点 (Checkpoint, LoRA, ControlNet 等) ----------
         special_cfg = SPECIAL_NODE_CONFIGS.get(ntype)
 

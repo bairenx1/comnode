@@ -28,6 +28,9 @@ venv*/
 !/web/extensions/core/
 /tests-ui/data/object_info.json
 /user/*
+!/user/default/
+!/user/default/workflows/
+!/user/default/workflows/*
 /custom_webui/workflows/*.native.json
 !/user/.gitkeep
 *.log

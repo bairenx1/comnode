@@ -927,6 +927,7 @@ def convert_native_to_api(native_data, definitions=None):
 
                     # 将 Group Node 上的实际 widget 配置值存入 inputs，供后续 _expand_uuid_wrappers 展开使用
                     node_named_val = node.get('widgets_values_named', {}).get(inp_name)
+                    effective_val = node_named_val if node_named_val is not None else proxy_val
                     if node_named_val is not None:
                         inputs[inp_name] = node_named_val
                     elif proxy_val is not None:
@@ -941,7 +942,7 @@ def convert_native_to_api(native_data, definitions=None):
                             safe_name = 'target_asset_hash'
                         else:
                             safe_name = f'target_asset_hash_{img_count}'
-                        default_val = str(proxy_val) if proxy_val is not None and not isinstance(proxy_val, (bool,)) else ''
+                        default_val = str(effective_val) if effective_val is not None and not isinstance(effective_val, (bool,)) else ''
                         if safe_name not in seen_ui_field_names:
                             seen_ui_field_names.add(safe_name)
                             field_mapping[safe_name] = inner_target
@@ -957,7 +958,7 @@ def convert_native_to_api(native_data, definitions=None):
                         if not prompt_type:
                             continue
                         field_name = prompt_type
-                        default_val = str(proxy_val) if isinstance(proxy_val, str) else ''
+                        default_val = str(effective_val) if isinstance(effective_val, str) else ''
                         if field_name not in seen_ui_field_names:
                             seen_ui_field_names.add(field_name)
                             field_mapping[field_name] = inner_target
@@ -969,7 +970,7 @@ def convert_native_to_api(native_data, definitions=None):
                     # seed / noise_seed
                     elif inp_type == 'INT' and _is_seed_name(inp_name, label):
                         field_name = 'seed'
-                        default_val = int(proxy_val) if isinstance(proxy_val, (int, float)) else 0
+                        default_val = int(effective_val) if isinstance(effective_val, (int, float)) else 0
                         if field_name not in seen_ui_field_names:
                             seen_ui_field_names.add(field_name)
                             field_mapping[field_name] = inner_target
@@ -1008,16 +1009,16 @@ def convert_native_to_api(native_data, definitions=None):
                         # 确定类型
                         if inp_type == 'BOOLEAN':
                             field_type = 'boolean'
-                            default_val = bool(proxy_val) if proxy_val is not None else False
+                            default_val = bool(effective_val) if effective_val is not None else False
                         elif inp_type in ('INT', 'FLOAT'):
                             field_type = 'number'
-                            default_val = proxy_val if isinstance(proxy_val, (int, float)) else (0 if inp_type == 'INT' else 0.0)
+                            default_val = effective_val if isinstance(effective_val, (int, float)) else (0 if inp_type == 'INT' else 0.0)
                         elif inp_type == 'COMBO':
                             field_type = 'combo'
-                            default_val = str(proxy_val) if proxy_val is not None else ''
+                            default_val = str(effective_val) if effective_val is not None else ''
                         else:
                             field_type = 'string'
-                            default_val = str(proxy_val) if proxy_val is not None else ''
+                            default_val = str(effective_val) if effective_val is not None else ''
                         seen_ui_field_names.add(field_name)
                         field_mapping[field_name] = inner_target
                         entry = {'name': field_name, 'type': field_type, 'default': default_val}

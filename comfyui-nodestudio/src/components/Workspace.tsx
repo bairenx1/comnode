@@ -31,7 +31,9 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   const [refreshing, setRefreshing] = useState(false);
   const [negativePrompt, setNegativePrompt] = useState("");
   // 按工作流 ID 彻底隔离参数与图片上传
-  const [paramsByWorkflow, setParamsByWorkflow] = useState<Record<string, Record<string, any>>>({});
+  const [paramsByWorkflow, setParamsByWorkflow] = useState<Record<string, Record<string, any>>>(() => {
+    try { return JSON.parse(localStorage.getItem("ws_params") || "{}"); } catch { return {}; }
+  });
   const [seedFixed, setSeedFixed] = useState(false);
   const [batchCount, setBatchCount] = useState(4);
   const [batchSettingsOpen, setBatchSettingsOpen] = useState(false);
@@ -139,6 +141,11 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   useEffect(() => {
     localStorage.setItem("ws_history", JSON.stringify(generationHistory));
   }, [generationHistory]);
+  useEffect(() => {
+    try {
+      localStorage.setItem("ws_params", JSON.stringify(paramsByWorkflow));
+    } catch (_) {}
+  }, [paramsByWorkflow]);
   useEffect(() => {
     let retryId: ReturnType<typeof setTimeout> | null = null;
     let retryCount = 0;

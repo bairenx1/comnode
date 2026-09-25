@@ -29,7 +29,7 @@
       {
         "name": "prompt",
         "type": "string",
-        "default": ""
+        "default": "将image_1中人物的脸换为image_2中人物的脸，并保持image_1中人物的原有表情、发行、姿势、衣着等都不变，仅仅替换其面部特征"
       },
       {
         "name": "negative_prompt",
@@ -39,7 +39,7 @@
       {
         "name": "steps",
         "type": "number",
-        "default": 0,
+        "default": 25,
         "label": "steps"
       },
       {
@@ -51,32 +51,32 @@
       {
         "name": "sampler",
         "type": "combo",
-        "default": "",
+        "default": "euler",
         "label": "sampler"
       },
       {
         "name": "scheduler",
         "type": "combo",
-        "default": "",
+        "default": "simple",
         "label": "scheduler"
       },
       {
         "name": "seed",
         "type": "number",
-        "default": 0,
+        "default": 279075116503933,
         "min": 0,
         "max": 18446744073709551615
       },
       {
         "name": "cache_device",
         "type": "combo",
-        "default": "",
+        "default": "gpu",
         "label": "cache_device"
       },
       {
         "name": "dtype",
         "type": "combo",
-        "default": "",
+        "default": "default",
         "label": "dtype"
       },
       {

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
+# Apple Silicon (MPS) 兼容性增强：遇到未实现卷积算子时自动回退 CPU，避免报错
+export PYTORCH_ENABLE_MPS_FALLBACK=1
+
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VENV_DIR="$ROOT_DIR/.venv"
 VENV_PYTHON="$VENV_DIR/bin/python"
@@ -66,7 +69,8 @@ echo
     --disable-auto-launch \
     --enable-assets \
     --enable-cors-header \
-    --enable-manager &
+    --enable-manager \
+    --fp16-vae &
 COMFY_PID=$!
 
 sleep 3

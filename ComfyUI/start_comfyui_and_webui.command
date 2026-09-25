@@ -5,6 +5,8 @@ set -e
 export PYTORCH_ENABLE_MPS_FALLBACK=1
 # 解除 Apple Silicon MPS 显存水位线限制，允许充分利用统一内存
 export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
+# 启用 MPS 启发式内存分配策略，降低频繁系统调用开销
+export PYTORCH_MPS_ALLOCATOR_POLICY=heuristic
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VENV_DIR="$ROOT_DIR/.venv"
@@ -81,6 +83,7 @@ echo
     --enable-cors-header \
     --enable-manager \
     --use-pytorch-cross-attention \
+    --highvram \
     --cpu-vae &
 COMFY_PID=$!
 

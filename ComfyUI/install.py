@@ -5,6 +5,12 @@ ComfyUI NodeStudio — 一键安装向导
 纯标准库实现，无需额外依赖。
 """
 import subprocess, sys, os, platform, re, shutil, urllib.request, json
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 from pathlib import Path
 
 # ── ANSI 终端样式 ──────────────────────────────────────────────
@@ -12,12 +18,12 @@ BOLD = "\033[1m"; DIM = "\033[2m"; RESET = "\033[0m"
 RED = "\033[31m"; GREEN = "\033[32m"; YELLOW = "\033[33m"
 BLUE = "\033[34m"; CYAN = "\033[36m"; WHITE = "\033[37m"; MAGENTA = "\033[35m"
 BG_GREEN = "\033[42m"; BG_RED = "\033[41m"; BG_BLUE = "\033[44m"
-CHECK = "✔"; CROSS = "✘"; DOT = "•"; ARROW = "→"
+CHECK = "v" if os.name == "nt" else "✔"; CROSS = "x" if os.name == "nt" else "✘"; DOT = "*" if os.name == "nt" else "•"; ARROW = "->" if os.name == "nt" else "→"
 LINE = "─" * 54
 
 
 def clear():
-    os.system("cls" if os.name == "nt" else "clear")
+    pass
 
 
 def banner():
@@ -277,17 +283,23 @@ def install_base_deps(venv_python: str, root_dir: str):
         return False
 
     info("正在安装 ComfyUI 基础依赖...")
-    ret, out = run(
-        [venv_python, "-m", "pip", "install", "-r", req_path,
-         "--index-url", "https://pypi.tuna.tsinghua.edu.cn/simple/"],
-        desc="基础依赖安装"
-    )
-    if ret != 0:
-        fail("基础依赖安装失败")
-        _pip_fail_help(out)
-        return False
-    ok("基础依赖安装完成")
-    return True
+    mirrors = [
+        ["--index-url", "https://pypi.tuna.tsinghua.edu.cn/simple/"],
+        ["--index-url", "https://mirrors.aliyun.com/pypi/simple/", "--trusted-host", "mirrors.aliyun.com"],
+        []
+    ]
+    out = ""
+    for mirror in mirrors:
+        cmd_args = [venv_python, "-m", "pip", "install", "-r", req_path] + mirror
+        ret, out = run(cmd_args, desc="基础依赖安装", check=False)
+        if ret == 0:
+            ok("基础依赖安装完成")
+            return True
+        warn("当前镜像源安装失败，正在重试其他镜像源...")
+
+    fail("基础依赖安装失败")
+    _pip_fail_help(out)
+    return False
 
 
 def _torch_installed(venv_python: str) -> bool:
@@ -355,7 +367,7 @@ print(f"CUDA available: {torch.cuda.is_available()}")
 if torch.cuda.is_available():
     print(f"CUDA version: {torch.version.cuda}")
     print(f"GPU: {torch.cuda.get_device_name(0)}")
-    print(f"VRAM: {torch.cuda.get_device_properties(0).total_mem // 1024**2} MB")
+    print(f"VRAM: {torch.cuda.get_device_properties(0).total_memory // 1024**2} MB")
     print("OK_CUDA")
 elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
     print("MPS available: True")

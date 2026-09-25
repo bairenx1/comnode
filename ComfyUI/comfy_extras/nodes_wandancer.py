@@ -2,7 +2,7 @@ import math
 import nodes
 import node_helpers
 import torch
-import torchaudio
+import comfy.audio
 import comfy.model_management
 import comfy.utils
 import numpy as np
@@ -713,7 +713,7 @@ class WanDancerEncodeAudio(io.ComfyNode):
     def define_schema(cls):
         return io.Schema(
             node_id="WanDancerEncodeAudio",
-            category="model/conditioning/video_models",
+            category="model/conditioning/wan/dancer",
             inputs=[
                 io.Audio.Input("audio"),
                 io.Int.Input("video_frames", default=149, min=1, max=nodes.MAX_RESOLUTION, step=4),
@@ -742,7 +742,7 @@ class WanDancerEncodeAudio(io.ComfyNode):
 
         # resample to the sample rate used for feature extraction
         resample_sr = base_fps * hop_length
-        waveform = torchaudio.functional.resample(waveform, sample_rate, resample_sr)
+        waveform = comfy.audio.resample(waveform, sample_rate, resample_sr)
 
         waveform_np = waveform.cpu().numpy().squeeze()
         mel_spec = _compute_mel_spectrogram(waveform_np, model_sr, n_fft, hop_length, n_mels=128)
@@ -787,7 +787,7 @@ class WanDancerVideo(io.ComfyNode):
     def define_schema(cls):
         return io.Schema(
             node_id="WanDancerVideo",
-            category="model/conditioning/video_models",
+            category="model/conditioning/wan/dancer",
             inputs=[
                 io.Conditioning.Input("positive"),
                 io.Conditioning.Input("negative"),

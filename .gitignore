@@ -55,6 +55,8 @@ check_torch.py
 _comfy_packages.txt
 _req_no_comfy.txt
 .claude/
+.install_done
+*.install_done
 
 # ── ComfyUI 备份 git ──
 ComfyUI/.git.backup/

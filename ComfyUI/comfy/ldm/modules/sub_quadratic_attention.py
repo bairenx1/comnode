@@ -133,7 +133,7 @@ def _query_chunk_attention(
 
     all_values = chunk_values.sum(dim=0)
     all_weights = torch.unsqueeze(chunk_weights, -1).sum(dim=0)
-    return all_values / all_weights
+    return all_values / torch.clamp(all_weights, min=1e-6)
 
 # TODO: refactor CrossAttention#get_attention_scores to share code with this
 def _get_attention_scores_no_kv_chunking(

@@ -601,7 +601,8 @@ def attention_pytorch(q, k, v, heads, mask=None, attn_precision=None, skip_resha
     if q.device.type == "mps":
         sq = q.shape[2]
         sk = k.shape[2]
-        if (mask is not None and sq * sk > 1024 * 1024) or (b * heads * sq * sk * 4 > 256 * 1024 * 1024):
+        # Only route away from native SDPA if it would exceed Metal single-buffer limits (>16GB)
+        if b * heads * sq * sk * 4 > 16 * 1024 * 1024 * 1024:
             return attention_sub_quad(q, k, v, heads, mask=mask, attn_precision=attn_precision, skip_reshape=True, skip_output_reshape=skip_output_reshape, **kwargs)
 
     try:

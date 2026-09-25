@@ -596,28 +596,34 @@ def attention_pytorch(q, k, v, heads, mask=None, attn_precision=None, skip_resha
     sdpa_keys = ("scale", "enable_gqa")
     sdpa_extra = {k: v for k, v in kwargs.items() if k in sdpa_keys}
 
-    if SDP_BATCH_LIMIT >= b:
-        out = comfy.ops.scaled_dot_product_attention(q, k, v, attn_mask=mask, dropout_p=0.0, is_causal=False, **sdpa_extra)
-        if not skip_output_reshape:
-            out = (
-                out.transpose(1, 2).reshape(b, -1, heads * dim_head)
-            )
-    else:
-        out = torch.empty((b, q.shape[2], heads * dim_head), dtype=q.dtype, layout=q.layout, device=q.device)
-        for i in range(0, b, SDP_BATCH_LIMIT):
-            m = mask
-            if mask is not None:
-                if mask.shape[0] > 1:
-                    m = mask[i : i + SDP_BATCH_LIMIT]
+    try:
+        if SDP_BATCH_LIMIT >= b:
+            out = comfy.ops.scaled_dot_product_attention(q, k, v, attn_mask=mask, dropout_p=0.0, is_causal=False, **sdpa_extra)
+            if not skip_output_reshape:
+                out = (
+                    out.transpose(1, 2).reshape(b, -1, heads * dim_head)
+                )
+        else:
+            out = torch.empty((b, q.shape[2], heads * dim_head), dtype=q.dtype, layout=q.layout, device=q.device)
+            for i in range(0, b, SDP_BATCH_LIMIT):
+                m = mask
+                if mask is not None:
+                    if mask.shape[0] > 1:
+                        m = mask[i : i + SDP_BATCH_LIMIT]
 
-            out[i : i + SDP_BATCH_LIMIT] = comfy.ops.scaled_dot_product_attention(
-                q[i : i + SDP_BATCH_LIMIT],
-                k[i : i + SDP_BATCH_LIMIT],
-                v[i : i + SDP_BATCH_LIMIT],
-                attn_mask=m,
-                dropout_p=0.0, is_causal=False, **sdpa_extra
-            ).transpose(1, 2).reshape(-1, q.shape[2], heads * dim_head)
-    return out
+                out[i : i + SDP_BATCH_LIMIT] = comfy.ops.scaled_dot_product_attention(
+                    q[i : i + SDP_BATCH_LIMIT],
+                    k[i : i + SDP_BATCH_LIMIT],
+                    v[i : i + SDP_BATCH_LIMIT],
+                    attn_mask=m,
+                    dropout_p=0.0, is_causal=False, **sdpa_extra
+                ).transpose(1, 2).reshape(-1, q.shape[2], heads * dim_head)
+        return out
+    except RuntimeError as e:
+        err_msg = str(e).lower()
+        if "buffer size" in err_msg or "out of memory" in err_msg or "mps" in err_msg:
+            return attention_sub_quad(q, k, v, heads, mask=mask, attn_precision=attn_precision, skip_reshape=True, skip_output_reshape=skip_output_reshape, **kwargs)
+        raise e
 
 def _comfy_kitchen_int8_inputs(q, k, v, heads, mask, skip_reshape, enable_gqa):
     dim_head = q.shape[-1] if skip_reshape else q.shape[-1] // heads

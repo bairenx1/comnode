@@ -3,6 +3,8 @@ set -e
 
 # Apple Silicon (MPS) 兼容性增强：遇到未实现卷积算子时自动回退 CPU，避免报错
 export PYTORCH_ENABLE_MPS_FALLBACK=1
+# 解除 Apple Silicon MPS 显存水位线限制，允许充分利用统一内存
+export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VENV_DIR="$ROOT_DIR/.venv"

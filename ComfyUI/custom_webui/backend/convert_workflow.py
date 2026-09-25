@@ -1470,10 +1470,10 @@ def _expand_uuid_wrappers(graph: dict[str, Any]) -> dict[str, Any]:
                 if isinstance(ext_ref, list) and len(ext_ref) == 2 and ext_ref[0] == '-10':
                     slot_to_external[slot_idx] = None
                 elif ext_ref is not None:
-                    # 如果 steps <= 0 或采样器为空，回退到内部节点默认值
+                    # 如果 steps <= 0 或非提示词字段为空字符串，回退到内部节点默认值
                     if name == 'steps' and isinstance(ext_ref, (int, float)) and ext_ref <= 0:
                         slot_to_external[slot_idx] = None
-                    elif name in ('sampler', 'scheduler', 'sampler_name', 'scheduler_1') and ext_ref == '':
+                    elif isinstance(ext_ref, str) and ext_ref == '' and name not in ('prompt', 'negative_prompt', 'text', 'negative_text'):
                         slot_to_external[slot_idx] = None
                     else:
                         slot_to_external[slot_idx] = ext_ref

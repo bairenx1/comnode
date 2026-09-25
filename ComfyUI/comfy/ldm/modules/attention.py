@@ -355,6 +355,8 @@ def attention_sub_quad(query, key, value, heads, mask=None, attn_precision=None,
         query_chunk_size = 512
 
     if mask is not None:
+        if mask.dtype == torch.bool:
+            mask = torch.zeros_like(mask, dtype=query.dtype).masked_fill(~mask, -torch.finfo(query.dtype).max)
         if len(mask.shape) == 2:
             bs = 1
         else:

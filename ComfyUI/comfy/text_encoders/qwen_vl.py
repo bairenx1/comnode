@@ -9,7 +9,7 @@ from comfy.ldm.modules.attention import optimized_attention_for_device
 def process_qwen2vl_images(
     images: torch.Tensor,
     min_pixels: int = 3136,
-    max_pixels: int = 12845056,
+    max_pixels: int = 1003520,
     patch_size: int = 14,
     temporal_patch_size: int = 2,
     merge_size: int = 2,

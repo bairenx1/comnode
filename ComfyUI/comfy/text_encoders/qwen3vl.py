@@ -62,7 +62,7 @@ class Qwen3VL(BaseLlama, BaseQwen3, BaseGenerate, torch.nn.Module):
     def preprocess_embed(self, embed, device):
         if embed["type"] == "image":
             # Qwen3-VL normalizes to [-1, 1] (mean/std 0.5), unlike Qwen2.5-VL's CLIP normalization.
-            image, grid = comfy.text_encoders.qwen_vl.process_qwen2vl_images(embed["data"], patch_size=16, image_mean=[0.5, 0.5, 0.5], image_std=[0.5, 0.5, 0.5])
+            image, grid = comfy.text_encoders.qwen_vl.process_qwen2vl_images(embed["data"], max_pixels=1003520, patch_size=16, image_mean=[0.5, 0.5, 0.5], image_std=[0.5, 0.5, 0.5])
             merged, deepstack = self.visual(image.to(device, dtype=torch.float32), grid)
             return merged, {"grid": grid, "deepstack": deepstack}
         return None, None

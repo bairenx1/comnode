@@ -596,6 +596,12 @@ def attention_pytorch(q, k, v, heads, mask=None, attn_precision=None, skip_resha
     sdpa_keys = ("scale", "enable_gqa")
     sdpa_extra = {k: v for k, v in kwargs.items() if k in sdpa_keys}
 
+    if q.device.type == "mps":
+        sq = q.shape[2]
+        sk = k.shape[2]
+        if (mask is not None and sq * sk > 1024 * 1024) or (b * heads * sq * sk * 4 > 256 * 1024 * 1024):
+            return attention_sub_quad(q, k, v, heads, mask=mask, attn_precision=attn_precision, skip_reshape=True, skip_output_reshape=skip_output_reshape, **kwargs)
+
     try:
         if SDP_BATCH_LIMIT >= b:
             out = comfy.ops.scaled_dot_product_attention(q, k, v, attn_mask=mask, dropout_p=0.0, is_causal=False, **sdpa_extra)

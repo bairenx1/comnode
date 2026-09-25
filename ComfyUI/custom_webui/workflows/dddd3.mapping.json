@@ -1,0 +1,133 @@
+{
+  "workflow_id": "dddd3",
+  "name": "dddd3",
+  "category": "converted",
+  "workflow_file": "dddd3.json",
+  "mapping_file": "dddd3.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "negative_prompt",
+        "type": "string",
+        "default": "比例失真"
+      },
+      {
+        "name": "prompt",
+        "type": "string",
+        "default": "全裸女孩，美女长发"
+      },
+      {
+        "name": "seed",
+        "type": "number",
+        "default": 604804979124431,
+        "min": 0,
+        "max": 18446744073709551615
+      },
+      {
+        "name": "steps",
+        "type": "number",
+        "default": 25,
+        "min": 1,
+        "max": 10000
+      },
+      {
+        "name": "cfg",
+        "type": "number",
+        "default": 1.0,
+        "min": 1,
+        "max": 30,
+        "step": 0.5
+      },
+      {
+        "name": "sampler_name",
+        "type": "combo",
+        "default": "euler",
+        "options": [
+          "euler",
+          "euler_ancestral",
+          "heun",
+          "heunpp2",
+          "dpm_2",
+          "dpm_2_ancestral",
+          "lms",
+          "dpm_fast",
+          "dpm_adaptive",
+          "dpmpp_2s_ancestral",
+          "dpmpp_sde",
+          "dpmpp_sde_gpu",
+          "dpmpp_2m",
+          "dpmpp_2m_sde",
+          "dpmpp_2m_sde_gpu",
+          "dpmpp_3m_sde",
+          "dpmpp_3m_sde_gpu",
+          "ddim",
+          "uni_pc",
+          "uni_pc_bh2",
+          "lcm",
+          "ipndm",
+          "ipndm_v",
+          "res_multistep",
+          "res_multistep_cfg",
+          "res_multistep_ancestral",
+          "res_multistep_ancestral_cfg",
+          "gradient_estimation",
+          "restart"
+        ]
+      },
+      {
+        "name": "scheduler",
+        "type": "combo",
+        "default": "simple",
+        "options": [
+          "normal",
+          "karras",
+          "exponential",
+          "sgm_uniform",
+          "simple",
+          "ddim_uniform",
+          "beta",
+          "linear_quadratic",
+          "kl_optimal",
+          "align_your_steps",
+          "ays"
+        ]
+      },
+      {
+        "name": "denoise",
+        "type": "number",
+        "default": 1.0,
+        "min": 0,
+        "max": 1,
+        "step": 0.05
+      },
+      {
+        "name": "width",
+        "type": "number",
+        "default": 1024
+      },
+      {
+        "name": "height",
+        "type": "number",
+        "default": 1024
+      },
+      {
+        "name": "batch_size",
+        "type": "number",
+        "default": 1
+      }
+    ]
+  },
+  "field_mapping": {
+    "negative_prompt": "6.inputs.text",
+    "prompt": "4.inputs.text",
+    "seed": "3.inputs.seed",
+    "steps": "3.inputs.steps",
+    "cfg": "3.inputs.cfg",
+    "sampler_name": "3.inputs.sampler_name",
+    "scheduler": "3.inputs.scheduler",
+    "denoise": "3.inputs.denoise",
+    "width": "7.inputs.width",
+    "height": "7.inputs.height",
+    "batch_size": "7.inputs.batch_size"
+  }
+}

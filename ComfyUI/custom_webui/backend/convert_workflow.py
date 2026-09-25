@@ -51,8 +51,10 @@ HIDDEN_FIELD_NAMES = {
     'value_6', 'value_7', 'value_8', 'value_9', 'value_10',
 }
 
-def _is_hidden_field_name(name: str) -> bool:
+def _is_hidden_field_name(name: str | None) -> bool:
     """检查字段名是否应隐藏（包括通用 value/value_N 模式）"""
+    if not name or not isinstance(name, str):
+        return False
     if name in HIDDEN_FIELD_NAMES:
         return True
     # 匹配 value_数字 模式（如 value_1, value_99 等）

@@ -1,0 +1,145 @@
+{
+  "workflow_id": "dddd34",
+  "name": "dddd34",
+  "category": "converted",
+  "workflow_file": "dddd34.json",
+  "mapping_file": "dddd34.mapping.json",
+  "ui_schema": {
+    "fields": [
+      {
+        "name": "aspect_ratio",
+        "type": "string",
+        "default": "1:1 (Square)"
+      },
+      {
+        "name": "megapixels",
+        "type": "number",
+        "default": 1
+      },
+      {
+        "name": "multiple",
+        "type": "number",
+        "default": 32
+      },
+      {
+        "name": "preview",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "prompt",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "negative_prompt",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "steps",
+        "type": "number",
+        "default": 0,
+        "label": "steps"
+      },
+      {
+        "name": "custom_size",
+        "type": "boolean",
+        "default": false,
+        "label": "custom_size"
+      },
+      {
+        "name": "sampler",
+        "type": "combo",
+        "default": "",
+        "label": "sampler"
+      },
+      {
+        "name": "scheduler",
+        "type": "combo",
+        "default": "",
+        "label": "scheduler"
+      },
+      {
+        "name": "seed",
+        "type": "number",
+        "default": 0,
+        "min": 0,
+        "max": 18446744073709551615
+      },
+      {
+        "name": "cache_device",
+        "type": "combo",
+        "default": "",
+        "label": "cache_device"
+      },
+      {
+        "name": "dtype",
+        "type": "combo",
+        "default": "",
+        "label": "dtype"
+      },
+      {
+        "name": "filename_prefix",
+        "type": "string",
+        "default": "Qwen_image_2.1"
+      },
+      {
+        "name": "format",
+        "type": "string",
+        "default": "png"
+      },
+      {
+        "name": "format.bit_depth",
+        "type": "string",
+        "default": "8-bit"
+      },
+      {
+        "name": "format.input_color_space",
+        "type": "string",
+        "default": "sRGB"
+      },
+      {
+        "name": "target_asset_hash",
+        "type": "string",
+        "default": "061d7ab5d62ba4657055792196d2e9a7.jpg",
+        "label": "image_a",
+        "role": "image_upload"
+      },
+      {
+        "name": "compare_view",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "image_asset_hash",
+        "type": "string",
+        "default": "1600w-4uPxlYzWN1w.jpg",
+        "label": "输入图片",
+        "role": "image_upload"
+      }
+    ]
+  },
+  "field_mapping": {
+    "aspect_ratio": "13.inputs.aspect_ratio",
+    "megapixels": "13.inputs.megapixels",
+    "multiple": "13.inputs.multiple",
+    "preview": "13.inputs.preview",
+    "prompt": "459.inputs.prompt",
+    "negative_prompt": "459.inputs.negative_prompt",
+    "steps": "459.inputs.steps",
+    "custom_size": "459.inputs.switch",
+    "sampler": "459.inputs.scheduler",
+    "scheduler": "459.inputs.scheduler_1",
+    "seed": "459.inputs.seed",
+    "cache_device": "459.inputs.device",
+    "dtype": "459.inputs.dtype",
+    "filename_prefix": "461.inputs.filename_prefix",
+    "format": "461.inputs.format",
+    "format.bit_depth": "461.inputs.format.bit_depth",
+    "format.input_color_space": "461.inputs.format.input_color_space",
+    "target_asset_hash": "470.inputs.image",
+    "compare_view": "472.inputs.compare_view",
+    "image_asset_hash": "475.inputs.image"
+  }
+}

@@ -78,7 +78,7 @@ echo
     --enable-assets \
     --enable-cors-header \
     --enable-manager \
-    --fp16-vae &
+    --cpu-vae &
 COMFY_PID=$!
 
 sleep 3

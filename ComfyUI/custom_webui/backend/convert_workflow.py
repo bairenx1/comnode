@@ -1461,13 +1461,22 @@ def _expand_uuid_wrappers(graph: dict[str, Any]) -> dict[str, Any]:
             id_remap = {str(in_nid): f'{wrapper_nid}__{in_nid}' for in_nid in sub_nodes}
 
             # ---- 2. 构建槽位映射 ----
-            # wrapper 输入定义（按槽位顺序） → 外部链接或 None
-            slot_to_external: dict[int, list | None] = {}
+            # wrapper 输入定义（按槽位顺序） → 外部链接或具体参数值或 None
+            slot_to_external: dict[int, Any] = {}
             for slot_idx, inp_def in enumerate(wrapper_input_defs):
                 name = inp_def.get('name', '')
                 ext_ref = wrapper.get('inputs', {}).get(name)
-                if isinstance(ext_ref, list) and len(ext_ref) == 2 and not (len(ext_ref) == 2 and ext_ref[0] == '-10'):
-                    slot_to_external[slot_idx] = ext_ref
+                # 悬空 -10 引用视为未设置
+                if isinstance(ext_ref, list) and len(ext_ref) == 2 and ext_ref[0] == '-10':
+                    slot_to_external[slot_idx] = None
+                elif ext_ref is not None:
+                    # 如果 steps <= 0 或采样器为空，回退到内部节点默认值
+                    if name == 'steps' and isinstance(ext_ref, (int, float)) and ext_ref <= 0:
+                        slot_to_external[slot_idx] = None
+                    elif name in ('sampler', 'scheduler', 'sampler_name', 'scheduler_1') and ext_ref == '':
+                        slot_to_external[slot_idx] = None
+                    else:
+                        slot_to_external[slot_idx] = ext_ref
                 else:
                     slot_to_external[slot_idx] = None
 

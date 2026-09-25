@@ -925,6 +925,13 @@ def convert_native_to_api(native_data, definitions=None):
                     # 生成正确的嵌套路径：wrapperId.内部节点ID.inputs.内部输入名
                     inner_target = f'{nid}.{internal_nid}.inputs.{internal_inp}' if internal_nid else f'{nid}.inputs.{inp_name}'
 
+                    # 将 Group Node 上的实际 widget 配置值存入 inputs，供后续 _expand_uuid_wrappers 展开使用
+                    node_named_val = node.get('widgets_values_named', {}).get(inp_name)
+                    if node_named_val is not None:
+                        inputs[inp_name] = node_named_val
+                    elif proxy_val is not None:
+                        inputs[inp_name] = proxy_val
+
                     # 图片类型（未链接的 IMAGE/MASK widget）
                     if inp_type in ('IMAGE', 'MASK'):
                         img_count = sum(1 for f in ui_fields if f.get('role') == 'image_upload')

@@ -705,17 +705,45 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                       <span className="ml-2 text-text-secondary/50">({items.length})</span>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                      {items.map((asset) => (
+                      {items.map((asset) => {
+                        const mediaUrl = asset.preview_url || asset.url;
+                        const isVideo = !!(
+                          (asset.name && /\.(mp4|webm|mov|mkv|avi)$/i.test(asset.name)) ||
+                          (mediaUrl && (/\.(mp4|webm|mov|mkv|avi)($|\?)/i.test(mediaUrl) || mediaUrl.includes('type=gifs')))
+                        );
+                        return (
                         <div key={asset.id || asset.hash} className="group bg-bg-panel border border-border-main/60 hover:border-accent/30 rounded-lg overflow-hidden transition-all hover:shadow-lg">
                           <div className="aspect-square bg-bg-input overflow-hidden relative">
-                            {asset.preview_url || asset.url ? (
-                              <img
-                                src={asset.preview_url || asset.url}
-                                alt={asset.name || "asset"}
-                                className="w-full h-full object-cover"
-                                loading="lazy"
-                                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                              />
+                            {mediaUrl ? (
+                              isVideo ? (
+                                <>
+                                  <video
+                                    src={mediaUrl}
+                                    className="w-full h-full object-cover"
+                                    preload="metadata"
+                                    muted
+                                    loop
+                                    playsInline
+                                    onMouseEnter={(e) => (e.target as HTMLVideoElement).play().catch(() => {})}
+                                    onMouseLeave={(e) => {
+                                      const v = e.target as HTMLVideoElement;
+                                      v.pause();
+                                      v.currentTime = 0;
+                                    }}
+                                  />
+                                  <div className="absolute top-2 right-2 p-1 rounded bg-black/60 backdrop-blur-sm pointer-events-none text-accent">
+                                    <Video className="w-3.5 h-3.5" />
+                                  </div>
+                                </>
+                              ) : (
+                                <img
+                                  src={mediaUrl}
+                                  alt={asset.name || "asset"}
+                                  className="w-full h-full object-cover"
+                                  loading="lazy"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                                />
+                              )
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-text-secondary">
                                 <ImageIcon className="w-8 h-8 opacity-30" />
@@ -730,7 +758,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="p-2 bg-white/90 hover:bg-white rounded-md text-text-primary hover:text-accent transition-all hover:scale-110"
-                                    title="查看大图"
+                                    title={isVideo ? "查看视频" : "查看大图"}
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <Eye className="w-3.5 h-3.5" />
@@ -766,7 +794,8 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                             )}
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ));

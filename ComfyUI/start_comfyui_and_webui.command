@@ -83,7 +83,8 @@ echo
     --enable-assets \
     --enable-cors-header \
     --use-pytorch-cross-attention \
-    --reserve-vram 3.0 &
+    --reserve-vram 3.0 \
+    --cpu-vae &
 COMFY_PID=$!
 
 sleep 3

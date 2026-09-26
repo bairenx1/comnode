@@ -386,6 +386,9 @@ def prompt_worker(q, server_instance, asset_manager):
                 else:
                     logging.info("Prompt executed in {:.2f} seconds".format(execution_time), extra={'color': 'green'})
 
+                if comfy.model_management.mps_mode():
+                    comfy.model_management.soft_empty_cache()
+
             flags = q.get_flags()
             free_memory = flags.get("free_memory", False)
 

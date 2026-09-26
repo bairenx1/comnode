@@ -10,6 +10,12 @@
   "459": {
     "class_type": "bc1c967a-7f6a-4be9-a372-dad16e4f28e3",
     "inputs": {
+      "resolution": 1024,
+      "prompt": "将人物衣服脱掉,裸体",
+      "negative_prompt": "",
+      "cfg": 1,
+      "steps": 25,
+      "switch": false,
       "width": [
         "13",
         0
@@ -18,10 +24,18 @@
         "13",
         1
       ],
+      "scheduler": "euler",
+      "scheduler_1": "simple",
+      "seed": 915272218780602,
+      "unet_name": "qwen_image_2.1_int8_convrot.safetensors",
+      "clip_name": "qwen3vl_8b_int8_convrot.safetensors",
+      "vae_name": "qwen_image_2.1_vae_bf16.safetensors",
       "images.image_1": [
         "470",
         0
-      ]
+      ],
+      "device": "auto",
+      "dtype": "default"
     },
     "_subgraph": {
       "nodes": {

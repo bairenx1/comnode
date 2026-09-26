@@ -10,6 +10,12 @@
   "459": {
     "class_type": "bc1c967a-7f6a-4be9-a372-dad16e4f28e3",
     "inputs": {
+      "resolution": 1024,
+      "prompt": "将image_1中祖孙的脸全部换为image_2中模特的脸，其他表情，发行等都参照image_1不变",
+      "negative_prompt": "",
+      "cfg": 1,
+      "steps": 25,
+      "switch": false,
       "width": [
         "13",
         0
@@ -18,6 +24,12 @@
         "13",
         1
       ],
+      "scheduler": "euler",
+      "scheduler_1": "simple",
+      "seed": 965644714998665,
+      "unet_name": "qwen_image_2.1_int8_convrot.safetensors",
+      "clip_name": "qwen3vl_8b_int8_convrot.safetensors",
+      "vae_name": "qwen_image_2.1_vae_bf16.safetensors",
       "images.image_1": [
         "470",
         0
@@ -25,7 +37,9 @@
       "images.image_2": [
         "475",
         0
-      ]
+      ],
+      "device": "auto",
+      "dtype": "default"
     },
     "_subgraph": {
       "nodes": {

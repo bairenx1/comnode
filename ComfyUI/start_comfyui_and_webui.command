@@ -3,8 +3,8 @@ set -e
 
 # Apple Silicon (MPS) 兼容性增强：遇到未实现卷积算子时自动回退 CPU，避免报错
 export PYTORCH_ENABLE_MPS_FALLBACK=1
-# 解除 Apple Silicon MPS 显存水位线限制，允许充分利用统一内存
-export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
+# 设置 Apple Silicon MPS 显存安全水位线（64G 统一内存下保留系统安全缓冲，避免触发 macOS 内存压缩和 Swap 磁盘交换）
+export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.75
 # 启用 MPS 启发式内存分配策略，降低频繁系统调用开销
 export PYTORCH_MPS_ALLOCATOR_POLICY=heuristic
 
@@ -83,7 +83,7 @@ echo
     --enable-cors-header \
     --enable-manager \
     --use-pytorch-cross-attention \
-    --highvram \
+    --reserve-vram 3.0 \
     --cpu-vae &
 COMFY_PID=$!
 

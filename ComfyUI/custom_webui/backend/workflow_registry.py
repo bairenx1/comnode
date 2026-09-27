@@ -213,6 +213,75 @@ class WorkflowRegistry:
                 if inputs.get("sampling_mode") not in ("on", "off"):
                     inputs["sampling_mode"] = "on"
 
+                # 4. sampling_mode.* 采样参数边界保护与防错位自愈（防止 400 validation error）
+                raw_temp = inputs.get("sampling_mode.temperature")
+                raw_topk = inputs.get("sampling_mode.top_k")
+                raw_minp = inputs.get("sampling_mode.min_p")
+                raw_rep = inputs.get("sampling_mode.repetition_penalty")
+
+                try:
+                    t_val = float(raw_temp) if raw_temp is not None else 0.7
+                except (ValueError, TypeError):
+                    t_val = 0.7
+
+                try:
+                    mp_val = float(raw_minp) if raw_minp is not None else 0.05
+                except (ValueError, TypeError):
+                    mp_val = 0.05
+
+                # 若发生错位（例如 temp > 2.0，如被误填为 64.0），安全纠偏
+                if t_val > 2.0:
+                    logging.warning(f"检测到 sampling_mode.temperature={t_val} 超过上限 2.0 (参数错位或误设)，自动纠正为 0.7")
+                    inputs["sampling_mode.temperature"] = 0.7
+                    if raw_topk is None or (isinstance(raw_topk, (int, float)) and raw_topk < 1.0):
+                        inputs["sampling_mode.top_k"] = int(t_val)
+                else:
+                    inputs["sampling_mode.temperature"] = max(0.01, min(2.0, t_val))
+
+                if mp_val > 1.0:
+                    logging.warning(f"检测到 sampling_mode.min_p={mp_val} 超过上限 1.0 (参数错位或误设)，自动纠正为 0.05")
+                    inputs["sampling_mode.min_p"] = 0.05
+                    if raw_rep is None or raw_rep == 0:
+                        inputs["sampling_mode.repetition_penalty"] = mp_val
+                else:
+                    inputs["sampling_mode.min_p"] = max(0.0, min(1.0, mp_val))
+
+                # top_k 限制在 [0, 1000]
+                try:
+                    tk_val = int(float(inputs.get("sampling_mode.top_k", 64)))
+                    inputs["sampling_mode.top_k"] = max(0, min(1000, tk_val))
+                except (ValueError, TypeError):
+                    inputs["sampling_mode.top_k"] = 64
+
+                # top_p 限制在 [0.0, 1.0]
+                try:
+                    tp_val = float(inputs.get("sampling_mode.top_p", 0.95))
+                    inputs["sampling_mode.top_p"] = max(0.0, min(1.0, tp_val))
+                except (ValueError, TypeError):
+                    inputs["sampling_mode.top_p"] = 0.95
+
+                # repetition_penalty 限制在 [0.0, 5.0]
+                try:
+                    rp_val = float(inputs.get("sampling_mode.repetition_penalty", 1.05))
+                    inputs["sampling_mode.repetition_penalty"] = max(0.0, min(5.0, rp_val))
+                except (ValueError, TypeError):
+                    inputs["sampling_mode.repetition_penalty"] = 1.05
+
+                # presence_penalty 限制在 [0.0, 5.0]
+                if "sampling_mode.presence_penalty" in inputs:
+                    try:
+                        pp_val = float(inputs.get("sampling_mode.presence_penalty", 0.0))
+                        inputs["sampling_mode.presence_penalty"] = max(0.0, min(5.0, pp_val))
+                    except (ValueError, TypeError):
+                        inputs["sampling_mode.presence_penalty"] = 0.0
+
+                # seed
+                if "sampling_mode.seed" in inputs:
+                    try:
+                        inputs["sampling_mode.seed"] = int(inputs["sampling_mode.seed"])
+                    except (ValueError, TypeError):
+                        inputs["sampling_mode.seed"] = 0
+
             # 通用保护：任意节点的 max_length 必须为 int，不能为 "on" 等字符串
             if "max_length" in inputs and not isinstance(inputs["max_length"], int):
                 try:

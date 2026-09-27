@@ -114,6 +114,15 @@ FIELD_ALIASES = {
     'image_height': 'height',
 }
 
+KNOWN_PARAM_CONSTRAINTS = {
+    'sampling_mode.temperature': {'min': 0.01, 'max': 2.0, 'step': 0.01, 'label': '采样温度'},
+    'sampling_mode.top_k': {'min': 0, 'max': 1000, 'step': 1, 'label': 'Top-K'},
+    'sampling_mode.top_p': {'min': 0.0, 'max': 1.0, 'step': 0.01, 'label': 'Top-P'},
+    'sampling_mode.min_p': {'min': 0.0, 'max': 1.0, 'step': 0.01, 'label': 'Min-P'},
+    'sampling_mode.repetition_penalty': {'min': 0.0, 'max': 5.0, 'step': 0.01, 'label': '重复惩罚'},
+    'sampling_mode.presence_penalty': {'min': 0.0, 'max': 5.0, 'step': 0.01, 'label': '存在惩罚'},
+}
+
 KSAMPLER_WIDGET_MAP = {
     0: ('seed', lambda v: int(v) if v is not None else 1, {'type': 'number', 'default': 1, 'min': 0, 'max': 0xffffffffffffffff}),
     2: ('steps', int, {'type': 'number', 'default': 20, 'min': 1, 'max': 10000}),
@@ -1388,6 +1397,12 @@ def convert_native_to_api(native_data, definitions=None):
                         entry['max'] = inp['max']
                     if inp.get('step') is not None:
                         entry['step'] = inp['step']
+                    if safe_name in KNOWN_PARAM_CONSTRAINTS:
+                        c = KNOWN_PARAM_CONSTRAINTS[safe_name]
+                        if 'min' not in entry and 'min' in c: entry['min'] = c['min']
+                        if 'max' not in entry and 'max' in c: entry['max'] = c['max']
+                        if 'step' not in entry and 'step' in c: entry['step'] = c['step']
+                        if 'label' not in entry and 'label' in c: entry['label'] = c['label']
                     if field_type == 'combo':
                         entry['options'] = inp['options']
                     field_mapping[safe_name] = f'{nid}.inputs.{inp_name}'
@@ -1418,6 +1433,12 @@ def convert_native_to_api(native_data, definitions=None):
                             entry['max'] = inp['max']
                         if inp.get('step') is not None:
                             entry['step'] = inp['step']
+                        if safe_name in KNOWN_PARAM_CONSTRAINTS:
+                            c = KNOWN_PARAM_CONSTRAINTS[safe_name]
+                            if 'min' not in entry and 'min' in c: entry['min'] = c['min']
+                            if 'max' not in entry and 'max' in c: entry['max'] = c['max']
+                            if 'step' not in entry and 'step' in c: entry['step'] = c['step']
+                            if 'label' not in entry and 'label' in c: entry['label'] = c['label']
                         if inp_type == 'COMBO' and isinstance(inp.get('options'), list):
                             entry['type'] = 'combo'
                             entry['options'] = inp['options']

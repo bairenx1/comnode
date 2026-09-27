@@ -259,6 +259,19 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
               expectedJobCountRef.current = 0;
             }
           }
+        } else if (msg.type === "execution_error") {
+          const errData = msg.data;
+          const errMsg = errData?.exception_message || "节点执行失败";
+          setError(`执行错误 [节点 ${errData?.node_id || ''}]: ${errMsg}`);
+          setStatusText("执行出错: " + errMsg);
+          setGenerating(false);
+          generatingRef.current = false;
+          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+        } else if (msg.type === "execution_interrupted") {
+          setStatusText("执行已被中断");
+          setGenerating(false);
+          generatingRef.current = false;
+          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
         } else if (msg.type === "status") {
           if (msg.data?.status?.exec_info) {
             setGpuUsage(msg.data.status.exec_info.queue_remaining > 0 ? 85 : 12);
@@ -460,6 +473,17 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
           }
           try {
             const jobResult = await api.job(promptId);
+            if (jobResult.history?.status?.status_str === "error") {
+              const msgs = jobResult.history.status.messages || [];
+              const lastMsg = msgs[msgs.length - 1];
+              const errMsg = Array.isArray(lastMsg) ? (lastMsg[1]?.message || lastMsg[1]) : (lastMsg || "任务执行失败");
+              setError("生成失败: " + String(errMsg));
+              setStatusText("生成出错: " + String(errMsg));
+              setGenerating(false);
+              generatingRef.current = false;
+              if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+              return;
+            }
             if (jobResult.history?.status?.completed || jobResult.history?.outputs) {
               // 从历史记录输出中提取图片 URL
               let imgUrl: string | undefined;
@@ -582,6 +606,15 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
           for (const pid of promptIds) {
             if (completedIds.has(pid)) continue;
             const jobResult = await api.job(pid);
+            if (jobResult.history?.status?.status_str === "error") {
+              completedIds.add(pid);
+              const msgs = jobResult.history.status.messages || [];
+              const lastMsg = msgs[msgs.length - 1];
+              const errMsg = Array.isArray(lastMsg) ? (lastMsg[1]?.message || lastMsg[1]) : (lastMsg || "任务执行失败");
+              setError("生成失败: " + String(errMsg));
+              setStatusText("部分任务执行失败: " + String(errMsg));
+              continue;
+            }
             if (jobResult.history?.status?.completed || jobResult.history?.outputs) {
               completedIds.add(pid);
               const outputs = jobResult.history?.outputs;

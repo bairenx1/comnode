@@ -70,7 +70,7 @@
       {
         "name": "cache_device",
         "type": "combo",
-        "default": "gpu",
+        "default": "auto",
         "label": "cache_device"
       },
       {

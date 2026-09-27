@@ -306,12 +306,27 @@ class WorkflowRegistry:
         # 前端默认偶数帧 (如 16) 若直接传入会破坏潜空间重构导致崩溃，在此自动就近纠正
         has_ltxv = any("LTXV" in str(nd.get("class_type", "")) for nd in graph.values() if isinstance(nd, dict))
         if has_ltxv:
+            # 排除明确映射为宽度、高度、帧率、时长秒数等非帧数用途的节点
+            non_frame_targets = set()
+            for f_name, target in definition.field_mapping.items():
+                if f_name in ("width", "height", "fps", "frame_rate", "steps", "longer_edge", "batch_size", "cfg", "nag_scale", "preview_rate", "loop_count", "duration", "length"):
+                    f_info = next((f for f in definition.ui_schema.get("fields", []) if f["name"] == f_name), None)
+                    label_str = str(f_info.get("label", "")).lower() if f_info else ""
+                    # 只有明确是“帧数/总帧数”且非帧率/秒数的才当作帧数，其余均排除
+                    if "帧率" in label_str or "fps" in label_str or "rate" in label_str or ("帧数" not in label_str and "num_frame" not in label_str and "frame_count" not in label_str):
+                        non_frame_targets.add(str(target).split(".")[0])
+
             for nid, node_data in graph.items():
+                if str(nid) in non_frame_targets:
+                    continue
                 if isinstance(node_data, dict):
                     inp = node_data.get("inputs")
                     if isinstance(inp, dict):
-                        for k in ("value", "length", "frame_count", "frames_number"):
+                        for k in ("length", "frame_count", "frames_number", "num_frames", "value"):
                             if k in inp and isinstance(inp[k], int) and inp[k] > 0 and (inp[k] - 1) % 8 != 0:
+                                # 宽度高度等常见分辨率（>=64 且为 16 的倍数）不作帧数规整
+                                if k == "value" and inp[k] >= 64 and inp[k] % 16 == 0:
+                                    continue
                                 k_val = round((inp[k] - 1) / 8)
                                 inp[k] = max(9, k_val * 8 + 1)
 

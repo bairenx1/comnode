@@ -101,7 +101,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   }, [currentWfId]);
 
   const rawDynamicFields = activeWorkflowId && workflowSchemas[activeWorkflowId] ? workflowSchemas[activeWorkflowId].ui_schema.fields : null;
-  // 针对文生视频 (unsloth_flowers) 和图生视频 (00123d) 精简展示核心必要参数，其余工作流保持完全不动
+  // 针对特定工作流（文生视频 unsloth_flowers、图生图 00123d、图生视频 wanmeitushipin 及同类工作流）精简展示核心必要参数，其余工作流保持完全不动
   const dynamicFields = React.useMemo(() => {
     if (!rawDynamicFields || !activeWorkflowId) return rawDynamicFields;
     const wid = activeWorkflowId.toLowerCase();
@@ -117,6 +117,23 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
         "target_asset_hash", "target_asset_hash_2",
         "prompt", "positive_prompt", "negative_prompt",
         "aspect_ratio", "seed", "noise_seed", "steps"
+      ]);
+      return rawDynamicFields.filter(f => allowed.has(f.name) || f.role === 'image_upload' || f.name.endsWith('_asset_hash'));
+    }
+    if (
+      wid.includes("wanmeitushipin") ||
+      wid.includes("tushipin") ||
+      wid.includes("san_video") ||
+      wid.includes("vid_ltx") ||
+      wid.includes("video_ltx")
+    ) {
+      const allowed = new Set([
+        "target_asset_hash", "target_asset_hash_2", "image",
+        "prompt", "positive_prompt", "text", "negative_prompt", "negative_text",
+        "width", "height", "aspect_ratio",
+        "fps", "frame_rate",
+        "length", "duration", "frame_count", "frames_number", "num_frames",
+        "seed", "noise_seed", "steps"
       ]);
       return rawDynamicFields.filter(f => allowed.has(f.name) || f.role === 'image_upload' || f.name.endsWith('_asset_hash'));
     }
@@ -385,7 +402,23 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
   const handleImageUpload = (fieldName: string, file: File) => {
     const prev = imageUploads[fieldName];
     if (prev?.preview) URL.revokeObjectURL(prev.preview);
-    setImageUploads(p => ({ ...p, [fieldName]: { file, preview: URL.createObjectURL(file), hash: null } }));
+    const objectUrl = URL.createObjectURL(file);
+    setImageUploads(p => ({ ...p, [fieldName]: { file, preview: objectUrl, hash: null } }));
+
+    // 前端自动识别上传图片的分辨率并填入 width 和 height
+    const img = new Image();
+    img.onload = () => {
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      if (w > 0 && h > 0) {
+        setParams((p: any) => ({
+          ...p,
+          width: w,
+          height: h,
+        }));
+      }
+    };
+    img.src = objectUrl;
   };
   const handleImageRemove = (fieldName: string) => {
     const prev = imageUploads[fieldName];
@@ -461,7 +494,15 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
           if (f.default !== undefined && f.default !== null) fieldDefaults[f.name] = f.default;
         }
       }
-      const isCuratedWf = activeWorkflowId && (activeWorkflowId.toLowerCase().includes("unsloth") || activeWorkflowId.toLowerCase().includes("00123d"));
+      const isCuratedWf = activeWorkflowId && (
+        activeWorkflowId.toLowerCase().includes("unsloth") ||
+        activeWorkflowId.toLowerCase().includes("00123d") ||
+        activeWorkflowId.toLowerCase().includes("wanmeitushipin") ||
+        activeWorkflowId.toLowerCase().includes("tushipin") ||
+        activeWorkflowId.toLowerCase().includes("san_video") ||
+        activeWorkflowId.toLowerCase().includes("vid_ltx") ||
+        activeWorkflowId.toLowerCase().includes("video_ltx")
+      );
       const cleanParams: Record<string, any> = {};
       if (isCuratedWf && dynamicFields) {
         const allowedParamNames = new Set(dynamicFields.map(f => f.name).concat(["prompt", "negative_prompt", "seed", "noise_seed"]));
@@ -603,7 +644,15 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
           if (f.default !== undefined && f.default !== null) fieldDefaults[f.name] = f.default;
         }
       }
-      const isCuratedWf = activeWorkflowId && (activeWorkflowId.toLowerCase().includes("unsloth") || activeWorkflowId.toLowerCase().includes("00123d"));
+      const isCuratedWf = activeWorkflowId && (
+        activeWorkflowId.toLowerCase().includes("unsloth") ||
+        activeWorkflowId.toLowerCase().includes("00123d") ||
+        activeWorkflowId.toLowerCase().includes("wanmeitushipin") ||
+        activeWorkflowId.toLowerCase().includes("tushipin") ||
+        activeWorkflowId.toLowerCase().includes("san_video") ||
+        activeWorkflowId.toLowerCase().includes("vid_ltx") ||
+        activeWorkflowId.toLowerCase().includes("video_ltx")
+      );
       const cleanParams: Record<string, any> = {};
       if (isCuratedWf && dynamicFields) {
         const allowedParamNames = new Set(dynamicFields.map(f => f.name).concat(["prompt", "negative_prompt", "seed", "noise_seed"]));
@@ -1097,7 +1146,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                 prompt: 1, positive_prompt: 1, text: 1,
                 negative_prompt: 2, negative_text: 2,
                 // 视频核心参数 — 紧接提示词
-                frame_count: 5, num_frames: 5, fps: 6, frame_rate: 6, duration: 7,
+                frame_count: 5, num_frames: 5, fps: 6, frame_rate: 6, duration: 7, length: 7,
                 // 尺寸 — 视频/图片通用
                 aspect_ratio: 7.5,
                 width: 8, height: 9, batch_size: 10, image_width: 8, image_height: 9,
@@ -1140,7 +1189,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                 batch_size: '批次数量', upscale_method: '放大算法', upscale_factor: '放大倍数',
                 ckpt_name: '底模', checkpoint: '底模', model_name: '底模',
                 vae_name: 'VAE', clip_name: 'CLIP 模型',
-                frame_count: '视频帧数', num_frames: '视频帧数', duration: '时长 (秒)',
+                frame_count: '视频帧数', num_frames: '视频帧数', duration: '时长 (秒)', length: '时长 (秒)',
                 // 视频专用参数
                 fps: '帧率 (FPS)', frame_rate: '帧率 (FPS)',
                 motion_bucket_id: '运动幅度',
@@ -1160,7 +1209,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
               const controlSet = new Set(['control_net_name', 'cn_strength', 'control_strength', 'start_percent', 'end_percent']);
               const dimsSet = new Set(['width', 'height', 'batch_size', 'image_width', 'image_height', 'aspect_ratio', 'upscale_method', 'upscale_factor']);
               const modelSet = new Set(['ckpt_name', 'checkpoint', 'model_name', 'vae_name', 'clip_name']);
-              const videoSet = new Set(['frame_count', 'num_frames', 'fps', 'frame_rate', 'duration', 'motion_bucket_id', 'augmentation_level', 'min_cfg', 'motion_frame_count', 'continue_motion_max_frames', 'audio_scale', 'pose_strength', 'pose_start', 'pose_end', 'vace_strength', 'track_temperature', 'track_topk']);
+              const videoSet = new Set(['length', 'frame_count', 'num_frames', 'fps', 'frame_rate', 'duration', 'motion_bucket_id', 'augmentation_level', 'min_cfg', 'motion_frame_count', 'continue_motion_max_frames', 'audio_scale', 'pose_strength', 'pose_start', 'pose_end', 'vace_strength', 'track_temperature', 'track_topk']);
               const catOf = (name: string) => {
                 if (name === 'prompt' || name === 'positive_prompt' || name === 'text' || name === 'negative_prompt' || name === 'negative_text') return 'prompt';
                 if (loraSet.has(name)) return 'lora';

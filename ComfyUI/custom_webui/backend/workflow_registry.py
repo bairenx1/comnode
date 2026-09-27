@@ -193,31 +193,49 @@ class WorkflowRegistry:
 
             # 针对 TextGenerate / TextGenerateLTX2Prompt 等文本生成节点
             if "TextGenerate" in ctype:
-                # 1. max_length 必须是合法正整数
+                # 1. max_length 必须是合法正整数，彻底防范被误传为 "on" 等字符串
                 ml = inputs.get("max_length")
                 if ml is not None:
                     try:
-                        inputs["max_length"] = int(ml)
+                        inputs["max_length"] = int(ml) if str(ml).strip().isdigit() else 256
                     except (ValueError, TypeError):
                         inputs["max_length"] = 256
-                # 2. mtp 必须在合法列表中，如为空或非法则修正为 auto
-                if "mtp" in inputs:
-                    if str(inputs["mtp"]).strip() not in ("auto", "off", "2", "3", "4", "5"):
-                        inputs["mtp"] = "auto"
+                else:
+                    inputs["max_length"] = 256
+
+                # 2. mtp 必须显式存在且在合法列表中，如缺失、为空或非法强制赋值为 "auto"
+                mtp_val = str(inputs.get("mtp") or "auto").strip()
+                if mtp_val not in ("auto", "off", "2", "3", "4", "5"):
+                    mtp_val = "auto"
+                inputs["mtp"] = mtp_val
+
                 # 3. sampling_mode 若非法修正为 on
-                if "sampling_mode" in inputs and inputs["sampling_mode"] not in ("on", "off"):
+                if inputs.get("sampling_mode") not in ("on", "off"):
                     inputs["sampling_mode"] = "on"
 
             # 通用保护：任意节点的 max_length 必须为 int，不能为 "on" 等字符串
             if "max_length" in inputs and not isinstance(inputs["max_length"], int):
                 try:
-                    inputs["max_length"] = int(inputs["max_length"])
+                    inputs["max_length"] = int(inputs["max_length"]) if str(inputs["max_length"]).strip().isdigit() else 256
                 except (ValueError, TypeError):
                     inputs["max_length"] = 256
 
             # 通用保护：任意节点的 mtp 若为空字符串，修正为 auto
             if "mtp" in inputs and str(inputs["mtp"]).strip() == "":
                 inputs["mtp"] = "auto"
+
+        # LTX-Video 帧数规范化：LTXV 要求帧数必须满足 8k+1 规律 (如 17, 25, 33, 41, 49, 121 等)
+        # 前端默认偶数帧 (如 16) 若直接传入会破坏潜空间重构导致崩溃，在此自动就近纠正
+        has_ltxv = any("LTXV" in str(nd.get("class_type", "")) for nd in graph.values() if isinstance(nd, dict))
+        if has_ltxv:
+            for nid, node_data in graph.items():
+                if isinstance(node_data, dict):
+                    inp = node_data.get("inputs")
+                    if isinstance(inp, dict):
+                        for k in ("value", "length", "frame_count", "frames_number"):
+                            if k in inp and isinstance(inp[k], int) and inp[k] > 0 and (inp[k] - 1) % 8 != 0:
+                                k_val = round((inp[k] - 1) / 8)
+                                inp[k] = max(9, k_val * 8 + 1)
 
         # 展开 UUID Group Node，将 _subgraph 内部节点提升到主图
         graph = _expand_uuid_wrappers(graph)

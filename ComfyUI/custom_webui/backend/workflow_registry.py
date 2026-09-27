@@ -240,18 +240,32 @@ class WorkflowRegistry:
         # 展开 UUID Group Node，将 _subgraph 内部节点提升到主图
         graph = _expand_uuid_wrappers(graph)
 
-        # 展开后保护：检查实际模型是否存在并对设备做自适应降级，防止运行时崩溃
+        # 展开后保护：检查实际模型是否存在并对设备做自适应降级，保证本地与远端（如 Mac）环境各取所需
         try:
             import folder_paths
-            available_diffusion = set(folder_paths.get_filename_list("diffusion_models") or [])
+            avail_diffusion = set(folder_paths.get_filename_list("diffusion_models") or [])
+            avail_clip = set(folder_paths.get_filename_list("text_encoders") or folder_paths.get_filename_list("clip") or [])
+            avail_vae = set(folder_paths.get_filename_list("vae") or [])
         except Exception:
-            available_diffusion = set()
+            avail_diffusion = set()
+            avail_clip = set()
+            avail_vae = set()
 
         try:
             import torch
             has_cuda = torch.cuda.is_available()
         except Exception:
             has_cuda = False
+
+        import re
+        def _smart_match(req: str, candidates: set[str]) -> str:
+            if not req or not candidates or req in candidates:
+                return req  # 当前环境（如远端 Mac）实际存在该模型时，坚决保留原配置，不作任何修改！
+            # 若当前环境缺失该模型，提取核心家族名（剥离 .safetensors 及 _bf16/_int8/_fp8/_w4a8 等后缀）
+            stem = re.sub(r"\.(safetensors|gguf|pt|bin|ckpt)$", "", req, flags=re.I)
+            core = re.sub(r"(_bf16|_fp16|_fp8.*|_int8.*|_w4a8.*|_int4.*|_quant.*)$", "", stem, flags=re.I)
+            matched = [m for m in candidates if core.lower() in m.lower()]
+            return matched[0] if matched else req
 
         for nid, node_data in graph.items():
             if not isinstance(node_data, dict):
@@ -261,25 +275,38 @@ class WorkflowRegistry:
                 continue
             ctype = str(node_data.get("class_type", ""))
 
-            # 设备容错：在非 CUDA 环境（如 Mac MPS / CPU），强制将 device="gpu" 回退为 "auto"
+            # 设备容错：在非 CUDA 环境（如远端 Mac MPS / CPU），强制将 device="gpu" 回退为 "auto"
             if not has_cuda and inputs.get("device") == "gpu":
                 inputs["device"] = "auto"
 
-            # UNETLoader / 模型容错：若配置的模型文件在本地不存在，自动回退到同系列的本地已有模型
+            # UNET 模型智能自适应（有原版用原版，缺失才动态替换为现有版本）
             if ctype in ("UNETLoader",) or "unet_name" in inputs:
                 req_unet = inputs.get("unet_name")
-                if isinstance(req_unet, str) and available_diffusion and req_unet not in available_diffusion:
-                    # 尝试前缀匹配（如 qwen_image_2.1）
-                    prefix = req_unet.split("_")[0] if "_" in req_unet else req_unet.split(".")[0]
-                    matched = [m for m in available_diffusion if prefix.lower() in m.lower()]
-                    if matched:
-                        fallback_model = matched[0]
+                if isinstance(req_unet, str) and avail_diffusion:
+                    target_unet = _smart_match(req_unet, avail_diffusion)
+                    if target_unet != req_unet:
                         logging.warning(
-                            f"节点 {nid} ({ctype}) 指定的 UNet 模型 '{req_unet}' 在本地不存在，自动回退到本地已有模型 '{fallback_model}'"
+                            f"当前环境未找到 '{req_unet}'，自动切换为本地已有模型 '{target_unet}'"
                         )
-                        inputs["unet_name"] = fallback_model
+                        inputs["unet_name"] = target_unet
                         if "weight_dtype" in inputs and inputs["weight_dtype"] != "default":
                             inputs["weight_dtype"] = "default"
+
+            # Text Encoder (CLIP) 智能自适应
+            if "clip_name" in inputs and isinstance(inputs.get("clip_name"), str) and avail_clip:
+                req_clip = inputs["clip_name"]
+                target_clip = _smart_match(req_clip, avail_clip)
+                if target_clip != req_clip:
+                    logging.warning(f"当前环境未找到 '{req_clip}'，自动切换为本地已有模型 '{target_clip}'")
+                    inputs["clip_name"] = target_clip
+
+            # VAE 模型智能自适应
+            if "vae_name" in inputs and isinstance(inputs.get("vae_name"), str) and avail_vae:
+                req_vae = inputs["vae_name"]
+                target_vae = _smart_match(req_vae, avail_vae)
+                if target_vae != req_vae:
+                    logging.warning(f"当前环境未找到 '{req_vae}'，自动切换为本地已有模型 '{target_vae}'")
+                    inputs["vae_name"] = target_vae
 
         return graph, None
 

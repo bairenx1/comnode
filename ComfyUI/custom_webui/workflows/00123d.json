@@ -27,7 +27,7 @@
       "scheduler": "euler",
       "scheduler_1": "simple",
       "seed": 279075116503933,
-      "unet_name": "qwen_image_2.1_int8_convrot.safetensors",
+      "unet_name": "qwen_image_2.1_bf16.safetensors",
       "clip_name": "qwen3vl_8b_w4a8.safetensors",
       "vae_name": "qwen_image_2.1_vae_bf16.safetensors",
       "images.image_1": [

@@ -141,6 +141,15 @@ class WorkflowRegistry:
         elif "noise_seed" in merged_params and merged_params["noise_seed"] is not None:
             merged_params["seed"] = merged_params["noise_seed"]
 
+        # 视频参数别名互通：确保前端精简传递的 fps / frame_count 自动同步给同工作流中的冗余节点
+        if "fps" in merged_params and merged_params["fps"] is not None and "frame_rate" not in merged_params:
+            merged_params["frame_rate"] = merged_params["fps"]
+        if "frame_count" in merged_params and merged_params["frame_count"] is not None:
+            if "length" not in merged_params:
+                merged_params["length"] = merged_params["frame_count"]
+            if "frames_number" not in merged_params:
+                merged_params["frames_number"] = merged_params["frame_count"]
+
         for ui_field, target in definition.field_mapping.items():
             # 只有当 merged_params 中根本没有提供这个参数时，才使用 ui_schema 默认值（确保 -10 widget ref 被解析）
             if ui_field not in merged_params:

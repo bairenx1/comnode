@@ -100,7 +100,28 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
     });
   }, [currentWfId]);
 
-  const dynamicFields = activeWorkflowId && workflowSchemas[activeWorkflowId] ? workflowSchemas[activeWorkflowId].ui_schema.fields : null;
+  const rawDynamicFields = activeWorkflowId && workflowSchemas[activeWorkflowId] ? workflowSchemas[activeWorkflowId].ui_schema.fields : null;
+  // 针对文生视频 (unsloth_flowers) 和图生视频 (00123d) 精简展示核心必要参数，其余工作流保持完全不动
+  const dynamicFields = React.useMemo(() => {
+    if (!rawDynamicFields || !activeWorkflowId) return rawDynamicFields;
+    const wid = activeWorkflowId.toLowerCase();
+    if (wid === "unsloth_flowers" || wid.includes("unsloth")) {
+      const allowed = new Set([
+        "prompt", "positive_prompt", "negative_prompt",
+        "width", "height", "frame_count", "fps", "noise_seed", "seed", "steps"
+      ]);
+      return rawDynamicFields.filter(f => allowed.has(f.name));
+    }
+    if (wid === "00123d" || wid.includes("00123d")) {
+      const allowed = new Set([
+        "target_asset_hash", "target_asset_hash_2",
+        "prompt", "positive_prompt", "negative_prompt",
+        "aspect_ratio", "seed", "noise_seed", "steps"
+      ]);
+      return rawDynamicFields.filter(f => allowed.has(f.name) || f.role === 'image_upload' || f.name.endsWith('_asset_hash'));
+    }
+    return rawDynamicFields;
+  }, [rawDynamicFields, activeWorkflowId]);
   const isGenMode = !["assets", "prompts", "settings"].includes(mode);
   // 基于工作流 schema 动态检测图片上传字段
   const imageFields = (dynamicFields || []).filter(f => f.role === 'image_upload' || f.name.endsWith('_asset_hash'));
@@ -440,14 +461,24 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
           if (f.default !== undefined && f.default !== null) fieldDefaults[f.name] = f.default;
         }
       }
+      const isCuratedWf = activeWorkflowId && (activeWorkflowId.toLowerCase().includes("unsloth") || activeWorkflowId.toLowerCase().includes("00123d"));
+      const cleanParams: Record<string, any> = {};
+      if (isCuratedWf && dynamicFields) {
+        const allowedParamNames = new Set(dynamicFields.map(f => f.name).concat(["prompt", "negative_prompt", "seed", "noise_seed"]));
+        for (const [k, v] of Object.entries(params)) {
+          if (allowedParamNames.has(k)) cleanParams[k] = v;
+        }
+      } else {
+        Object.assign(cleanParams, params);
+      }
       const randomSeed = Math.floor(Math.random() * 2**32);
       const jobParams: JobParams = {
         ...fieldDefaults,
-        prompt: params.prompt !== undefined ? params.prompt : ((fieldDefaults.prompt as string) || "masterpiece, best quality"),
-        negative_prompt: params.negative_prompt !== undefined ? params.negative_prompt : ((fieldDefaults.negative_prompt as string) || undefined),
-        ...params,
+        prompt: cleanParams.prompt !== undefined ? cleanParams.prompt : ((fieldDefaults.prompt as string) || "masterpiece, best quality"),
+        negative_prompt: cleanParams.negative_prompt !== undefined ? cleanParams.negative_prompt : ((fieldDefaults.negative_prompt as string) || undefined),
+        ...cleanParams,
         ...imageHashes,
-        seed: seedFixed ? (params.seed ?? fieldDefaults.seed ?? 0) : randomSeed,
+        seed: seedFixed ? (cleanParams.seed ?? fieldDefaults.seed ?? 0) : randomSeed,
       };
       // 更新 UI 种子输入框为实际使用的值
       if (!seedFixed) setParams((prev: any) => ({ ...prev, seed: randomSeed }));
@@ -572,13 +603,23 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
           if (f.default !== undefined && f.default !== null) fieldDefaults[f.name] = f.default;
         }
       }
-      const baseSeed = params.seed || fieldDefaults.seed || Math.floor(Math.random() * 2**32);
+      const isCuratedWf = activeWorkflowId && (activeWorkflowId.toLowerCase().includes("unsloth") || activeWorkflowId.toLowerCase().includes("00123d"));
+      const cleanParams: Record<string, any> = {};
+      if (isCuratedWf && dynamicFields) {
+        const allowedParamNames = new Set(dynamicFields.map(f => f.name).concat(["prompt", "negative_prompt", "seed", "noise_seed"]));
+        for (const [k, v] of Object.entries(params)) {
+          if (allowedParamNames.has(k)) cleanParams[k] = v;
+        }
+      } else {
+        Object.assign(cleanParams, params);
+      }
+      const baseSeed = cleanParams.seed || fieldDefaults.seed || Math.floor(Math.random() * 2**32);
       const jobs = Array.from({ length: batchCount }, (_, i) => ({
         params: {
           ...fieldDefaults,
-          prompt: params.prompt !== undefined ? params.prompt : ((fieldDefaults.prompt as string) || "masterpiece, best quality"),
-          negative_prompt: params.negative_prompt !== undefined ? params.negative_prompt : ((fieldDefaults.negative_prompt as string) || undefined),
-          ...params,
+          prompt: cleanParams.prompt !== undefined ? cleanParams.prompt : ((fieldDefaults.prompt as string) || "masterpiece, best quality"),
+          negative_prompt: cleanParams.negative_prompt !== undefined ? cleanParams.negative_prompt : ((fieldDefaults.negative_prompt as string) || undefined),
+          ...cleanParams,
           ...imageHashes,
           seed: seedFixed ? (baseSeed + i) : Math.floor(Math.random() * 2**32),
         } as JobParams,
@@ -1058,6 +1099,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                 // 视频核心参数 — 紧接提示词
                 frame_count: 5, num_frames: 5, fps: 6, frame_rate: 6, duration: 7,
                 // 尺寸 — 视频/图片通用
+                aspect_ratio: 7.5,
                 width: 8, height: 9, batch_size: 10, image_width: 8, image_height: 9,
                 // 采样参数
                 seed: 15, noise_seed: 15, steps: 16, cfg: 17, guidance: 17,
@@ -1088,6 +1130,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
               const labels: Record<string, string> = {
                 prompt: '提示词', positive_prompt: '提示词', text: '提示词',
                 negative_prompt: '负向提示词', negative_text: '负向提示词',
+                aspect_ratio: '画面比例',
                 lora_name: 'LoRA 模型', lora_weight: 'LoRA 权重', strength_model: 'LoRA 模型强度', strength_clip: 'LoRA CLIP 强度',
                 seed: '随机种子', noise_seed: '噪声种子', steps: '采样步数', cfg: '提示词引导 (CFG)', guidance: '引导强度',
                 sampler_name: '采样器', scheduler: '调度器', denoise: '降噪强度', denoising_strength: '降噪强度',
@@ -1115,7 +1158,7 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
               const loraSet = new Set(['lora_name', 'lora_weight', 'strength_model', 'strength_clip']);
               const samplingSet = new Set(['seed', 'noise_seed', 'steps', 'cfg', 'guidance', 'sampler_name', 'scheduler', 'denoise', 'denoising_strength']);
               const controlSet = new Set(['control_net_name', 'cn_strength', 'control_strength', 'start_percent', 'end_percent']);
-              const dimsSet = new Set(['width', 'height', 'batch_size', 'image_width', 'image_height', 'upscale_method', 'upscale_factor']);
+              const dimsSet = new Set(['width', 'height', 'batch_size', 'image_width', 'image_height', 'aspect_ratio', 'upscale_method', 'upscale_factor']);
               const modelSet = new Set(['ckpt_name', 'checkpoint', 'model_name', 'vae_name', 'clip_name']);
               const videoSet = new Set(['frame_count', 'num_frames', 'fps', 'frame_rate', 'duration', 'motion_bucket_id', 'augmentation_level', 'min_cfg', 'motion_frame_count', 'continue_motion_max_frames', 'audio_scale', 'pose_strength', 'pose_start', 'pose_end', 'vace_strength', 'track_temperature', 'track_topk']);
               const catOf = (name: string) => {

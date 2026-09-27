@@ -10,8 +10,8 @@
   "459": {
     "class_type": "bc1c967a-7f6a-4be9-a372-dad16e4f28e3",
     "inputs": {
-      "resolution": 0,
-      "prompt": "将image_1中人物的脸换为image_2中人物的脸，并保持image_1中人物的原有表情、发行、姿势、衣着等都不变，仅仅替换其面部特征",
+      "resolution": 1024,
+      "prompt": "将<image_1>中人物的脸换为<image_2>中人物的脸，并保持<image_1>中人物的原有表情、发型、姿势、衣着等都不变，仅仅替换其面部特征",
       "negative_prompt": "",
       "cfg": 1,
       "steps": 25,

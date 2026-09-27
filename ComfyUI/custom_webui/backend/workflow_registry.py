@@ -401,6 +401,20 @@ class WorkflowRegistry:
                     logging.warning(f"当前环境未找到 '{req_vae}'，自动切换为本地已有模型 '{target_vae}'")
                     inputs["vae_name"] = target_vae
 
+            # Qwen Image 文本/图像编码保护：防范 resolution=0 导致原图无缩放输入，撑爆显存触发 CPU 降级
+            if "TextEncodeQwenImage" in ctype:
+                res_val = inputs.get("resolution")
+                try:
+                    if res_val is None or int(res_val) <= 0:
+                        inputs["resolution"] = 1024
+                except (ValueError, TypeError):
+                    inputs["resolution"] = 1024
+
+                # 提示词占位符规范化：若提示词包含 image_1、image_2 但未加尖括号，自动安全规范化为 <image_1>
+                prompt_val = inputs.get("prompt")
+                if isinstance(prompt_val, str) and "image_" in prompt_val:
+                    inputs["prompt"] = re.sub(r'(?<!<)image_([1-9]|10)(?!>)', r'<image_\1>', prompt_val)
+
         return graph, None
 
     @staticmethod

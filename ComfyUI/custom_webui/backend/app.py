@@ -17,6 +17,30 @@ from .startup_diagnostics import run_startup_diagnostics
 _diag_has_run = False
 
 
+_MODEL_EXTS = (".safetensors", ".ckpt", ".pt", ".bin", ".gguf", ".sft")
+_MODEL_KEYS = {
+    "ckpt_name", "checkpoint_name", "unet_name", "model_name",
+    "clip_name", "clip_name1", "clip_name2", "vae_name",
+    "lora_name", "lora_name_1", "lora_name_2", "lora_name_3",
+}
+
+def extract_workflow_models(graph: dict[str, Any]) -> frozenset[str]:
+    """从工作流 prompt graph 中提取所引用的所有模型/权重文件名集合"""
+    models = set()
+    for _, node_data in graph.items():
+        if not isinstance(node_data, dict):
+            continue
+        inputs = node_data.get("inputs")
+        if not isinstance(inputs, dict):
+            continue
+        for k, v in inputs.items():
+            if isinstance(v, str) and v.strip():
+                v_clean = v.strip()
+                if k in _MODEL_KEYS or any(v_clean.lower().endswith(ext) for ext in _MODEL_EXTS):
+                    models.add(v_clean)
+    return frozenset(models)
+
+
 def create_app() -> web.Application:
     global _diag_has_run
     if not _diag_has_run:
@@ -37,6 +61,7 @@ def create_app() -> web.Application:
 
     app["registry"] = registry
     app["comfy"] = comfy
+    last_executed_models: frozenset[str] | None = None
 
     def comfy_down_response(err: Exception) -> web.Response:
         msg = str(err)
@@ -141,6 +166,7 @@ def create_app() -> web.Application:
             workflow_id = body["workflow_id"]
             jobs = body.get("jobs", [])
             client_id = body.get("client_id", uuid.uuid4().hex)
+
             queued = []
             for job in jobs:
                 params = job.get("params", {})
@@ -166,6 +192,20 @@ def create_app() -> web.Application:
                             {"error": "workflow_node_mismatch", "message": f"工作流节点映射失败: {e}"},
                             status=400,
                         )
+
+                # 智能显存清理：仅当实际使用的模型权重文件发生变更时，才卸载旧模型释放显存
+                # 若两个工作流名字不同但使用的模型完全一样，则复用显存中的常驻模型，避免无意义的重新加载
+                current_models = extract_workflow_models(prompt_graph)
+                nonlocal last_executed_models
+                if last_executed_models is not None and current_models != last_executed_models:
+                    try:
+                        logging.info(
+                            f"检测到模型发生切换: {set(last_executed_models)} → {set(current_models)}，正在自动释放显存与内存..."
+                        )
+                        await comfy.free_memory(unload_models=True, free_memory=True)
+                    except Exception as ex:
+                        logging.warning(f"自动清理内存失败: {ex}")
+                last_executed_models = current_models
                 extra = {"source": "custom_webui", "workflow_id": workflow_id}
                 if comfy_extra:
                     extra.update(comfy_extra)
@@ -211,6 +251,20 @@ def create_app() -> web.Application:
     async def interrupt(_: web.Request) -> web.Response:
         try:
             result = await comfy.interrupt()
+            return web.json_response(result)
+        except aiohttp.ClientError as e:
+            return comfy_down_response(e)
+
+    @routes.post("/api/free")
+    async def free_memory(request: web.Request) -> web.Response:
+        try:
+            try:
+                body = await request.json()
+            except Exception:
+                body = {}
+            unload_models = body.get("unload_models", True)
+            free_mem = body.get("free_memory", True)
+            result = await comfy.free_memory(unload_models=unload_models, free_memory=free_mem)
             return web.json_response(result)
         except aiohttp.ClientError as e:
             return comfy_down_response(e)

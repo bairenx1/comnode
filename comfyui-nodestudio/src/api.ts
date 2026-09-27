@@ -1,4 +1,4 @@
-﻿import type { AppMode } from "./types";
+import type { AppMode } from "./types";
 
 export const modeToWorkflowId: Record<string, string> = {
   t2i: "txt2img",
@@ -115,6 +115,13 @@ class ComfyApiClient {
   async queue() { return this.request<unknown>("/api/queue"); }
 
   async interrupt() { return this.request<unknown>("/api/interrupt", { method: "POST" }); }
+
+  async free(unloadModels = true, freeMemory = true) {
+    return this.request<{ ok: boolean }>("/api/free", {
+      method: "POST",
+      body: JSON.stringify({ unload_models: unloadModels, free_memory: freeMemory }),
+    });
+  }
 
   async job(promptId: string) {
     return this.request<{job: unknown; history: {prompt_id: string; outputs?: Record<string, unknown>; status?: {completed: boolean; status_str?: string}} | null}>("/api/jobs/" + promptId);

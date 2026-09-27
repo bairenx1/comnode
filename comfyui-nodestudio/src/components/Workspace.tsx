@@ -120,6 +120,21 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
     } catch (_) {}
     setRefreshing(false);
   };
+  const [cleaningMemory, setCleaningMemory] = useState(false);
+  const [memoryCleaned, setMemoryCleaned] = useState(false);
+  const handleCleanMemory = async () => {
+    if (cleaningMemory) return;
+    setCleaningMemory(true);
+    try {
+      await api.free(true, true);
+      setMemoryCleaned(true);
+      setTimeout(() => setMemoryCleaned(false), 2000);
+    } catch (e) {
+      console.warn("清理内存失败:", e);
+    } finally {
+      setCleaningMemory(false);
+    }
+  };
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -985,6 +1000,19 @@ export function Workspace({ mode, onSendToWorkflow, pendingImageUrl, onClearPend
                 </div>
               )}
             </div>
+            <button
+              onClick={handleCleanMemory}
+              disabled={cleaningMemory}
+              className={`text-[11px] font-mono flex items-center gap-1.5 px-2.5 py-1 rounded border transition-all ${
+                memoryCleaned
+                  ? "bg-green-500/10 border-green-500/40 text-green-400"
+                  : "border-border-main/60 bg-bg-input/40 hover:bg-bg-input hover:border-accent/40 text-text-secondary hover:text-text-primary"
+              } ${cleaningMemory ? "animate-pulse opacity-70" : ""}`}
+              title="一键释放显存与内存（卸载所有已驻留模型并清理缓存）"
+            >
+              <Cpu className={`w-3 h-3 ${cleaningMemory ? "animate-spin" : ""}`} />
+              {memoryCleaned ? "显存已释放" : cleaningMemory ? "正在释放..." : "释放显存"}
+            </button>
           </div>
         </div>
         <div className="p-5 space-y-6 flex-1">

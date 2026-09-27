@@ -48,6 +48,13 @@ class ComfyClient:
             resp.raise_for_status()
             return await resp.json()
 
+    async def free_memory(self, unload_models: bool = True, free_memory: bool = True) -> dict[str, Any]:
+        session = await self._ensure_session()
+        payload = {"unload_models": unload_models, "free_memory": free_memory}
+        async with session.post(f"{self.base_url}/free", json=payload) as resp:
+            resp.raise_for_status()
+            return {"ok": True}
+
     async def get_queue(self) -> dict[str, Any]:
         return await self._get_json("/queue")
 

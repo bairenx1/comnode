@@ -758,7 +758,7 @@ def convert_native_to_api(native_data, definitions=None):
             if not has_valid_image_input:
                 continue
 
-        widgets_values = node.get('widgets_values', [])
+        widgets_values = node.get('widgets_values_named') or node.get('widgets_values', [])
         node_inputs = node.get('inputs', [])
         inputs = {}
 
@@ -1354,7 +1354,13 @@ def convert_native_to_api(native_data, definitions=None):
                     elif inp_type == 'BOOLEAN':
                         inputs[inp_name] = bool(inp.get('default', False))
                     elif inp_type == 'COMBO':
-                        inputs[inp_name] = str(inp.get('default', ''))
+                        combo_default = inp.get('default')
+                        if combo_default is not None and str(combo_default).strip():
+                            inputs[inp_name] = str(combo_default)
+                        elif isinstance(inp.get('options'), list) and inp['options']:
+                            inputs[inp_name] = str(inp['options'][0])
+                        else:
+                            inputs[inp_name] = ''
                     else:
                         inputs[inp_name] = str(inp.get('default', ''))
                 # 为所有 widget 输入生成 UI 字段（跳过模型相关字段）

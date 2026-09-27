@@ -182,6 +182,43 @@ class WorkflowRegistry:
             except (ValueError, TypeError):
                 pass
 
+        # 遍历图节点做针对性参数清洗和容错，防止非法参数破坏 ComfyUI 校验
+        for nid, node_data in graph.items():
+            if not isinstance(node_data, dict):
+                continue
+            inputs = node_data.get("inputs")
+            if not isinstance(inputs, dict):
+                continue
+            ctype = str(node_data.get("class_type", ""))
+
+            # 针对 TextGenerate / TextGenerateLTX2Prompt 等文本生成节点
+            if "TextGenerate" in ctype:
+                # 1. max_length 必须是合法正整数
+                ml = inputs.get("max_length")
+                if ml is not None:
+                    try:
+                        inputs["max_length"] = int(ml)
+                    except (ValueError, TypeError):
+                        inputs["max_length"] = 256
+                # 2. mtp 必须在合法列表中，如为空或非法则修正为 auto
+                if "mtp" in inputs:
+                    if str(inputs["mtp"]).strip() not in ("auto", "off", "2", "3", "4", "5"):
+                        inputs["mtp"] = "auto"
+                # 3. sampling_mode 若非法修正为 on
+                if "sampling_mode" in inputs and inputs["sampling_mode"] not in ("on", "off"):
+                    inputs["sampling_mode"] = "on"
+
+            # 通用保护：任意节点的 max_length 必须为 int，不能为 "on" 等字符串
+            if "max_length" in inputs and not isinstance(inputs["max_length"], int):
+                try:
+                    inputs["max_length"] = int(inputs["max_length"])
+                except (ValueError, TypeError):
+                    inputs["max_length"] = 256
+
+            # 通用保护：任意节点的 mtp 若为空字符串，修正为 auto
+            if "mtp" in inputs and str(inputs["mtp"]).strip() == "":
+                inputs["mtp"] = "auto"
+
         # 展开 UUID Group Node，将 _subgraph 内部节点提升到主图
         graph = _expand_uuid_wrappers(graph)
 
@@ -200,7 +237,8 @@ class WorkflowRegistry:
                     try:
                         return float(value)
                     except ValueError:
-                        return value
+                        logging.warning(f"无法将值 {repr(value)} 转换为 number，将被丢弃以避免校验失败")
+                        return None
             return value
         if field_type == "boolean":
             if isinstance(value, str):
